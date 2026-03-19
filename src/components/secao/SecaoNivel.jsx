@@ -59,14 +59,26 @@ export default function SecaoNivel({ titulo, labelResultado, travessias, onChang
                       <select
                         id={`${campo}-t${i + 1}`}
                         className="xcell"
-                        style={{ width: '100%' }}
-                        value={t[campo] ?? ''}
-                        onChange={e => onChangeTravessia(i, campo, e.target.value)}
+                        style={{ width: "100%" }}
+                        value={t[campo] ?? ""}
+                        onChange={(e) => onChangeTravessia(i, campo, e.target.value)}
                       >
                         <option value="">...</option>
-                        {(config[configKey] || []).map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
+                        {(() => {
+                          let options = config[configKey] || [];
+                          // Filtro dinâmico Cabos -> Redes (Paridade Excel)
+                          if (campo === "tipoCabo" && config.cabos_por_rede) {
+                            const redeAtual = t.tipoRede;
+                            if (redeAtual && config.cabos_por_rede[redeAtual]) {
+                              options = config.cabos_por_rede[redeAtual];
+                            }
+                          }
+                          return options.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ));
+                        })()}
                       </select>
                     ) : (
                       <input

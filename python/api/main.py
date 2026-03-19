@@ -36,7 +36,7 @@ from translated.ponto_blocks import (
     calcular_polo,
 )
 from translated.qdt_blocks import calcular_qdt, QDTInput as QDTLogicInput
-from translated.plan1_tables import CABOS_TABLE, REDE_TABLE, POSTE_TABLE
+from translated.plan1_tables import CABOS_TABLE, REDE_TABLE, POSTE_TABLE, CABOS_POR_REDE
 
 app = FastAPI(title="Calculo Tração Poste", version="1.0.0")
 
@@ -65,7 +65,8 @@ def get_config() -> dict:
         "postes": {
             tipo: [m[0] for m in modelos]
             for tipo, modelos in POSTE_TABLE.items()
-        }
+        },
+        "cabos_por_rede": CABOS_POR_REDE
     }
 
 

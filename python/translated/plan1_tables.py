@@ -129,3 +129,40 @@ def lookup_poste_ecc(tipo_poste: str, modelo_poste: str) -> float:
             if result is not None:
                 return float(result)
     return 0.0
+CABOS_POR_REDE = {
+    "Compacta": [
+        "397MCM-CA, XLPE, 34,5 kV",
+        "397MCM-CA, XLPE, 13,8 kV",
+        "1/0AWG-CAA, XLPE, 13,8 kV",
+        "4 AWG-CAA, XLPE, 13,8 kV",
+        "185mm², MTX-MT, 20/35 kV",
+        "185mm², MTX-MT, 12/20 kV",
+        "50mm², MTX-MT, 12/20 kV"
+    ],
+    "Convencional": [
+        "556MCM-CA, Nu",
+        "397MCM-CA, Nu",
+        "1/0AWG-CAA, Nu",
+        "4 AWG-CAA, Nu"
+    ],
+    "Multiplexada": [
+        "185mm², MTX-BT",
+        "70mm², MTX-BT",
+        "150mm², MTX-BT"
+    ],
+    "Multiplexado": [
+        "185mm², MTX-BT",
+        "70mm², MTX-BT",
+        "150mm², MTX-BT"
+    ],
+    "Aberta": [
+        "240mm², MTX-BT",
+        "185mm², MTX-BT",
+        "70mm², MTX-BT"
+    ],
+    "Armado": [
+        "Cabo armado 240mm²",
+        "Cabo armado 95mm²",
+        "Cordoalha de aco 3/8\""
+    ]
+}
