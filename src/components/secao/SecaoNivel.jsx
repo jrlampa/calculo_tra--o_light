@@ -1,0 +1,85 @@
+// SecaoNivel.jsx — Seção genérica de nível de rede (MT1, MT2, BT, Ramais)
+// Layout fiel ao Excel: label alinhado à esquerda, inputs cinza, unidade à direita
+import React from 'react'
+
+/** Largura fixa da coluna de labels (px) */
+const LBL_W = 108
+
+/**
+ * @param {Object}   props
+ * @param {string}   props.titulo         - Ex: "MT - 1º Nível"
+ * @param {string}   props.labelResultado - Ex: "TRAÇÃO MT 1º NÍVEL (100 mm do topo):  daN °"
+ * @param {Array}    props.travessias     - array[4] de objetos com campos
+ * @param {Function} props.onChangeTravessia - callback(idx, campo, valor)
+ * @param {Array}    props.campos         - [{campo, label, unidade}]
+ * @param {string}   props.nota           - node opcional ex: "(*) - Considerar..."
+ */
+export default function SecaoNivel({ titulo, labelResultado, travessias, onChangeTravessia, campos, nota }) {
+  return (
+    <div className="sec-panel">
+      {/* ── Título ─────────────────────────────────────── */}
+      <div className="sec-title">{titulo}</div>
+
+      {/* ── Tabela de dados ───────────────────────────── */}
+      <table className="sec-table" style={{ tableLayout: 'fixed' }}>
+        <colgroup>
+          {/* coluna de labels */}
+          <col style={{ width: LBL_W }} />
+          {/* 4 travessias, cada uma com: input + unidade */}
+          <col style={{ width: '22%' }} />
+          <col style={{ width: 18 }} />
+          <col style={{ width: '22%' }} />
+          <col style={{ width: 18 }} />
+          <col style={{ width: '22%' }} />
+          <col style={{ width: 18 }} />
+          <col style={{ width: '22%' }} />
+          <col style={{ width: 18 }} />
+        </colgroup>
+
+        <thead>
+          <tr>
+            <th />
+            {travessias.map((_, i) => (
+              <th key={i} className="col-hdr" colSpan={2}>{`T${i + 1}`}</th>
+            ))}
+          </tr>
+        </thead>
+
+        <tbody>
+          {campos.map(({ campo, label, unidade }) => (
+            <tr key={campo}>
+              {/* Label esquerda */}
+              <td style={{ fontSize: 10, paddingLeft: 4, whiteSpace: 'nowrap' }}>{label}</td>
+
+              {/* 4 travessias */}
+              {travessias.map((t, i) => (
+                <React.Fragment key={i}>
+                  <td>
+                    <input
+                      id={`${campo}-t${i + 1}`}
+                      className="xcell"
+                      style={{ width: '100%' }}
+                      value={t[campo] ?? ''}
+                      onChange={e => onChangeTravessia(i, campo, e.target.value)}
+                    />
+                  </td>
+                  <td className="xunit">{unidade}</td>
+                </React.Fragment>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* ── Rodapé: resultado + nota ──────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span className="res-lbl">{labelResultado}</span>
+        {nota && (
+          <span style={{ fontSize: 9, color: '#444', marginRight: 8, textAlign: 'right', lineHeight: 1.4 }}>
+            {nota}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}

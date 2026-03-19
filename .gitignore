@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+.env
+.pytest_cache/
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Logs
+*.log
+api.log
+api.err.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+tmp_*/
+python/db/migrations.sql
+python/extract/artifacts/
+!python/extract/artifacts/.gitkeep

@@ -1,0 +1,52 @@
+// DiagramaPoste.jsx — Diagrama SVG fiel ao Excel: poste com CN (seta baixo), R (diagonal) e α (arco)
+import React from 'react'
+
+export default function DiagramaPoste() {
+  return (
+    <div style={{ marginTop: 10 }}>
+      <svg width={170} height={145} viewBox="0 0 170 145" aria-label="Diagrama do poste">
+        <defs>
+          <marker id="arr-d" markerWidth="5" markerHeight="5" refX="2.5" refY="5" orient="auto">
+            <path d="M0,0 L5,0 L2.5,5 z" fill="#1f1f1f" />
+          </marker>
+          <marker id="arr-r" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
+            <path d="M0,0 L0,5 L5,2.5 z" fill="#1f1f1f" />
+          </marker>
+        </defs>
+
+        {/* Poste vertical */}
+        <rect x={76} y={18} width={7} height={72} fill="#555" rx={1} />
+
+        {/* Base T invertido */}
+        <rect x={57} y={88} width={45} height={5} fill="#444" rx={1} />
+        <rect x={63} y={93} width={33} height={4} fill="#333" rx={1} />
+        <rect x={69} y={97} width={21} height={8} fill="#222" rx={1} />
+
+        {/* Seta CN (de cima para baixo, no topo do poste) */}
+        <line x1={80} y1={2} x2={80} y2={17} stroke="#1f1f1f" strokeWidth={1.5} markerEnd="url(#arr-d)" />
+        <text x={87} y={10} fontSize={8.5} fill="#1f1f1f" fontStyle="italic" fontFamily="Calibri,Arial">C</text>
+        <text x={94} y={12} fontSize={7} fill="#1f1f1f" fontFamily="Calibri,Arial">N</text>
+
+        {/* Vetor R (diagonal superior-direita) */}
+        <line x1={80} y1={48} x2={122} y2={72} stroke="#1f1f1f" strokeWidth={1.4} markerEnd="url(#arr-r)" />
+        <text x={107} y={53} fontSize={9} fill="#1f1f1f" fontStyle="italic" fontFamily="Calibri,Arial">R</text>
+
+        {/* Ângulo α — arco entre eixo vertical e vetor R */}
+        <path d="M 80 60 A 14 14 0 0 1 87 48" stroke="#1f1f1f" strokeWidth={0.9} fill="none" />
+        <text x={88} y={60} fontSize={8} fill="#1f1f1f" fontFamily="Calibri,Arial">α</text>
+
+        {/* Seta 1/2 CN (horizontal, para direita, partindo do meio do poste) */}
+        <line x1={80} y1={70} x2={122} y2={70} stroke="#1f1f1f" strokeWidth={1.4} markerEnd="url(#arr-r)" />
+        <text x={84} y={82} fontSize={7.5} fill="#1f1f1f" fontFamily="Calibri,Arial">1/2 C</text>
+        <text x={116} y={84} fontSize={6} fill="#1f1f1f" fontFamily="Calibri,Arial">N</text>
+      </svg>
+
+      {/* Legendas — cópia literal do Excel */}
+      <div style={{ fontSize: 7.5, color: '#333', lineHeight: 1.45, maxWidth: 192, marginTop: 2 }}>
+        <p>C<sub>N</sub> – Carga Nominal do poste, na direção da face de maior resistência.</p>
+        <p>R – Carga máxima de utilização do poste na direção do ângulo α.</p>
+        <p>α – Ângulo que a carga máxima de utilização faz com a face de maior resistência nominal do poste.</p>
+      </div>
+    </div>
+  )
+}

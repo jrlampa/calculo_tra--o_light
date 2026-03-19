@@ -1,0 +1,262 @@
+[
+  [
+    "Compacta",
+    "Convencional",
+    "Multiplexado",
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    "397MCM-CA, XLPE, 34,5 kV",
+    "556MCM-CA, Nu",
+    "185mm², MTX-MT, 20/35 kV",
+    null,
+    null,
+    null,
+    "Rede",
+    "Multiplexado"
+  ],
+  [
+    "397MCM-CA, XLPE, 13,8 kV",
+    "397MCM-CA, Nu",
+    "185mm², MTX-MT, 12/20 kV",
+    null,
+    null,
+    null,
+    "Cabo",
+    null
+  ],
+  [
+    "1/0AWG-CAA, XLPE, 13,8 kV",
+    "1/0AWG-CAA, Nu",
+    "50mm², MTX-MT, 12/20 kV",
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    null,
+    "4 AWG-CAA, Nu",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    null,
+    "397MCM-CA, XLPE, 34,5 kV",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    null,
+    "397MCM-CA, XLPE, 13,8 kV",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    null,
+    "1/0AWG-CAA, XLPE, 13,8 kV",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    null,
+    "4 AWG-CAA, XLPE, 13,8 kV",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    "Multiplexada",
+    "Aberta ",
+    "Armado",
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    "240mm², MTX-BT ",
+    "397MCM-CA, PVC",
+    "Cabo armado 240mm² ",
+    null,
+    null,
+    null,
+    "Rede",
+    "Multiplexado"
+  ],
+  [
+    "185mm², MTX-BT ",
+    "1/0AWG-CAA, PVC ",
+    "Cabo armado 95mm² ",
+    null,
+    null,
+    null,
+    "Cabo",
+    null
+  ],
+  [
+    "70mm², MTX-BT ",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    "Concreto circular",
+    "Fibra de vidro circular",
+    "Concreto duplo T",
+    "Metálico",
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    "9 m / 150 daN",
+    "9 m / 300 daN",
+    "9 m / 300 daN",
+    "7,5 m / 200 daN",
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    "9 m / 300 daN",
+    "11 m / 300 daN",
+    "11 m / 300 daN",
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    "11 m / 300 daN",
+    "11 m / 600 daN",
+    "11 m / 600 daN",
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    "11 m / 600 daN",
+    "12 m / 600 daN",
+    "12 m / 600 daN",
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    "11 m / 1000 daN",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    "11 m / 1500 daN",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    "12 m / 300 daN",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    "12 m / 600 daN",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    "12 m / 1000 daN",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    "12 m / 200 daN",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    "15 m / 1000 daN",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  [
+    "18 m / 1000 daN",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ]
+]

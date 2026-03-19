@@ -1,0 +1,147 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Reset & Base ────────────────────────────────────── */
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Calibri', Arial, sans-serif;
+    font-size: 11px;
+    background: #d9d9d9;
+    color: #1f1f1f;
+  }
+}
+
+/* ─── Wrapper da página – imita o Excel ─────────────── */
+.page-wrap {
+  background: #ffffff;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 6px 8px 12px;
+  min-height: 100vh;
+}
+
+/* ─── Inputs estilo célula Excel ────────────────────── */
+.xcell {
+  background: #bfbfbf;
+  border: 1px solid #808080;
+  height: 16px;
+  padding: 0 3px;
+  font-size: 10px;
+  font-family: 'Calibri', Arial, sans-serif;
+  line-height: 16px;
+  outline: none;
+  vertical-align: middle;
+  min-width: 30px;
+}
+.xcell:focus {
+  background: #ffffff;
+  border-color: #4472C4;
+}
+
+/* ─── Label direita (padrão Excel) ─────────────────── */
+.xlbl {
+  font-size: 10px;
+  white-space: nowrap;
+  vertical-align: middle;
+  text-align: right;
+  padding-right: 2px;
+  line-height: 16px;
+}
+
+/* ─── Unidade (m, °) ────────────────────────────────── */
+.xunit {
+  font-size: 9px;
+  color: #444;
+  vertical-align: middle;
+  padding-left: 1px;
+  white-space: nowrap;
+}
+
+/* ─── Cabeçalho de linha (T1, T2, T3, T4) azul ─────── */
+.col-hdr {
+  color: #4472C4;
+  font-weight: bold;
+  font-size: 10px;
+  text-align: center;
+}
+
+/* ─── Painel de seção ───────────────────────────────── */
+.sec-panel {
+  border: 1px solid #000;
+  margin-bottom: 6px;
+  background: #fff;
+}
+.sec-title {
+  text-align: center;
+  font-weight: bold;
+  font-size: 11px;
+  padding: 2px 0;
+  border-bottom: 1px solid #000;
+}
+
+/* ─── Label resultado de tração (laranja com borda) ─── */
+.res-lbl {
+  display: inline-block;
+  border: 1.5px solid #E07820;
+  color: #E07820;
+  font-weight: bold;
+  font-size: 9.5px;
+  padding: 2px 6px;
+  margin: 4px 6px;
+  white-space: nowrap;
+}
+
+/* ─── Caixa TRAÇÃO TOTAL ────────────────────────────── */
+.tracao-total-box {
+  border: 2px solid #C00000;
+  color: #C00000;
+  font-weight: bold;
+  font-size: 14px;
+  text-align: center;
+  padding: 3px 12px;
+  white-space: nowrap;
+  background: #fff;
+}
+
+/* ─── Botão APAGA ───────────────────────────────────── */
+.btn-apaga {
+  background: #C65911;
+  color: #fff;
+  font-weight: bold;
+  font-size: 11px;
+  padding: 4px 14px;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  height: 28px;
+}
+.btn-apaga:hover { background: #A04010; }
+
+/* ─── Tabela interior de seção ──────────────────────── */
+.sec-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.sec-table td, .sec-table th {
+  padding: 0 2px;
+  font-size: 10px;
+  line-height: 17px;
+}
+
+/* ─── Caixa verde (aprovação) ───────────────────────── */
+.aprov-box {
+  border: 2px solid #538135;
+  width: 56px;
+  height: 24px;
+  background: #fff;
+}
+
+/* ─── Labels Tipo/Modelo do Poste ───────────────────── */
+.poste-lbl {
+  color: #4472C4;
+  font-size: 10px;
+  white-space: nowrap;
+}
