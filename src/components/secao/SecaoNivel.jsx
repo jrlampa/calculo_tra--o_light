@@ -49,7 +49,7 @@ export default function SecaoNivel({ titulo, labelResultado, travessias, onChang
           {campos.map(({ campo, label, unidade, isDropdown, configKey }) => (
             <tr key={campo}>
               {/* Label esquerda */}
-              <td style={{ fontSize: 10, paddingLeft: 4, whiteSpace: 'nowrap' }}>{label}</td>
+              <td className="field-lbl">{label}</td>
 
               {/* 4 travessias */}
               {travessias.map((t, i) => (

@@ -133,9 +133,6 @@ export default function App() {
               {loading ? 'Calculando…' : (resultado?.texto_total || 'TRAÇÃO TOTAL: 0 daN °')}
             </div>
             <div className="aprov-box" title="Aprovação" />
-            <button className="btn-apaga" onClick={handleApaga}>
-              APAGA
-            </button>
           </div>
 
           <div className="flex items-center gap-2 mb-1">

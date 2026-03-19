@@ -102,8 +102,8 @@ export default function SecaoQDT({ dados, onChange, resultado }) {
         </tbody>
       </table>
 
-      <div style={{ padding: '6px', borderTop: '1px solid #000', background: '#f2f2f2' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '9.5px' }}>
+      <div style={{ padding: '6px', borderTop: '1px solid #000' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '10px', marginBottom: 4 }}>
           <div>
             <strong>MT Inicial:</strong> {resultado?.v_mt_initial?.toFixed(2)} V<br/>
             <strong>MT resultante:</strong> {resultado?.v_mt_node?.toFixed(2)} V
@@ -113,7 +113,7 @@ export default function SecaoQDT({ dados, onChange, resultado }) {
             <strong>BT Final:</strong> {resultado?.v_bt_node2?.toFixed(2)} V
           </div>
         </div>
-        <div className="res-lbl" style={{ margin: '6px 0 0', display: 'block', textAlign: 'center' }}>
+        <div className="res-lbl">
           QUEDA TOTAL: {resultado?.drop_total_pct?.toFixed(2)}%
         </div>
       </div>
