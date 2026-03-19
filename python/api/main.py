@@ -36,6 +36,7 @@ from translated.ponto_blocks import (
     calcular_polo,
 )
 from translated.qdt_blocks import calcular_qdt, QDTInput as QDTLogicInput
+from translated.plan1_tables import CABOS_TABLE, REDE_TABLE, POSTE_TABLE
 
 app = FastAPI(title="Calculo Tração Poste", version="1.0.0")
 
@@ -53,6 +54,19 @@ app.add_middleware(
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@app.get("/config")
+def get_config() -> dict:
+    """Return all dropdown options from the Excel-parity tables."""
+    return {
+        "redes": [row[0] for row in REDE_TABLE],
+        "cabos": [row[0] for row in CABOS_TABLE],
+        "postes": {
+            tipo: [m[0] for m in modelos]
+            for tipo, modelos in POSTE_TABLE.items()
+        }
+    }
 
 
 @app.post("/calcular/qdt", response_model=QDTOutput)

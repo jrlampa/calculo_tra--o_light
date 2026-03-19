@@ -14,7 +14,7 @@ const LBL_W = 108
  * @param {Array}    props.campos         - [{campo, label, unidade}]
  * @param {string}   props.nota           - node opcional ex: "(*) - Considerar..."
  */
-export default function SecaoNivel({ titulo, labelResultado, travessias, onChangeTravessia, campos, nota }) {
+export default function SecaoNivel({ titulo, labelResultado, travessias, onChangeTravessia, campos, nota, config }) {
   return (
     <div className="sec-panel">
       {/* ── Título ─────────────────────────────────────── */}
@@ -46,7 +46,7 @@ export default function SecaoNivel({ titulo, labelResultado, travessias, onChang
         </thead>
 
         <tbody>
-          {campos.map(({ campo, label, unidade }) => (
+          {campos.map(({ campo, label, unidade, isDropdown, configKey }) => (
             <tr key={campo}>
               {/* Label esquerda */}
               <td style={{ fontSize: 10, paddingLeft: 4, whiteSpace: 'nowrap' }}>{label}</td>
@@ -55,13 +55,28 @@ export default function SecaoNivel({ titulo, labelResultado, travessias, onChang
               {travessias.map((t, i) => (
                 <React.Fragment key={i}>
                   <td>
-                    <input
-                      id={`${campo}-t${i + 1}`}
-                      className="xcell"
-                      style={{ width: '100%' }}
-                      value={t[campo] ?? ''}
-                      onChange={e => onChangeTravessia(i, campo, e.target.value)}
-                    />
+                    {isDropdown ? (
+                      <select
+                        id={`${campo}-t${i + 1}`}
+                        className="xcell"
+                        style={{ width: '100%' }}
+                        value={t[campo] ?? ''}
+                        onChange={e => onChangeTravessia(i, campo, e.target.value)}
+                      >
+                        <option value="">...</option>
+                        {(config[configKey] || []).map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        id={`${campo}-t${i + 1}`}
+                        className="xcell"
+                        style={{ width: '100%' }}
+                        value={t[campo] ?? ''}
+                        onChange={e => onChangeTravessia(i, campo, e.target.value)}
+                      />
+                    )}
                   </td>
                   <td className="xunit">{unidade}</td>
                 </React.Fragment>

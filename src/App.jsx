@@ -1,5 +1,5 @@
 // App.jsx — Aplicação principal de Cálculo de Tração de Rede Elétrica
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import useCalculo from './hooks/useCalculo.js'
 import Header from './components/header/Header.jsx'
 import RelogioAngulos from './components/relogio/RelogioAngulos.jsx'
@@ -20,8 +20,8 @@ import {
 } from './mockData.js'
 
 const CAMPOS_MT = [
-  { campo: 'tipoRede',       label: 'Tipo de rede',    unidade: ''  },
-  { campo: 'tipoCabo',       label: 'Tipo de cabo',    unidade: ''  },
+  { campo: 'tipoRede',       label: 'Tipo de rede',    unidade: '', isDropdown: true, configKey: 'redes' },
+  { campo: 'tipoCabo',       label: 'Tipo de cabo',    unidade: '', isDropdown: true, configKey: 'cabos' },
   { campo: 'vao',            label: 'Vão',             unidade: 'm' },
   { campo: 'flecha',         label: 'Flecha',          unidade: 'm' },
   { campo: 'angulo',         label: 'Ângulo',          unidade: '°' },
@@ -41,7 +41,7 @@ const CAMPOS_BTZ = [
 ]
 
 const CAMPOS_RAL = [
-  { campo: 'tipoCabo',       label: 'Tipo de cabo',    unidade: ''  },
+  { campo: 'tipoCabo',       label: 'Tipo de cabo',    unidade: '', isDropdown: true, configKey: 'cabos' },
   { campo: 'qtdCabos',       label: 'Quantidade de cabos', unidade: '' },
   { campo: 'vao',            label: 'Vão',             unidade: 'm' },
   { campo: 'flecha',         label: 'Flecha',          unidade: 'm' },
@@ -62,6 +62,7 @@ export default function App() {
   const [bt,        setBT]        = useState(dadosBT.travessias)
   const [btz,       setBTZ]       = useState(dadosRamaisBTZero.travessias)
   const [ral,       setRAL]       = useState(dadosRamaisLigacao.travessias)
+  const [config,    setConfig]    = useState({ redes: [], cabos: [], postes: {} })
   const [qdt,       setQDT]       = useState({
     v_nominal_mt: 13200,
     v_nominal_bt: 220,
@@ -77,6 +78,13 @@ export default function App() {
     () => ({ cabecalho, poste, mt1, mt2, bt, btz, ral }),
     [cabecalho, poste, mt1, mt2, bt, btz, ral]
   )
+
+  useEffect(() => {
+    fetch('/api/config')
+      .then(res => res.json())
+      .then(data => setConfig(data))
+      .catch(err => console.error('Erro ao carregar config:', err))
+  }, [])
   
   const { resultado, qdtResultado, loading } = useCalculo(formState, qdt)
 
@@ -132,11 +140,16 @@ export default function App() {
 
           <div className="flex items-center gap-2 mb-1">
             <span className="poste-lbl font-semibold">Tipo do Poste</span>
-            <input
+            <select
               className="xcell w-40"
               value={poste.tipoPoste}
               onChange={e => handlePoste('tipoPoste', e.target.value)}
-            />
+            >
+              <option value="">Selecione...</option>
+              {Object.keys(config.postes).map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
             <span className="poste-lbl font-semibold ml-2">Carga Nom.</span>
             <input
               className="xcell w-20"
@@ -146,11 +159,16 @@ export default function App() {
           </div>
           <div className="flex items-center gap-2 mb-2">
             <span className="poste-lbl font-semibold">Modelo do Poste</span>
-            <input
+            <select
               className="xcell w-full"
               value={poste.modeloPoste}
               onChange={e => handlePoste('modeloPoste', e.target.value)}
-            />
+            >
+              <option value="">Selecione...</option>
+              {(config.postes[poste.tipoPoste] || []).map(m => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
           </div>
 
           <SecaoNivel
@@ -159,6 +177,7 @@ export default function App() {
             travessias={mt1}
             onChangeTravessia={(i, c, v) => setMT1(prev => updateTravessia(prev, i, c, v))}
             campos={CAMPOS_MT}
+            config={config}
           />
 
           <SecaoNivel
@@ -167,6 +186,7 @@ export default function App() {
             travessias={mt2}
             onChangeTravessia={(i, c, v) => setMT2(prev => updateTravessia(prev, i, c, v))}
             campos={CAMPOS_MT}
+            config={config}
           />
 
           <SecaoNivel
@@ -175,6 +195,7 @@ export default function App() {
             travessias={bt}
             onChangeTravessia={(i, c, v) => setBT(prev => updateTravessia(prev, i, c, v))}
             campos={CAMPOS_BT}
+            config={config}
           />
 
           <SecaoNivel
@@ -183,6 +204,7 @@ export default function App() {
             travessias={btz}
             onChangeTravessia={(i, c, v) => setBTZ(prev => updateTravessia(prev, i, c, v))}
             campos={CAMPOS_BTZ}
+            config={config}
             nota="(*) - Considerar: monofásico = 1 ligação; trifásico = 3 ligações"
           />
 
@@ -192,6 +214,7 @@ export default function App() {
             travessias={ral}
             onChangeTravessia={(i, c, v) => setRAL(prev => updateTravessia(prev, i, c, v))}
             campos={CAMPOS_RAL}
+            config={config}
           />
 
           <SecaoQDT 
