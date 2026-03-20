@@ -28,3 +28,19 @@ tmp_*/
 python/db/migrations.sql
 python/extract/artifacts/
 !python/extract/artifacts/.gitkeep
+
+# Coverage and test artifacts
+coverage/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+junit.xml
+playwright-report/
+test-results/
+.nyc_output/
+
+# Tooling caches
+.mypy_cache/
+.ruff_cache/
+.cache/
