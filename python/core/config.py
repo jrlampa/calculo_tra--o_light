@@ -1,153 +1,209 @@
-"""Application configuration using Pydantic Settings."""
 from __future__ import annotations
 
 import os
 from typing import Optional
 
-from pydantic import BaseSettings, Field, validator
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Application settings."""
     
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore"
+    )
+    
     # Database
     database_url: str = Field(
-        ..., 
-        env="DATABASE_URL",
+        default="postgresql://test:test@localhost:5432/test_calculo_tracao",
         description="PostgreSQL connection URL"
     )
     
     # Supabase
-    supabase_url: Optional[str] = Field(None, env="SUPABASE_URL")
-    supabase_key: Optional[str] = Field(None, env="SUPABASE_KEY")
+    supabase_url: str = Field(
+        default="https://test.supabase.co",
+        description="Supabase project URL"
+    )
+    supabase_key: str = Field(
+        default="test_key_12345678901234567890",
+        description="Supabase public key"
+    )
     
     # Security
     secret_key: str = Field(
-        ..., 
-        env="SECRET_KEY",
+        default="test_secret_key_32_characters_long_minimum",
+        min_length=32,
         description="Secret key for JWT tokens"
     )
-    jwt_algorithm: str = Field("HS256", env="JWT_ALGORITHM")
-    jwt_expiration: int = Field(3600, env="JWT_EXPIRATION")  # 1 hour
+    jwt_algorithm: str = Field(
+        "HS256",
+        description="JWT algorithm"
+    )
+    jwt_expiration: int = Field(
+        3600,
+        description="JWT token expiration in seconds"
+    )
     
     # Rate Limiting
-    rate_limit_enabled: bool = Field(True, env="RATE_LIMIT_ENABLED")
-    rate_limit_requests: int = Field(100, env="RATE_LIMIT_REQUESTS")
-    rate_limit_window: int = Field(60, env="RATE_LIMIT_WINDOW")  # seconds
+    rate_limit_per_minute: int = Field(
+        60,
+        description="Rate limit per minute"
+    )
+    rate_limit_per_hour: int = Field(
+        1000,
+        description="Rate limit per hour"
+    )
     
     # CORS
     cors_origins: list[str] = Field(
-        ["http://localhost:3000", "http://localhost:5173"], 
-        env="CORS_ORIGINS"
+        default=["http://localhost:3000", "http://localhost:5173"],
+        description="CORS allowed origins"
     )
     
     # Logging
-    log_level: str = Field("INFO", env="LOG_LEVEL")
-    log_file: Optional[str] = Field(None, env="LOG_FILE")
-    
-    # Cache
-    redis_url: Optional[str] = Field(None, env="REDIS_URL")
-    cache_ttl: int = Field(300, env="CACHE_TTL")  # 5 minutes
-    
-    # Monitoring
-    monitoring_enabled: bool = Field(True, env="MONITORING_ENABLED")
-    metrics_port: int = Field(9090, env="METRICS_PORT")
-    
-    # Application
-    app_name: str = Field("Cálculo de Tração", env="APP_NAME")
-    app_version: str = Field("1.0.0", env="APP_VERSION")
-    debug: bool = Field(False, env="DEBUG")
-    
-    # File Upload
-    max_file_size: int = Field(10 * 1024 * 1024, env="MAX_FILE_SIZE")  # 10MB
-    allowed_file_types: list[str] = Field(
-        ["image/jpeg", "image/png", "application/pdf"], 
-        env="ALLOWED_FILE_TYPES"
+    log_level: str = Field(
+        "INFO",
+        description="Logging level"
     )
     
-    # Email (for notifications)
-    smtp_host: Optional[str] = Field(None, env="SMTP_HOST")
-    smtp_port: int = Field(587, env="SMTP_PORT")
-    smtp_username: Optional[str] = Field(None, env="SMTP_USERNAME")
-    smtp_password: Optional[str] = Field(None, env="SMTP_PASSWORD")
-    smtp_use_tls: bool = Field(True, env="SMTP_USE_TLS")
+    # Cache
+    cache_ttl: int = Field(
+        300,
+        description="Cache TTL in seconds"
+    )
     
-    @validator("cors_origins", pre=True)
+    # Monitoring
+    enable_metrics: bool = Field(
+        False,
+        description="Enable metrics collection"
+    )
+    
+    # App Info
+    app_name: str = Field(
+        "Cálculo de Tração",
+        description="Application name"
+    )
+    app_version: str = Field(
+        "2.0.0",
+        description="Application version"
+    )
+    debug: bool = Field(
+        False,
+        description="Debug mode"
+    )
+    
+    # File Upload
+    max_file_size: int = Field(
+        10 * 1024 * 1024,
+        description="Maximum file size in bytes (10MB)"
+    )
+    allowed_file_types: list[str] = Field(
+        default=[".pdf", ".doc", ".docx", ".txt", ".csv"],
+        description="Allowed file types"
+    )
+    
+    # Email
+    smtp_host: Optional[str] = Field(
+        default=None,
+        description="SMTP host"
+    )
+    smtp_port: int = Field(
+        587,
+        description="SMTP port"
+    )
+    smtp_username: Optional[str] = Field(
+        default=None,
+        description="SMTP username"
+    )
+    smtp_password: Optional[str] = Field(
+        default=None,
+        description="SMTP password"
+    )
+    smtp_use_tls: bool = Field(
+        True,
+        description="Use TLS for SMTP"
+    )
+    
+    @field_validator("cors_origins", mode="before")
+    @classmethod
     def parse_cors_origins(cls, v):
         """Parse CORS origins from string or list."""
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",")]
         return v
     
-    @validator("allowed_file_types", pre=True)
+    @field_validator("allowed_file_types", mode="before")
+    @classmethod
     def parse_allowed_file_types(cls, v):
         """Parse allowed file types from string or list."""
         if isinstance(v, str):
             return [file_type.strip() for file_type in v.split(",")]
         return v
     
-    @validator("log_level")
+    @field_validator("log_level")
+    @classmethod
     def validate_log_level(cls, v):
         """Validate log level."""
         valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         if v.upper() not in valid_levels:
-            raise ValueError(f"Invalid log level: {v}. Must be one of {valid_levels}")
+            raise ValueError(f"Invalid log level: {v}")
         return v.upper()
     
-    @validator("secret_key")
+    @field_validator("secret_key")
+    @classmethod
     def validate_secret_key(cls, v):
-        """Validate secret key is not too short."""
+        """Validate secret key."""
         if len(v) < 32:
-            raise ValueError("Secret key must be at least 32 characters long")
+            raise ValueError("Secret key must be at least 32 characters")
         return v
     
-    @validator("database_url")
+    @field_validator("database_url")
+    @classmethod
     def validate_database_url(cls, v):
-        """Validate database URL format."""
+        """Validate database URL."""
         if not v.startswith(("postgresql://", "postgres://")):
-            raise ValueError("Database URL must be a valid PostgreSQL connection string")
+            raise ValueError("Database URL must start with postgresql://")
         return v
-    
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
 
 
 # Global settings instance
-settings = Settings()
+_settings: Optional[Settings] = None
 
 
 def get_settings() -> Settings:
-    """Get application settings."""
-    return settings
+    """Get global settings instance."""
+    global _settings
+    if _settings is None:
+        _settings = Settings()
+    return _settings
 
 
-def is_development() -> bool:
-    """Check if running in development mode."""
-    return settings.debug
-
-
-def is_production() -> bool:
-    """Check if running in production mode."""
-    return not settings.debug
+def reload_settings() -> Settings:
+    """Reload settings from environment."""
+    global _settings
+    _settings = Settings()
+    return _settings
 
 
 def get_database_url() -> str:
     """Get database URL."""
-    return settings.database_url
+    return get_settings().database_url
 
 
 def get_jwt_secret() -> str:
     """Get JWT secret key."""
-    return settings.secret_key
+    return get_settings().secret_key
 
 
 def get_cors_origins() -> list[str]:
     """Get CORS origins."""
-    return settings.cors_origins
+    return get_settings().cors_origins
 
 
 def get_log_level() -> str:
     """Get log level."""
-    return settings.log_level
+    return get_settings().log_level
