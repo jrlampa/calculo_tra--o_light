@@ -1,5 +1,12 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const E2E_UI_PORT = 4173
+const E2E_UI_URL = `http://127.0.0.1:${E2E_UI_PORT}`
+const E2E_API_PORT = Number.parseInt(process.env.E2E_API_PORT ?? '8011', 10) || 8011
+const E2E_API_URL = process.env.E2E_API_URL || `http://localhost:${E2E_API_PORT}`
+
+process.env.E2E_API_URL = E2E_API_URL
+
 /**
  * Playwright config – testes locais (Chromium apenas).
  *
@@ -29,7 +36,7 @@ export default defineConfig({
   ],
 
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: E2E_UI_URL,
     trace: 'on-first-retry',
   },
 
@@ -43,17 +50,21 @@ export default defineConfig({
   webServer: [
     // ── Vite (React UI) ──────────────────────────────────────────────────
     {
-      command: 'npm run dev',
-      url: 'http://localhost:5173',
-      reuseExistingServer: true,
+      command: `npm run dev -- --host 127.0.0.1 --port ${E2E_UI_PORT} --strictPort`,
+      url: E2E_UI_URL,
+      reuseExistingServer: false,
       timeout: 30_000,
+      env: {
+        ...process.env,
+        VITE_API_PROXY_TARGET: E2E_API_URL,
+      },
       stdout: 'ignore',
       stderr: 'pipe',
     },
     // ── FastAPI (Python backend) ─────────────────────────────────────────
     {
-      command: 'npm run test:serve:api',
-        url: 'http://localhost:8001/health',
+      command: `cd python && uvicorn api.main:app --port ${E2E_API_PORT}`,
+      url: `${E2E_API_URL}/health`,
       reuseExistingServer: true,
       timeout: 30_000,
       stdout: 'ignore',

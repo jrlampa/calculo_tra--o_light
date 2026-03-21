@@ -11,6 +11,7 @@
 ## Regras ativas (nao negociaveis)
 
 - Fluxo de trabalho principal na branch dev.
+- Mesa Redonda Multidisciplinar (protocolo obrigatorio): sempre que um problema envolver mais de uma disciplina, o PM deve interromper o fluxo linear e convocar UX, DBA, Dev e Engenheiro para rodada de pareceres; antes de qualquer codigo, deve explicitar conflitos positivos e fechar com Relatorio de Convergencia contendo Decisao Final, Trade-offs e Plano de Acao por agente.
 - Sem dados mockados fora do ambiente de testes.
 - UI com abordagem 2.5D (nao 3D), apenas quando fizer sentido de experiencia.
 - Modularidade e SRP em backend e frontend.

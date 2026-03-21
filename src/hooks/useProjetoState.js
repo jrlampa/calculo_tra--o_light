@@ -1,0 +1,69 @@
+import { useState, useCallback, useMemo } from 'react'
+import { createProjeto } from '../services/calculoApi.js'
+import { CABECALHO_INICIAL } from '../features/calculo/formConfig.js'
+
+export const useProjetoState = () => {
+  const [etapa, setEtapa] = useState('projeto')
+  const [cabecalho, setCabecalho] = useState(() => ({ ...CABECALHO_INICIAL }))
+  const [projetoAtual, setProjetoAtual] = useState(null)
+  const [projetoState, setProjetoState] = useState({ loading: false, error: '' })
+
+  // Memoizar validações
+  const canConfirmProjeto = useMemo(() => {
+    return (cabecalho.projeto || '').trim() && !projetoState.loading
+  }, [cabecalho.projeto, projetoState.loading])
+
+  // Handler para atualizar campos do cabeçalho
+  const handleHeader = useCallback((campo, valor) => {
+    setCabecalho(prev => ({ ...prev, [campo]: valor }))
+  }, [])
+
+  // Handler para confirmar projeto
+  const handleConfirmProjeto = useCallback(async () => {
+    if (!(cabecalho.projeto || '').trim()) {
+      setProjetoState({ loading: false, error: 'Informe o nome do projeto antes de continuar.' })
+      return
+    }
+
+    setProjetoState({ loading: true, error: '' })
+
+    try {
+      const projetoCriado = await createProjeto(cabecalho)
+      setProjetoAtual(projetoCriado)
+      setCabecalho(prev => ({
+        ...prev,
+        projeto: projetoCriado.nome || prev.projeto,
+        ponto: '',
+      }))
+      setEtapa('calculo')
+      setProjetoState({ loading: false, error: '' })
+    } catch (err) {
+      setProjetoState({ loading: false, error: err.message })
+    }
+  }, [cabecalho])
+
+  // Reset do estado do projeto
+  const resetProjeto = useCallback(() => {
+    setEtapa('projeto')
+    setCabecalho(() => ({ ...CABECALHO_INICIAL }))
+    setProjetoAtual(null)
+    setProjetoState({ loading: false, error: '' })
+  }, [])
+
+  // Memoizar estado exportado
+  const projetoStateMemo = useMemo(() => ({
+    etapa,
+    cabecalho,
+    projetoAtual,
+    projetoState,
+    canConfirmProjeto,
+    handlers: {
+      handleHeader,
+      handleConfirmProjeto,
+      resetProjeto,
+      setEtapa
+    }
+  }), [etapa, cabecalho, projetoAtual, projetoState, canConfirmProjeto, handleHeader, handleConfirmProjeto, resetProjeto])
+
+  return projetoStateMemo
+}

@@ -1,0 +1,247 @@
+const JSON_HEADERS = { 'Content-Type': 'application/json' }
+
+function toFloat(value) {
+  if (value === '' || value === null || value === undefined) return null
+  if (typeof value === 'number') return Number.isNaN(value) ? null : value
+  const normalizedValue = String(value).replace(',', '.')
+  const parsedValue = parseFloat(normalizedValue)
+  return Number.isNaN(parsedValue) ? null : parsedValue
+}
+
+async function parseErrorMessage(response, fallbackMessage) {
+  try {
+    const payload = await response.json()
+    if (typeof payload?.detail === 'string' && payload.detail) {
+      return payload.detail
+    }
+    if (Array.isArray(payload?.detail) && payload.detail.length > 0) {
+      return payload.detail.map(item => item?.msg || 'Erro de validação').join(', ')
+    }
+  } catch {
+    return fallbackMessage
+  }
+
+  return fallbackMessage
+}
+
+async function requestJson(url, options = {}, fallbackMessage) {
+  const response = await fetch(url, {
+    credentials: 'include',
+    ...options,
+  })
+
+  if (!response.ok) {
+    const message = await parseErrorMessage(response, fallbackMessage)
+    // Criar erro com status capturado (importante para diferenciar erros de autorização)
+    const err = new Error(message)
+    err.status = response.status
+    err.statusText = response.statusText
+    // Detectar código de autorização via mensagem de erro ou status
+    if (response.status === 403 || message?.includes('permission') || message?.includes('authorized')) {
+      err.code = 'FORBIDDEN'
+      err.isForbidden = true
+    }
+    throw err
+  }
+
+  if (response.status === 204) return null
+  return response.json()
+}
+
+function mapCabecalho(cabecalho) {
+  return {
+    orgao: cabecalho.orgao || '',
+    ns: cabecalho.ns || '',
+    projeto: cabecalho.projeto || '',
+    ponto: cabecalho.ponto || '',
+    endereco: cabecalho.endereco || '',
+    estudado_por: cabecalho.estudadoPor || '',
+    matricula: cabecalho.matricula || '',
+    data: cabecalho.data || '',
+  }
+}
+
+function mapPoste(poste) {
+  return {
+    tipo_poste: poste.tipoPoste || '',
+    modelo_poste: poste.modeloPoste || '',
+  }
+}
+
+function mapMTTravessia(travessia) {
+  return {
+    tipo_rede: travessia.tipoRede || '',
+    tipo_cabo: travessia.tipoCabo || '',
+    vao: toFloat(travessia.vao) ?? 0,
+    flecha: toFloat(travessia.flecha) ?? 0,
+    angulo: toFloat(travessia.angulo) ?? 0,
+    altura_poste: toFloat(travessia.alturaPoste) ?? 0,
+    altura_ancoragem: toFloat(travessia.alturaAncoragem) ?? 0,
+  }
+}
+
+function mapBTTravessia(travessia) {
+  return {
+    tipo_rede: travessia.tipoRede || '',
+    tipo_cabo: travessia.tipoCabo || '',
+    vao: toFloat(travessia.vao) ?? 0,
+    flecha: toFloat(travessia.flecha) ?? 0,
+    angulo: toFloat(travessia.angulo) ?? 0,
+    altura_poste: toFloat(travessia.alturaPoste) ?? 0,
+    altura_ancoragem: toFloat(travessia.alturaAncoragem) ?? 0,
+  }
+}
+
+function mapBTZTravessia(travessia) {
+  return {
+    qtd_ligacoes: toFloat(travessia.qtdLigacoes) ?? 0,
+    vao: toFloat(travessia.vao) ?? 0,
+    flecha: toFloat(travessia.flecha) ?? 0,
+    angulo: toFloat(travessia.angulo) ?? 0,
+    altura_poste: toFloat(travessia.alturaPoste) ?? 0,
+    altura_ancoragem: toFloat(travessia.alturaAncoragem) ?? 0,
+  }
+}
+
+function mapRALTravessia(travessia) {
+  return {
+    tipo_cabo: travessia.tipoCabo || '',
+    qtd_cabos: toFloat(travessia.qtdCabos) ?? 0,
+    vao: toFloat(travessia.vao) ?? 0,
+    flecha: toFloat(travessia.flecha) ?? 0,
+    angulo: toFloat(travessia.angulo) ?? 0,
+    altura_poste: toFloat(travessia.alturaPoste) ?? 0,
+    altura_ancoragem: toFloat(travessia.alturaAncoragem) ?? 0,
+  }
+}
+
+function buildNivelPayload(nivel, travessias) {
+  const primeiraTravessia = travessias[0] || {}
+
+  return {
+    nivel,
+    altura_poste: primeiraTravessia.altura_poste ?? 0,
+    altura_ancoragem: primeiraTravessia.altura_ancoragem ?? 0,
+    travessias: travessias.map((travessia, index) => {
+      const vao = travessia.vao ?? 0
+      const flecha = travessia.flecha ?? 0
+
+      if (vao > 0 && flecha <= 0) {
+        throw new Error(
+          `Nível ${nivel}, posição ${index + 1}: flecha deve ser maior que zero quando vão é ${vao} m`
+        )
+      }
+
+      return {
+        posicao: index + 1,
+        tipo_rede: travessia.tipo_rede ?? '',
+        tipo_cabo: travessia.tipo_cabo ?? '',
+        vao,
+        flecha,
+        angulo: travessia.angulo ?? 0,
+        qtd_ligacoes: travessia.qtd_ligacoes ?? 0,
+        qtd_cabos: travessia.qtd_cabos ?? 0,
+      }
+    }),
+  }
+}
+
+function mapResultado(resultado) {
+  return {
+    mt1_tracao: resultado?.mt1?.tracao_dan ?? 0,
+    mt1_angulo: resultado?.mt1?.angulo_graus ?? 0,
+    mt2_tracao: resultado?.mt2?.tracao_dan ?? 0,
+    mt2_angulo: resultado?.mt2?.angulo_graus ?? 0,
+    bt_tracao: resultado?.bt?.tracao_dan ?? 0,
+    bt_angulo: resultado?.bt?.angulo_graus ?? 0,
+    btz_tracao: resultado?.btz?.tracao_dan ?? 0,
+    btz_angulo: resultado?.btz?.angulo_graus ?? 0,
+    ral_tracao: resultado?.ral?.tracao_dan ?? 0,
+    ral_angulo: resultado?.ral?.angulo_graus ?? 0,
+    total_tracao: resultado?.total_tracao_dan ?? 0,
+    total_angulo: resultado?.total_angulo_graus ?? 0,
+    poste_ecc: resultado?.poste_ecc_dan ?? 0,
+    texto_mt1: resultado?.mt1?.texto ?? '',
+    texto_mt2: resultado?.mt2?.texto ?? '',
+    texto_bt: resultado?.bt?.texto ?? '',
+    texto_btz: resultado?.btz?.texto ?? '',
+    texto_ral: resultado?.ral?.texto ?? '',
+    texto_total: resultado?.texto_total ?? '',
+  }
+}
+
+export function buildCalculoRequest(formState) {
+  const { cabecalho, poste, mt1, mt2, bt, btz, ral } = formState
+
+  return {
+    cabecalho: mapCabecalho(cabecalho),
+    poste: mapPoste(poste),
+    mt1: mt1.map(mapMTTravessia),
+    mt2: mt2.map(mapMTTravessia),
+    bt: bt.map(mapBTTravessia),
+    btz: btz.map(mapBTZTravessia),
+    ral: ral.map(mapRALTravessia),
+  }
+}
+
+export function buildSalvarCalculoPayload(pontoId, calculoRequest, resultado) {
+  return {
+    ponto_id: pontoId,
+    niveis: [
+      buildNivelPayload('MT1', calculoRequest.mt1),
+      buildNivelPayload('MT2', calculoRequest.mt2),
+      buildNivelPayload('BT', calculoRequest.bt),
+      buildNivelPayload('BTZ', calculoRequest.btz),
+      buildNivelPayload('RAL', calculoRequest.ral),
+    ],
+    resultado: mapResultado(resultado),
+  }
+}
+
+export async function createProjeto(cabecalho) {
+  return requestJson(
+    '/api/projetos',
+    {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify({
+        orgao: cabecalho.orgao || '',
+        ns: cabecalho.ns || '',
+        nome: cabecalho.projeto || '',
+        endereco: cabecalho.endereco || '',
+        estudado_por: cabecalho.estudadoPor || '',
+        matricula: cabecalho.matricula || '',
+        data_estudo: cabecalho.data || '',
+      }),
+    },
+    'Erro ao criar projeto'
+  )
+}
+
+export async function createPonto(projetoId, dadosPonto) {
+  return requestJson(
+    `/api/projetos/${projetoId}/pontos`,
+    {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify({
+        ponto: dadosPonto.ponto || '',
+        tipo_poste: dadosPonto.tipoPoste || '',
+        modelo_poste: dadosPonto.modeloPoste || '',
+      }),
+    },
+    'Erro ao criar ponto'
+  )
+}
+
+export async function persistCalculo(pontoId, payload) {
+  return requestJson(
+    `/api/pontos/${pontoId}/calculo`,
+    {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify(payload),
+    },
+    'Erro ao persistir cálculo'
+  )
+}

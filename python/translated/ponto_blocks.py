@@ -277,9 +277,15 @@ def _calc_bt_t2_traversal(
 
     t.wind_H = _r(WIND_COEFF * vao / 2 * t.diam_total * math.cos(ang_rad))
     t.wind_V = _r(WIND_COEFF * vao / 2 * t.diam_total * math.sin(ang_rad))
-    t.catenary = (t.peso_total * vao**2) / (8 * flecha)
-    t.cat_H = _r(t.catenary * math.cos(ang_rad))
-    t.cat_V = _r(t.catenary * math.sin(ang_rad))
+
+    if vao > 0 and flecha > 0:
+        t.catenary = (t.peso_total * vao**2) / (8 * flecha)
+        t.cat_H = _r(t.catenary * math.cos(ang_rad))
+        t.cat_V = _r(t.catenary * math.sin(ang_rad))
+    else:
+        t.catenary = 0.0
+        t.cat_H = 0.0
+        t.cat_V = 0.0
 
     return t
 
@@ -288,8 +294,8 @@ def _lookup_bt_rede_qtd(tipo_rede: str) -> float:
     """Plan1!$N$6:$O$8 – rows for Multiplexada / Aberta / Armado only."""
     _BT_REDE_TABLE = {
         "Multiplexada": 1,
-        "Aberta ": 3,
-        "Armado": 3,
+        "Aberta": 3,
+        "Armado": 1,   # workbook plan1_row=8 qtd_cabos=1 (lookup_tables.json)
     }
     return _BT_REDE_TABLE.get(tipo_rede.strip(), 0)
 

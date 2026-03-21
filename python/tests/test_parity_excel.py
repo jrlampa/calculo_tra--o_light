@@ -245,3 +245,56 @@ def test_text_outputs():
     assert "171" in out.texto_mt2
     assert "165" in out.texto_bt
     assert "374" in out.texto_total or "373" in out.texto_total
+
+
+# ── Testes de regressão – bugs corrigidos ─────────────────────────────────
+
+def test_bt_armado_qtd_cabos_is_one():
+    """Regressão BUG-1: lookup_tables.json plan1_row=8 confirma qtd_cabos=1 para Armado."""
+    from translated.ponto_blocks import _lookup_bt_rede_qtd
+    assert _lookup_bt_rede_qtd("Armado") == 1, "Armado deve ter qtd_cabos=1 (workbook plan1_row=8)"
+    assert _lookup_bt_rede_qtd("Aberta") == 3, "Aberta deve ter qtd_cabos=3"
+    assert _lookup_bt_rede_qtd("Multiplexada") == 1, "Multiplexada deve ter qtd_cabos=1"
+
+
+def test_bt_traversal_flecha_zero_nao_gera_excecao():
+    """Regressão BUG-2: flecha=0 em BT T2/T3/T4 não deve levantar ZeroDivisionError."""
+    mt1 = [
+        MTTraversalInput(
+            tipo_rede="Convencional",
+            tipo_cabo="397MCM-CA, Nu",
+            vao=33.0,
+            flecha=0.5,
+            angulo=0.0,
+            altura_poste=11.0,
+            altura_ancoragem=9.2,
+        ),
+        MTTraversalInput(
+            tipo_rede="Convencional",
+            tipo_cabo="397MCM-CA, Nu",
+            vao=0.0,    # vao=0 força flecha=0 sem divisão
+            flecha=0.0,
+            angulo=0.0,
+            altura_poste=11.0,
+            altura_ancoragem=9.2,
+        ),
+        MTTraversalInput(),
+        MTTraversalInput(),
+    ]
+    bt = [
+        BTTraversalInput(tipo_rede="Multiplexada", tipo_cabo="70mm², MTX-BT ", altura_ancoragem=7.0),
+        BTTraversalInput(tipo_rede="Armado", tipo_cabo="70mm², MTX-BT ", vao=20.0, flecha=0.0, angulo=0.0, altura_ancoragem=7.0),
+        BTTraversalInput(),
+        BTTraversalInput(),
+    ]
+    mt2 = [MTTraversalInput() for _ in range(4)]
+    btz = [BTZeroTraversalInput() for _ in range(4)]
+    ral = [RamaisTraversalInput() for _ in range(4)]
+
+    # Deve executar sem ZeroDivisionError
+    out = calcular_polo(mt1, mt2, bt, btz, ral)
+    # BT T2 com flecha=0 → catenary deve ser 0, não erro
+    assert out.bt.traversals[1].catenary == 0.0, (
+        f"BT T2 catenary com flecha=0 deve ser 0.0, got {out.bt.traversals[1].catenary}"
+    )
+

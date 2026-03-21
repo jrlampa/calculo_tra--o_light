@@ -55,11 +55,29 @@ QUICK START
    Go to: Supabase → SQL Editor → New Query
    Paste and execute the SQL
    
+   O arquivo contém 5 versões sequenciais:
+   - v001: tabelas lookup (cabos, postes, redes, normas_regras) + RLS public SELECT
+   - v002: tabelas transacionais (projetos, pontos, niveis_calculo, travessias, resultados_calculo)
+   - v003: hardening RLS — adiciona owner_id a projetos, políticas owner-scoped, FORCE RLS
+   - v004: tabela schema_migrations + índices canônicos (idempotente)
+   - v005: remove bypass admin nas tabelas transacionais, recria policies owner-only estritas,
+           adiciona índices de paginação/listagem e unicidade normalizada em lookups
+   
+   A tabela schema_migrations rastreia versões aplicadas. Se re-executar o arquivo
+   após a primeira aplicação, v004 e v005 detectam versão já aplicada via
+   schema_migrations e pulam sem erro. v001-v003 usam IF NOT EXISTS / ON CONFLICT.
+   
    Creates tables:
+   - schema_migrations (controle de versão de migrações)
    - cabos (cables)
    - postes (poles)
    - redes (network types)
    - normas_regras (standards/rules)
+   - projetos (cabeçalho do projeto — isolado por owner_id)
+   - pontos (postes individuais por projeto)
+   - niveis_calculo (MT1, MT2, BT, BTZ, RAL por ponto)
+   - travessias (T1..T4 por nível)
+   - resultados_calculo (cache de resultados por ponto)
 
 6. EXTRACT AND POPULATE NORMAS (Optional - extract from LIGHT PDFs)
    
@@ -154,8 +172,71 @@ Tables:
    - updated_at: TIMESTAMP
 
 ROW LEVEL SECURITY (RLS)
-Each table has RLS enabled with public SELECT policy.
-This means anyone can read data, but writes require authentication.
+
+Tabelas de referência (cabos, postes, redes, normas_regras):
+  SELECT: público (qualquer usuário autenticado ou anônimo pode ler)
+  INSERT/UPDATE/DELETE: bloqueado por RLS — apenas service_role key bypassa
+
+Tabelas transacionais (projetos, pontos, niveis_calculo, travessias, resultados_calculo):
+  Isolamento por owner_id: cada usuário só acessa seus próprios registros.
+  A coluna owner_id em projetos é preenchida automaticamente com auth.uid().
+  Pontos e tabelas filhas são isolados via JOIN hierárquico a projetos.owner_id.
+Políticas owner-only estritas: não há bypass administrativo por claim JWT.
+FORCE RLS ativo: bloqueia até o table owner sem policy explícita (v003-v005).
+
+MIGRATION APPLY + SANITY CHECKS (v005)
+=====================================
+
+Após executar o conteúdo de python/db/migrations.sql no SQL Editor:
+
+1) Verifique versões aplicadas
+
+    SELECT version, applied_at
+    FROM schema_migrations
+    WHERE version IN ('v001', 'v002', 'v003', 'v004', 'v005')
+    ORDER BY version;
+
+    Esperado: v005 presente.
+
+2) Sanity check de policies transacionais (sem owner_or_admin)
+
+    SELECT schemaname, tablename, policyname, cmd
+    FROM pg_policies
+    WHERE schemaname = 'public'
+       AND tablename IN ('projetos', 'pontos', 'niveis_calculo', 'travessias', 'resultados_calculo')
+    ORDER BY tablename, policyname;
+
+    Esperado:
+    - policies com sufixo owner_only para SELECT/INSERT/UPDATE/DELETE.
+    - ausência de policies owner_or_admin.
+
+3) Sanity check de FORCE RLS
+
+    SELECT relname, relforcerowsecurity
+    FROM pg_class
+    WHERE relname IN ('projetos', 'pontos', 'niveis_calculo', 'travessias', 'resultados_calculo')
+    ORDER BY relname;
+
+    Esperado: relforcerowsecurity = true para todas.
+
+4) Sanity check de índices v005
+
+    SELECT indexname, indexdef
+    FROM pg_indexes
+    WHERE schemaname = 'public'
+       AND indexname IN (
+          'idx_projetos_owner_atualizado_em_desc',
+          'idx_projetos_atualizado_em_desc',
+          'idx_postes_tipo_modelo',
+          'idx_normas_regras_categoria_titulo',
+          'uq_cabos_nome_norm',
+          'uq_redes_tipo_norm',
+          'uq_postes_tipo_modelo_norm',
+          'uq_normas_regras_categoria_titulo_arquivo_norm'
+       )
+    ORDER BY indexname;
+
+    Esperado: todos os índices acima presentes.
 
 PYTHON CLIENT CODE
 =================

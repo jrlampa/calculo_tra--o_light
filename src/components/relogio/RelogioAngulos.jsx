@@ -1,6 +1,6 @@
 // RelogioAngulos.jsx — Relógio de ângulos idêntico ao Excel
 // Linhas vermelhas = vetores de tração; linha grossa vermelha = resultante
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
 
 const SIZE = 260
 const CX   = SIZE / 2
@@ -46,12 +46,63 @@ function polar(deg, r) {
   return { x: CX + r * Math.cos(a), y: CY + r * Math.sin(a) }
 }
 
+function formatPt(value, digits = 1) {
+  if (typeof value !== 'number' || Number.isNaN(value)) return null
+  return value.toLocaleString('pt-BR', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  })
+}
+
 /**
- * @param {Array}  vetores   [{angulo, magnitude}] — vetores de tração (linhas vermelhas finas)
- * @param {Object} resultante {angulo, magnitude}   — resultante (linha vermelha grossa)
+ * @param {Array}  vetores      [{angulo, magnitude}] — vetores de tração (linhas vermelhas finas)
+ * @param {Object} resultante   {angulo, magnitude}   — resultante (linha vermelha grossa)
+ * @param {Object} resumoDados  payload de resultado completo para resumo textual equivalente
  */
-export default function RelogioAngulos({ vetores = [], resultante = null }) {
+export default function RelogioAngulos({ vetores = [], resultante = null, resumoDados = null }) {
   const ref = useRef(null)
+
+  const resumoTexto = useMemo(() => {
+    const totalTracao = typeof resumoDados?.total_tracao_dan === 'number'
+      ? resumoDados.total_tracao_dan
+      : null
+    const totalAngulo = typeof resumoDados?.total_angulo_graus === 'number'
+      ? resumoDados.total_angulo_graus
+      : (typeof resultante?.angulo === 'number' ? resultante.angulo : null)
+
+    const vetoresResumo = Array.isArray(resumoDados?.vetores)
+      ? resumoDados.vetores
+      : []
+
+    const principaisVetores = [...vetoresResumo]
+      .filter(v => typeof v?.tracao_dan === 'number' && typeof v?.angulo_graus === 'number')
+      .sort((a, b) => b.tracao_dan - a.tracao_dan)
+      .slice(0, 3)
+
+    const resultanteTexto = (() => {
+      const angulo = formatPt(totalAngulo ?? 0, 1)
+      if (totalTracao === null) {
+        return `Resultante em ${angulo}°.`
+      }
+
+      const tracao = formatPt(totalTracao, 1)
+      return `Resultante em ${angulo}° com ${tracao} daN.`
+    })()
+
+    if (principaisVetores.length === 0) {
+      return `${resultanteTexto} Sem vetores auxiliares relevantes no momento.`
+    }
+
+    const vetoresTexto = principaisVetores
+      .map(v => {
+        const tracao = formatPt(v.tracao_dan, 1)
+        const angulo = formatPt(v.angulo_graus, 1)
+        return `${v.label || 'Vetor'} (${tracao} daN, ${angulo}°)`
+      })
+      .join('; ')
+
+    return `${resultanteTexto} Principais vetores: ${vetoresTexto}.`
+  }, [resumoDados, resultante?.angulo])
 
   useEffect(() => {
     const canvas = ref.current
@@ -110,43 +161,44 @@ export default function RelogioAngulos({ vetores = [], resultante = null }) {
       ctx.stroke()
     })
 
-    // ── Vetores de tração (vermelho fino) ────────────────────────
+    // ── Vetores de tração (vermelho negritado) ───────────────────
     vetores.forEach(({ angulo, magnitude = 1 }) => {
-      const end = polar(angulo, (R - 8) * magnitude)
+      const end = polar(angulo, (R - 5) * magnitude)
       ctx.beginPath()
       ctx.strokeStyle = '#C00000'
-      ctx.lineWidth = 1.2
+      ctx.lineWidth = 2.2
       ctx.moveTo(CX, CY)
       ctx.lineTo(end.x, end.y)
       ctx.stroke()
       // seta
       const rad = toRad(angulo)
-      const as = 5
+      const as = 6
       ctx.beginPath()
       ctx.fillStyle = '#C00000'
       ctx.moveTo(end.x, end.y)
-      ctx.lineTo(end.x - as * Math.cos(rad - 0.4), end.y - as * Math.sin(rad - 0.4))
-      ctx.lineTo(end.x - as * Math.cos(rad + 0.4), end.y - as * Math.sin(rad + 0.4))
+      ctx.lineTo(end.x - as * Math.cos(rad - 0.45), end.y - as * Math.sin(rad - 0.45))
+      ctx.lineTo(end.x - as * Math.cos(rad + 0.45), end.y - as * Math.sin(rad + 0.45))
       ctx.closePath()
       ctx.fill()
     })
 
-    // ── Resultante (vermelho grosso) ─────────────────────────────
-    if (resultante) {
-      const end = polar(resultante.angulo, (R - 8) * (resultante.magnitude ?? 1))
+    // ── Resultante (vermelho super grosso e longo) ───────────────
+    if (resultante && resultante.magnitude > 0) {
+      // Faz a resultante um pouco mais longa para destaque total
+      const end = polar(resultante.angulo, (R - 2) * (resultante.magnitude ?? 1))
       ctx.beginPath()
       ctx.strokeStyle = '#C00000'
-      ctx.lineWidth = 2.8
+      ctx.lineWidth = 4.8
       ctx.moveTo(CX, CY)
       ctx.lineTo(end.x, end.y)
       ctx.stroke()
       const rad = toRad(resultante.angulo)
-      const as = 7
+      const as = 9
       ctx.beginPath()
       ctx.fillStyle = '#C00000'
       ctx.moveTo(end.x, end.y)
-      ctx.lineTo(end.x - as * Math.cos(rad - 0.3), end.y - as * Math.sin(rad - 0.3))
-      ctx.lineTo(end.x - as * Math.cos(rad + 0.3), end.y - as * Math.sin(rad + 0.3))
+      ctx.lineTo(end.x - as * Math.cos(rad - 0.35), end.y - as * Math.sin(rad - 0.35))
+      ctx.lineTo(end.x - as * Math.cos(rad + 0.35), end.y - as * Math.sin(rad + 0.35))
       ctx.closePath()
       ctx.fill()
     }
@@ -159,12 +211,17 @@ export default function RelogioAngulos({ vetores = [], resultante = null }) {
   }, [vetores, resultante])
 
   return (
-    <canvas
-      ref={ref}
-      width={SIZE}
-      height={SIZE}
-      aria-label="Relógio de ângulos de tração"
-      style={{ display: 'block' }}
-    />
+    <div className="grafico-wrapper">
+      <canvas
+        ref={ref}
+        width={SIZE}
+        height={SIZE}
+        aria-label="Relógio de ângulos de tração"
+        style={{ display: 'block' }}
+      />
+      <p className="grafico-summary" role="note">
+        {resumoTexto}
+      </p>
+    </div>
   )
 }

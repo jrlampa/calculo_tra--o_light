@@ -14,7 +14,11 @@ const LBL_W = 108
  * @param {Array}    props.campos         - [{campo, label, unidade}]
  * @param {string}   props.nota           - node opcional ex: "(*) - Considerar..."
  */
-export default function SecaoNivel({ titulo, labelResultado, travessias, onChangeTravessia, campos, nota, config }) {
+const SecaoNivel = ({ titulo, labelResultado, travessias, onChangeTravessia, campos, nota, config }) => {
+  const buildAccessibleName = (fieldLabel, travessiaIndex) => (
+    `${fieldLabel}, travessia ${travessiaIndex + 1}, ${titulo}`
+  )
+
   return (
     <div className="sec-panel">
       {/* ── Título ─────────────────────────────────────── */}
@@ -52,47 +56,64 @@ export default function SecaoNivel({ titulo, labelResultado, travessias, onChang
               <td className="field-lbl">{label}</td>
 
               {/* 4 travessias */}
-              {travessias.map((t, i) => (
-                <React.Fragment key={i}>
-                  <td>
-                    {isDropdown ? (
-                      <select
-                        id={`${campo}-t${i + 1}`}
-                        className="xcell"
-                        style={{ width: "100%" }}
-                        value={t[campo] ?? ""}
-                        onChange={(e) => onChangeTravessia(i, campo, e.target.value)}
-                      >
-                        <option value="">...</option>
-                        {(() => {
-                          let options = config[configKey] || [];
-                          // Filtro dinâmico Cabos -> Redes (Paridade Excel)
-                          if (campo === "tipoCabo" && config.cabos_por_rede) {
-                            const redeAtual = t.tipoRede;
-                            if (redeAtual && config.cabos_por_rede[redeAtual]) {
-                              options = config.cabos_por_rede[redeAtual];
+              {travessias.map((t, i) => {
+                const isAlturaField = campo === 'alturaPoste' || campo === 'alturaAncoragem';
+                const shouldHide = isAlturaField && i > 0;
+
+                if (shouldHide) {
+                  return (
+                    <React.Fragment key={i}>
+                      <td />
+                      <td className="xunit" />
+                    </React.Fragment>
+                  );
+                }
+
+                return (
+                  <React.Fragment key={i}>
+                    <td>
+                      {isDropdown ? (
+                        <select
+                          id={`${campo}-t${i + 1}`}
+                          className="xcell"
+                          style={{ width: "100%" }}
+                          value={t[campo] ?? ""}
+                          onChange={(e) => onChangeTravessia(i, campo, e.target.value)}
+                          aria-label={buildAccessibleName(label, i)}
+                        >
+                          <option value="">...</option>
+                          {(() => {
+                            let options = config[configKey] || [];
+                            // Filtro dinâmico Cabos -> Redes (Paridade Excel)
+                            if (campo === "tipoCabo" && config.cabos_por_rede) {
+                              const redeAtual = t.tipoRede;
+                              if (redeAtual && config.cabos_por_rede[redeAtual]) {
+                                options = config.cabos_por_rede[redeAtual];
+                              }
                             }
-                          }
-                          return options.map((opt) => (
-                            <option key={opt} value={opt}>
-                              {opt}
-                            </option>
-                          ));
-                        })()}
-                      </select>
-                    ) : (
-                      <input
-                        id={`${campo}-t${i + 1}`}
-                        className="xcell"
-                        style={{ width: '100%' }}
-                        value={t[campo] ?? ''}
-                        onChange={e => onChangeTravessia(i, campo, e.target.value)}
-                      />
-                    )}
-                  </td>
-                  <td className="xunit">{unidade}</td>
-                </React.Fragment>
-              ))}
+                            return options.map((opt) => (
+                              <option key={opt} value={opt}>
+                                {opt}
+                              </option>
+                            ));
+                          })()}
+                        </select>
+                      ) : (
+                        <input
+                          id={`${campo}-t${i + 1}`}
+                          className="xcell"
+                          style={{ width: '100%' }}
+                          value={t[campo] ?? ''}
+                          onChange={e => onChangeTravessia(i, campo, e.target.value)}
+                          aria-label={buildAccessibleName(label, i)}
+                          inputMode="decimal"
+                        />
+                      )}
+                    </td>
+                    <td className="xunit">{unidade}</td>
+                  </React.Fragment>
+                );
+              })}
             </tr>
           ))}
         </tbody>
@@ -110,3 +131,17 @@ export default function SecaoNivel({ titulo, labelResultado, travessias, onChang
     </div>
   )
 }
+
+// Memoização com comparação customizada para evitar re-renders desnecessários
+export default React.memo(SecaoNivel, (prevProps, nextProps) => {
+  // Comparar apenas as props que realmente afetam o render
+  return (
+    prevProps.titulo === nextProps.titulo &&
+    prevProps.labelResultado === nextProps.labelResultado &&
+    prevProps.travessias === nextProps.travessias &&
+    prevProps.onChangeTravessia === nextProps.onChangeTravessia &&
+    prevProps.campos === nextProps.campos &&
+    prevProps.nota === nextProps.nota &&
+    prevProps.config === nextProps.config
+  )
+})

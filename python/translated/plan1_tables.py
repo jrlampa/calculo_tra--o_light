@@ -129,7 +129,9 @@ def lookup_poste_ecc(tipo_poste: str, modelo_poste: str) -> float:
             if result is not None:
                 return float(result)
     return 0.0
+# Source of truth: plan4_selectors.py (extracted from Plan4 of workbook)
 CABOS_POR_REDE = {
+    # MT redes — Plan4 A1:C12
     "Compacta": [
         "397MCM-CA, XLPE, 34,5 kV",
         "397MCM-CA, XLPE, 13,8 kV",
@@ -137,32 +139,35 @@ CABOS_POR_REDE = {
         "4 AWG-CAA, XLPE, 13,8 kV",
         "185mm², MTX-MT, 20/35 kV",
         "185mm², MTX-MT, 12/20 kV",
-        "50mm², MTX-MT, 12/20 kV"
+        "50mm², MTX-MT, 12/20 kV",
     ],
     "Convencional": [
         "556MCM-CA, Nu",
         "397MCM-CA, Nu",
         "1/0AWG-CAA, Nu",
-        "4 AWG-CAA, Nu"
-    ],
-    "Multiplexada": [
-        "185mm², MTX-BT",
-        "70mm², MTX-BT",
-        "150mm², MTX-BT"
+        "4 AWG-CAA, Nu",
+        "397MCM-CA, XLPE, 34,5 kV",
+        "397MCM-CA, XLPE, 13,8 kV",
+        "1/0AWG-CAA, XLPE, 13,8 kV",
+        "4 AWG-CAA, XLPE, 13,8 kV",
     ],
     "Multiplexado": [
-        "185mm², MTX-BT",
-        "70mm², MTX-BT",
-        "150mm², MTX-BT"
+        "185mm², MTX-MT, 20/35 kV",
+        "185mm², MTX-MT, 12/20 kV",
+        "50mm², MTX-MT, 12/20 kV",
     ],
-    "Aberta": [
-        "240mm², MTX-BT",
-        "185mm², MTX-BT",
-        "70mm², MTX-BT"
+    # BT redes — Plan4 A13:C16
+    "Multiplexada": [
+        "240mm², MTX-BT ",
+        "185mm², MTX-BT ",
+        "70mm², MTX-BT ",
+    ],
+    "Aberta ": [
+        "397MCM-CA, PVC",
+        "1/0AWG-CAA, PVC ",
     ],
     "Armado": [
-        "Cabo armado 240mm²",
-        "Cabo armado 95mm²",
-        "Cordoalha de aco 3/8\""
-    ]
+        "Cabo armado 240mm² ",
+        "Cabo armado 95mm² ",
+    ],
 }
