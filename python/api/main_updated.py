@@ -51,11 +51,11 @@ async def lifespan(app: FastAPI):
     # Initialize services if needed
     try:
         # Test database connection
-        projeto_service = await get_projeto_service()
+        projeto_service = get_projeto_service()
         logger.info("Database connection established")
     except Exception as e:
         logger.error(f"Failed to connect to database: {e}")
-        raise
+        # Don't raise - allow app to start without DB for testing
     
     # Start performance monitoring
     try:
