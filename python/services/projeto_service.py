@@ -1,12 +1,12 @@
 """Service layer for projeto business logic."""
 from __future__ import annotations
 
-from typing import List, Optional, UUID
-from uuid import uuid4
+from typing import List, Optional
+from uuid import UUID, uuid4
 
-from ..models.projeto import Projeto, ProjetoCreate, ProjetoUpdate
-from ..repositories.projeto_repository import ProjetoRepository
-from ..core.exceptions import NotFoundError, PermissionError, ValidationError
+from models.projeto import Projeto, ProjetoCreate, ProjetoUpdate
+from repositories.projeto_repository import ProjetoRepository
+from core.exceptions import NotFoundError, PermissionError, ValidationError
 
 
 class ProjetoService:

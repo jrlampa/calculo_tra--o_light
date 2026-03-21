@@ -1,11 +1,11 @@
 """Repository for projeto data access operations."""
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, UUID
-from uuid import uuid4
+from typing import Any, Dict, List, Optional
+from uuid import UUID, uuid4
 
-from .base import BaseRepository
-from ..models.projeto import Projeto, ProjetoCreate, ProjetoUpdate
+from repositories.base import BaseRepository
+from models.projeto import Projeto, ProjetoCreate, ProjetoUpdate
 
 
 class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):

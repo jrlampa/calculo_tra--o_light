@@ -22,10 +22,13 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 
 # Import routers
-from .routers import projetos, calculo, public, admin
-from .dependencies import get_projeto_service
-from .core.config import get_settings
-from .core.exceptions import BaseAppException
+from api.routers import projetos, calculo, public, admin, monitoring
+from api.dependencies import get_projeto_service
+from api.documentation import setup_api_documentation
+from monitoring.performance import add_performance_monitoring
+from middleware.security import add_security_middleware
+from core.config import get_settings
+from core.exceptions import BaseAppException
 
 # Configure logging
 logging.basicConfig(
@@ -53,6 +56,15 @@ async def lifespan(app: FastAPI):
         logger.error(f"Failed to connect to database: {e}")
         raise
     
+    # Start performance monitoring
+    try:
+        from monitoring.performance import get_performance_monitor
+        monitor = get_performance_monitor()
+        await monitor.start_monitoring()
+        logger.info("Performance monitoring started")
+    except Exception as e:
+        logger.error(f"Failed to start performance monitoring: {e}")
+    
     yield
     
     # Shutdown
@@ -68,6 +80,15 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+# Setup enhanced documentation
+setup_api_documentation(app)
+
+# Add performance monitoring
+add_performance_monitoring(app)
+
+# Add security middleware
+add_security_middleware(app, settings)
 
 # Configure CORS
 app.add_middleware(
@@ -192,6 +213,12 @@ app.include_router(
     admin.router,
     prefix="/api/admin",
     tags=["Admin"]
+)
+
+app.include_router(
+    monitoring.router,
+    prefix="/api",
+    tags=["Monitoring"]
 )
 
 
