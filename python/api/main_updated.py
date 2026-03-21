@@ -22,7 +22,7 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 
 # Import routers
-from api.routers import projetos, calculo, public, admin, monitoring
+from api.routers import projetos, calculo, public, admin, monitoring, ai_assistant
 from api.dependencies import get_projeto_service
 from api.documentation import setup_api_documentation
 from monitoring.performance import add_performance_monitoring
@@ -219,6 +219,12 @@ app.include_router(
     monitoring.router,
     prefix="/api",
     tags=["Monitoring"]
+)
+
+app.include_router(
+    ai_assistant.router,
+    prefix="/api",
+    tags=["AI Assistant"]
 )
 
 
