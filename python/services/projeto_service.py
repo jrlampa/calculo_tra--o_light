@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 from uuid import UUID, uuid4
+from datetime import datetime
 
 from models.projeto import Projeto, ProjetoCreate, ProjetoUpdate
 from repositories.projeto_repository import ProjetoRepository

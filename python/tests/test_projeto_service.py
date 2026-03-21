@@ -1,6 +1,6 @@
 """Unit tests for ProjetoService."""
 import pytest
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 from models.projeto import Projeto, ProjetoCreate, ProjetoUpdate

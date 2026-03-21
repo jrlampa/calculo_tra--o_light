@@ -6,6 +6,9 @@ __pycache__/
 env/
 venv/
 .env
+.env.test
+.env.local
+.env.production
 .pytest_cache/
 
 # Node
@@ -18,10 +21,17 @@ dist-ssr/
 *.log
 api.log
 api.err.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
 
 # OS
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
+*~
 
 # Project specific
 tmp_*/
@@ -39,8 +49,136 @@ junit.xml
 playwright-report/
 test-results/
 .nyc_output/
+.vitest/
 
 # Tooling caches
 .mypy_cache/
 .ruff_cache/
 .cache/
+.parcel-cache/
+.eslintcache
+
+# Docker
+.dockerignore
+Dockerfile.dev
+docker-compose.override.yml
+docker-compose.prod.yml
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# AI/ML Models
+models/
+*.pkl
+*.joblib
+*.h5
+*.pb
+
+# Redis dump
+dump.rdb
+
+# Temporary files
+*.tmp
+*.temp
+.temp/
+.tmp/
+
+# Build artifacts
+build/
+out/
+target/
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+.env.test
+.env.production
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# next.js build output
+.next
+
+# nuxt.js build output
+.nuxt
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# Ollama models
+ollama_models/
+*.gguf
+*.bin
+
+# Backup files
+*.bak
+*.backup
+
+# Lock files (keep package-lock.json but ignore others)
+yarn.lock
+pnpm-lock.yaml
+
+# Security
+*.pem
+*.key
+*.crt
+*.p12
+.secrets
+
+# Performance profiling
+*.prof
+*.profile
+
+# Monitoring and metrics
+metrics/
+logs/
+
+# Documentation build
+docs/_build/
+docs/.doctrees/
+
+# Local development
+.local/
+dev/

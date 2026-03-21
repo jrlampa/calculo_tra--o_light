@@ -217,7 +217,7 @@ async def create_user(user_create: UserCreate) -> User:
     hashed_password = auth_service.hash_password(user_create.password)
     
     new_user = {
-        "id": str(UUID()),
+        "id": str(uuid4()),
         "email": user_create.email,
         "password": hashed_password,
         "name": user_create.name,
