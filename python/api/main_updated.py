@@ -22,11 +22,12 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 
 # Import routers
-from api.routers import projetos, calculo, public, admin, monitoring, ai_assistant
+from api.routers import projetos, calculo, public, admin, monitoring, ai_assistant, cache
 from api.dependencies import get_projeto_service
 from api.documentation import setup_api_documentation
 from monitoring.performance import add_performance_monitoring
 from middleware.security import add_security_middleware
+from middleware.cache import setup_cache_middleware
 from core.config import get_settings
 from core.exceptions import BaseAppException
 
@@ -65,6 +66,17 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Failed to start performance monitoring: {e}")
     
+    # Initialize cache
+    try:
+        from cache.redis_client import get_cache_manager
+        cache_manager = await get_cache_manager()
+        if cache_manager._connected:
+            logger.info("Cache initialized successfully")
+        else:
+            logger.warning("Cache initialization failed - running without cache")
+    except Exception as e:
+        logger.error(f"Failed to initialize cache: {e}")
+    
     yield
     
     # Shutdown
@@ -89,6 +101,25 @@ add_performance_monitoring(app)
 
 # Add security middleware
 add_security_middleware(app, settings)
+
+# Add cache middleware
+cache_config = {
+    "default_ttl": 300,  # 5 minutes
+    "max_ttl": 3600,    # 1 hour
+    "routes": [
+        {"path": "/api/projetos", "ttl": 600},
+        {"path": "/api/public", "ttl": 1800},
+        {"path": "/api/monitoring/metrics", "ttl": 60},
+        {"path": "/api/cache/stats", "ttl": 30}
+    ],
+    "exclude": [
+        "/api/auth",
+        "/api/calculo",
+        "/api/ai/chat",
+        "/api/admin"
+    ]
+}
+setup_cache_middleware(app, cache_config)
 
 # Configure CORS
 app.add_middleware(
@@ -225,6 +256,12 @@ app.include_router(
     ai_assistant.router,
     prefix="/api",
     tags=["AI Assistant"]
+)
+
+app.include_router(
+    cache.router,
+    prefix="/api",
+    tags=["Cache Management"]
 )
 
 
