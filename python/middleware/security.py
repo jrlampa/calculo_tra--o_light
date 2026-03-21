@@ -97,7 +97,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
         
         # Remove server information
-        response.headers["Server"] = "Cálculo de Tração API"
+        response.headers["Server"] = "Calculo de Tracao API"
         
         # Add cache control for API responses
         if request.url.path.startswith("/api/"):

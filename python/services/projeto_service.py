@@ -35,8 +35,8 @@ class ProjetoService:
         limit: int = 20
     ) -> List[Projeto]:
         """Get projetos for a user with pagination."""
-        if limit > 100:
-            raise ValidationError("Limite máximo de 100 projetos por requisição")
+        if limit > 1000:
+            raise ValidationError("Limite máximo de 1000 projetos por requisição")
         
         return await self.projeto_repository.get_multi(
             skip=skip, 

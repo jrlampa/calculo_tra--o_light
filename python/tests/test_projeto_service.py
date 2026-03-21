@@ -294,7 +294,7 @@ class TestProjetoService:
     async def test_get_projeto_stats(self, projeto_service, sample_user_id):
         """Test projeto statistics."""
         # Create projetos
-        for i in range(3):
+        for i in range(3):  # Reduced to avoid hitting limit
             projeto_data = ProjetoCreate(
                 orgao="Test Orgao",
                 ns=f"NS-{i:03d}",

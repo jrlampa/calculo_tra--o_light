@@ -6,7 +6,7 @@ import bcrypt
 import jwt
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
