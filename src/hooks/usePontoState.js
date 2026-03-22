@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { createPonto } from '../services/calculoApi.js'
 import { POSTE_INICIAL } from '../features/calculo/formConfig.js'
+import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstrumentation.js'
 
 export const usePontoState = ({ projetoAtual, cabecalho, resetPersistencia }) => {
   const [poste, setPoste] = useState(() => ({ ...POSTE_INICIAL }))
@@ -75,6 +76,13 @@ export const usePontoState = ({ projetoAtual, cabecalho, resetPersistencia }) =>
       })
       setPontoState({ loading: false, status: 'saved', error: '' })
       if (resetPersistencia) resetPersistencia()
+      trackUxFunnelEvent(UX_FUNNEL_EVENTS.POINT_CONFIRMED, {
+        projeto_id: projetoAtual?.id ?? null,
+        ponto_id: pontoCriado?.id ?? null,
+        ponto,
+        tipo_poste: poste.tipoPoste || '',
+        modelo_poste: poste.modeloPoste || '',
+      })
     } catch (err) {
       setPontoState({ loading: false, status: 'error', error: err.message })
     }
@@ -113,7 +121,7 @@ export const usePontoState = ({ projetoAtual, cabecalho, resetPersistencia }) =>
   // Memoizar feedback do header
   const headerFeedback = useMemo(() => {
     if (pontoState.loading) {
-      return { tone: 'saving', message: 'Criando o ponto e vinculando ao projeto...' }
+      return { tone: 'saving', message: 'Vinculando ponto...' }
     }
 
     if (pontoState.error) {
@@ -121,11 +129,11 @@ export const usePontoState = ({ projetoAtual, cabecalho, resetPersistencia }) =>
     }
 
     if (!(cabecalho.ponto || '').trim()) {
-      return { tone: 'idle', message: 'Informe o ponto e confirme para habilitar a persistência do cálculo.' }
+      return { tone: 'idle', message: 'Informe o ponto para continuar.' }
     }
 
     if (!poste.tipoPoste || !poste.modeloPoste) {
-      return { tone: 'idle', message: 'Selecione o tipo e o modelo do poste antes de confirmar o ponto.' }
+      return { tone: 'idle', message: 'Selecione tipo e modelo do poste.' }
     }
 
     if (!pontoAtual?.id) {
@@ -136,7 +144,7 @@ export const usePontoState = ({ projetoAtual, cabecalho, resetPersistencia }) =>
       return { tone: 'saved', message: `Ponto ${cabecalho.ponto} confirmado.` }
     }
 
-    return { tone: 'saved', message: 'Ponto confirmado. Aguardando o próximo retorno de cálculo para persistir.' }
+    return { tone: 'saved', message: 'Ponto confirmado. Aguardando cálculo para salvar.' }
   }, [cabecalho.ponto, pontoAtual?.id, pontoState.error, pontoState.loading, pontoState.status, poste.modeloPoste, poste.tipoPoste])
 
   // Memoizar estado exportado

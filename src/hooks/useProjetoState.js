@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import { createProjeto } from '../services/calculoApi.js'
 import { CABECALHO_INICIAL } from '../features/calculo/formConfig.js'
+import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstrumentation.js'
 
 export const useProjetoState = () => {
   const [etapa, setEtapa] = useState('projeto')
@@ -37,6 +38,10 @@ export const useProjetoState = () => {
       }))
       setEtapa('calculo')
       setProjetoState({ loading: false, error: '' })
+      trackUxFunnelEvent(UX_FUNNEL_EVENTS.PROJECT_CONFIRMED, {
+        projeto_id: projetoCriado?.id ?? null,
+        projeto_nome: projetoCriado?.nome || cabecalho.projeto || '',
+      })
     } catch (err) {
       setProjetoState({ loading: false, error: err.message })
     }

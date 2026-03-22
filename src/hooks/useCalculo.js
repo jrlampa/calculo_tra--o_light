@@ -4,6 +4,7 @@
  */
 import { useState, useEffect, useRef } from 'react'
 import { buildCalculoRequest } from '../services/calculoApi.js'
+import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstrumentation.js'
 
 export default function useCalculo(formState, debounceMs = 600, enabled = true) {
   const [resultado, setResultado] = useState(null)
@@ -48,6 +49,10 @@ export default function useCalculo(formState, debounceMs = 600, enabled = true) 
         const data = await response.json()
         setResultado(data)
         setLastPayload(payload)
+        trackUxFunnelEvent(UX_FUNNEL_EVENTS.CALCULATION_SUCCEEDED, {
+          total_tracao_dan: data?.total_tracao_dan ?? null,
+          total_angulo_graus: data?.total_angulo_graus ?? null,
+        })
       } catch (err) {
         if (err.name !== 'AbortError') setError(err.message)
       } finally {

@@ -52,8 +52,16 @@ from translated.ponto_blocks import (
 )
 from translated.qdt_blocks import calcular_qdt, QDTInput as QDTLogicInput
 from translated.plan1_tables import CABOS_POR_REDE, CABOS_TABLE, POSTE_TABLE, REDE_TABLE
+from contextlib import asynccontextmanager
 
-app = FastAPI(title="Calculo Tração Poste", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    from db.pool import db_pool
+    if db_pool:
+        await db_pool.close()
+
+app = FastAPI(title="Calculo Tração Poste", version="1.0.0", lifespan=lifespan)
 logger = logging.getLogger(__name__)
 
 # Initialize Supabase client

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
-import pickle
+import hashlib
 from typing import Any, Optional, Dict, List, Union
 from datetime import datetime, timedelta
 from dataclasses import dataclass
@@ -14,6 +14,8 @@ from redis.asyncio import Redis
 from core.config import get_settings
 
 logger = logging.getLogger(__name__)
+
+_CACHE_FORMAT_VERSION = "json-v1"
 
 
 @dataclass
@@ -89,6 +91,31 @@ class RedisCache:
     def _make_key(self, prefix: str, identifier: str) -> str:
         """Create cache key with prefix."""
         return f"{self.prefixes.get(prefix, prefix)}{identifier}"
+
+    def _serialize_value(self, value: Any) -> str:
+        """Serialize cached value using safe JSON-only format."""
+        payload = {
+            "__cache_format": _CACHE_FORMAT_VERSION,
+            "value": value,
+        }
+        return json.dumps(payload, default=str)
+
+    def _deserialize_value(self, value: str) -> Any:
+        """Deserialize cache value without executing arbitrary code."""
+        try:
+            parsed = json.loads(value)
+        except (json.JSONDecodeError, TypeError):
+            return value
+
+        if (
+            isinstance(parsed, dict)
+            and parsed.get("__cache_format") == _CACHE_FORMAT_VERSION
+            and "value" in parsed
+        ):
+            return parsed["value"]
+
+        return parsed
+
     
     async def get(self, key: str, prefix: str = 'default') -> Optional[Any]:
         """Get value from cache."""
@@ -104,14 +131,7 @@ class RedisCache:
             
             if value is not None:
                 self.stats['hits'] += 1
-                # Try to deserialize JSON first, then pickle
-                try:
-                    return json.loads(value)
-                except (json.JSONDecodeError, TypeError):
-                    try:
-                        return pickle.loads(value.encode('latin1'))
-                    except (pickle.PickleError, UnicodeEncodeError):
-                        return value
+                return self._deserialize_value(value)
             else:
                 self.stats['misses'] += 1
                 return None
@@ -139,11 +159,7 @@ class RedisCache:
             cache_key = self._make_key(prefix, key)
             ttl = ttl or self.config.default_ttl
             
-            # Try to serialize as JSON first, then pickle
-            try:
-                serialized_value = json.dumps(value, default=str)
-            except (TypeError, ValueError):
-                serialized_value = pickle.dumps(value).decode('latin1')
+            serialized_value = self._serialize_value(value)
             
             result = await self.redis_client.setex(cache_key, ttl, serialized_value)
             
@@ -185,14 +201,15 @@ class RedisCache:
         
         try:
             cache_pattern = self._make_key(prefix, pattern)
-            keys = await self.redis_client.keys(cache_pattern)
-            
-            if keys:
-                deleted = await self.redis_client.delete(*keys)
+            deleted = 0
+
+            async for key in self.redis_client.scan_iter(match=cache_pattern, count=200):
+                deleted += await self.redis_client.delete(key)
+
+            if deleted:
                 self.stats['deletes'] += deleted
-                return deleted
-            else:
-                return 0
+
+            return deleted
                 
         except Exception as e:
             logger.error(f"Cache delete pattern error for pattern {pattern}: {e}")
@@ -313,6 +330,12 @@ class CacheManager:
     def __init__(self):
         self.cache = RedisCache()
         self._connected = False
+
+    @staticmethod
+    def _stable_hash(payload: Any) -> str:
+        """Build deterministic digest for cache keys across process restarts."""
+        normalized = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
+        return hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:16]
     
     async def initialize(self) -> bool:
         """Initialize cache manager."""
@@ -367,15 +390,22 @@ class CacheManager:
     async def cache_api_response(self, endpoint: str, params: Dict[str, Any], response: Any, ttl: int = 300) -> bool:
         """Cache API response."""
         # Create cache key from endpoint and params
-        param_hash = hash(str(sorted(params.items())))
+        param_hash = self._stable_hash({"endpoint": endpoint, "params": params})
         cache_key = f"{endpoint}:{param_hash}"
         return await self.cache.set(cache_key, response, 'api', ttl)
     
     async def get_cached_api_response(self, endpoint: str, params: Dict[str, Any]) -> Optional[Any]:
         """Get cached API response."""
-        param_hash = hash(str(sorted(params.items())))
+        param_hash = self._stable_hash({"endpoint": endpoint, "params": params})
         cache_key = f"{endpoint}:{param_hash}"
-        return await self.cache.get(cache_key, 'api')
+        cached = await self.cache.get(cache_key, 'api')
+        if cached is not None:
+            return cached
+
+        # Minimal compatibility with previous non-deterministic key format.
+        legacy_hash = hash(str(sorted(params.items())))
+        legacy_key = f"{endpoint}:{legacy_hash}"
+        return await self.cache.get(legacy_key, 'api')
     
     async def get_ai_response(self, prompt_hash: str) -> Optional[str]:
         """Get AI response from cache."""
@@ -458,7 +488,11 @@ def cache_result(ttl: int = 300, prefix: str = 'default'):
             
             # Create cache key from function name and arguments
             func_name = func.__name__
-            args_hash = hash(str(args) + str(sorted(kwargs.items())))
+            args_hash = cache_manager._stable_hash({
+                "function": func_name,
+                "args": args,
+                "kwargs": kwargs,
+            })
             cache_key = f"{func_name}:{args_hash}"
             
             # Try to get from cache
@@ -473,3 +507,4 @@ def cache_result(ttl: int = 300, prefix: str = 'default'):
             return result
         return wrapper
     return decorator
+

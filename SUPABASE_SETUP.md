@@ -238,6 +238,42 @@ Após executar o conteúdo de python/db/migrations.sql no SQL Editor:
 
     Esperado: todos os índices acima presentes.
 
+CONTRATO DE COLUNAS (PROJETOS) E ANTI-DRIFT
+===========================================
+
+Para reduzir drift entre serviços legados e novos, o backend Python agora aceita
+os dois contratos de timestamp/soft-delete em projetos:
+
+- Contrato EN: `created_at`, `updated_at`, `deleted_at`
+- Contrato PT-BR: `criado_em`, `atualizado_em`, `deletado_em`
+
+Governança recomendada:
+
+1) Defina um contrato canônico por ambiente (recomendado: PT-BR, alinhado com migrations.sql).
+2) Evite migração destrutiva/renomeação direta em produção.
+3) Use estratégia expand-only quando precisar compatibilizar contratos.
+
+Checklist SQL de verificação de drift:
+
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+         AND table_name = 'projetos'
+         AND column_name IN (
+            'created_at', 'updated_at', 'deleted_at',
+            'criado_em', 'atualizado_em', 'deletado_em'
+         )
+      ORDER BY column_name;
+
+      -- Resultado esperado:
+      -- pelo menos 1 coluna de criação, 1 de atualização e 1 de soft-delete.
+
+Compatibilidade operacional:
+
+- A camada Python detecta as colunas disponíveis em runtime e aplica fallback.
+- Em caso de coexistência dos dois contratos, prioriza EN (`*_at`) e mantém
+   funcionamento com PT-BR como fallback.
+
 PYTHON CLIENT CODE
 =================
 

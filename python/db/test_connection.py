@@ -1,22 +1,22 @@
 """Test Supabase PostgreSQL connection."""
 import asyncio
 import os
+import pytest
 from dotenv import load_dotenv
 
 load_dotenv()
 
 
+@pytest.mark.asyncio
 async def test_connection():
     """Test direct connection to Supabase PostgreSQL."""
+    database_url = os.getenv("DATABASE_URL", "")
+    if not database_url:
+        pytest.skip("DATABASE_URL não configurado para teste de conexão externo.")
+
     try:
         import asyncpg
-        
-        database_url = os.getenv("DATABASE_URL", "")
-        
-        if not database_url:
-            print("❌ DATABASE_URL not configured in .env")
-            return False
-        
+
         print(f"🔍 Testing connection to Supabase PostgreSQL...")
         
         # Single connection test
@@ -45,11 +45,10 @@ async def test_connection():
                 print(f"      - {table['table_name']}")
         
         await pool.close()
-        return True
+        assert True
     
     except Exception as e:
-        print(f"❌ Connection failed: {e}")
-        return False
+        pytest.fail(f"Connection failed: {e}")
 
 
 if __name__ == "__main__":

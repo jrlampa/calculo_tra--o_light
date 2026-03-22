@@ -26,6 +26,9 @@
 - Zero custo para integracoes externas no MVP.
 - Modularizar arquivos com mais de 500 linhas.
 - Cobertura alvo: 100% nos 20% fluxos mais criticos e >=80% no restante.
+- Governanca normativa operacional obrigatoria para fluxos de calculo e persistencia.
+- Bloqueio de liberacao quando faltar evidencia objetiva de paridade LIGHT e rastreabilidade minima auditavel.
+- Uso assistido por responsavel tecnico obrigatorio em liberacoes iniciais e mudancas sensiveis de dominio critico.
 
 ## Regras removidas/ajustadas por contexto
 

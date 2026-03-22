@@ -76,8 +76,8 @@ const PersistenciaChip = React.memo(({ status = 'idle', message = '', willRetry 
   })()
 
   const displayMessage = willRetry
-    ? `Tentando novamente em ${retryInSeconds}s…`
-    : message || 'Cálculo não persistido'
+    ? `Nova tentativa em ${retryInSeconds}s...`
+    : message || 'Aguardando envio.'
 
   return (
     <div
@@ -180,7 +180,7 @@ const Header = ({
               disabled={!canConfirmPonto || confirmingPonto || pontoStatus === 'saved'}
               aria-describedby="header-vinculo-status header-persistencia-status"
             >
-              {confirmingPonto ? 'Confirmando ponto...' : pontoStatus === 'saved' && persistenciaStatus === 'saved' ? 'Persistido!' : 'Confirmar ponto'}
+              {confirmingPonto ? 'Confirmando...' : pontoStatus === 'saved' && persistenciaStatus === 'saved' ? 'Salvo' : 'Confirmar ponto'}
             </button>
           </div>
         </>

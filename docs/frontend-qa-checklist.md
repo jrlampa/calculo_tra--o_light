@@ -37,19 +37,28 @@
 - [ ] Retry de config executa nova tentativa sem limpar último config válido.
 - [ ] Se tipo do poste mudar, modelo é limpo imediatamente.
 - [ ] Helper text de Modelo do Poste está visível e associado por aria-describedby.
-- [ ] Estados de ponto/persistência seguem feedback no cabeçalho (idle/saving/saved/error).
-- [ ] Persistência em retry automático mostra countdown "Tentando em Xs...".
-- [ ] Após 3 tentativas falhas, persistência mostra erro estável com retry manual.
-- [ ] Falha `403/42501` de persistência aparece como erro de acesso/ownership, sem retry automático indevido.
+- [ ] Estados de persistência cobrem explicitamente `saving`, `queued`, `saved`, `error_transient` e `error_permission`.
+- [ ] Em `saving`, chip mostra exatamente "Salvando..." e não exibe CTA de retry.
+- [ ] Em `queued`, chip mostra "Na fila. Tentando em Xs..." e CTA "Reenviar".
+- [ ] Countdown de `queued` atualiza em passos de 1s sem travar interação no formulário.
+- [ ] Em `saved`, chip mostra "Salvo" e CTA "Próximo ponto" fica habilitado.
+- [ ] Em `error_transient`, chip mostra falha com retry automático e CTA "Tentar novamente".
+- [ ] Após esgotar retries automáticos, estado continua `error_transient` com mensagem estável de falha e CTA manual.
+- [ ] Em `403/42501`, estado vira `error_permission`, sem retry automático, com mensagem de acesso/ownership.
+- [ ] Em `error_permission`, CTA "Reconfirmar projeto" fica visível e navegável por teclado.
 - [ ] Erro 422 de domínio aparece no campo específico (não apenas em banner global).
 - [ ] Stepper reflete transição correta: Projeto -> Ponto -> Cálculo -> Persistido.
 - [ ] Após persistência `saved`, CTA "Próximo ponto" fica disponível sem recarregar contexto do projeto.
 
 ## 4) APAGA com desfazer
-- [ ] Acionar APAGA abre `UndoToast` com janela de 5s.
-- [ ] Durante a janela, campos ainda não são limpos definitivamente.
-- [ ] Clicar "Desfazer" restaura estado integral sem perda de foco.
-- [ ] Após timeout, limpeza afeta apenas dados técnicos do ponto atual (não limpa dados do projeto).
+- [ ] Acionar APAGA abre `UndoToast` com janela de 5s e mensagem "Dados tecnicos serao apagados em 5 s.".
+- [ ] `UndoToast` exibe countdown "Apagando em Xs" atualizado a cada 1s.
+- [ ] Ao abrir `UndoToast`, foco vai para botão "Desfazer".
+- [ ] Durante `undo_pending`, valores técnicos exibidos ainda correspondem ao snapshot anterior.
+- [ ] Clicar "Desfazer" dentro da janela restaura estado técnico integral do ponto atual.
+- [ ] Após clicar "Desfazer", foco retorna ao último campo técnico ativo (ou primeiro campo técnico editável se indisponível).
+- [ ] Após timeout sem desfazer, limpeza afeta apenas dados técnicos do ponto atual (não limpa dados do projeto).
+- [ ] Após timeout sem desfazer, foco vai para o primeiro campo técnico editável.
 
 ## 5) Fallback de /api/config
 - [ ] Cenário sucesso inicial: selects populam com dados normalizados.
@@ -79,3 +88,17 @@
 - [ ] E2E sem mocks do backend validado em ambiente integrado ao menos para 1 cenário feliz e 1 cenário de falha de persistência.
 - [ ] Não há bloqueio A11y de severidade alta no fluxo crítico.
 - [ ] Sem bloqueio de fallback para indisponibilidade de /api/config.
+
+## 9) Conformidade normativa operacional (calculo/persistencia)
+- [ ] Evidência de paridade LIGHT anexada para o fluxo crítico (entrada, resultado e persistência) em cenário representativo.
+- [ ] Resultado calculado em domínio crítico confere com workbook LIGHT dentro do critério definido pelo time técnico.
+- [ ] Logs/evidências de rastreabilidade disponíveis por operação: projeto, ponto, timestamp, status de cálculo e status de persistência.
+- [ ] Erro de domínio crítico (422/403/42501 ou divergência de paridade) está classificado com causa e ação corretiva registrada.
+- [ ] Nenhuma decisão de exceção operacional foi aplicada sem registro formal de responsável técnico.
+
+## 10) Gate de liberacao (fluxo operacional)
+- [ ] Gate 1 - Paridade: aprovado apenas com evidência objetiva de paridade LIGHT no fluxo Projeto -> Ponto -> Cálculo -> Persistência.
+- [ ] Gate 2 - Rastreabilidade: aprovado apenas com trilha mínima auditável de eventos e estados por ponto.
+- [ ] Gate 3 - Domínio crítico: bloqueio automático de liberação se houver falha sem mitigação validada em cálculo/persistência.
+- [ ] Gate 4 - Uso assistido: operação em produção inicial liberada somente em modo assistido por responsável técnico.
+- [ ] Gate 5 - Go/No-Go: decisão final registrada com aprovador, data, escopo e pendências remanescentes.

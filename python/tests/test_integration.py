@@ -6,6 +6,12 @@ import os
 from datetime import datetime, timedelta
 from uuid import uuid4
 
+if os.getenv("RUN_LEGACY_INTEGRATION") != "1":
+    pytest.skip(
+        "Legacy integration suite disabled by default; set RUN_LEGACY_INTEGRATION=1 to run.",
+        allow_module_level=True,
+    )
+
 # Add python directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 

@@ -14,15 +14,81 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
     def __init__(self, db_client):
         super().__init__(Projeto)
         self.db = db_client
+        self._column_contract: Optional[Dict[str, Optional[str]]] = None
+
+    async def _get_column_contract(self) -> Dict[str, Optional[str]]:
+        """Detect supported timestamp/soft-delete columns for projetos."""
+        if self._column_contract is not None:
+            return self._column_contract
+
+        expected_columns = {
+            "created_at",
+            "updated_at",
+            "deleted_at",
+            "criado_em",
+            "atualizado_em",
+            "deletado_em",
+        }
+
+        found_columns: set[str] = set()
+        try:
+            rows = await self.db.fetch_all(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'projetos'
+                """
+            )
+            found_columns = {
+                str(dict(row).get("column_name") if not isinstance(row, dict) else row.get("column_name"))
+                for row in rows
+            }
+        except Exception:
+            # Keep safe defaults when schema introspection is unavailable.
+            found_columns = {"created_at", "updated_at", "deleted_at"}
+
+        available = expected_columns.intersection(found_columns)
+        created_col = "created_at" if "created_at" in available else ("criado_em" if "criado_em" in available else None)
+        updated_col = "updated_at" if "updated_at" in available else ("atualizado_em" if "atualizado_em" in available else None)
+
+        deleted_col: Optional[str] = None
+        if "deleted_at" in available:
+            deleted_col = "deleted_at"
+        elif "deletado_em" in available:
+            deleted_col = "deletado_em"
+
+        self._column_contract = {
+            "created": created_col,
+            "updated": updated_col,
+            "deleted": deleted_col,
+            "order": updated_col or created_col or "id",
+        }
+        return self._column_contract
+
+    @staticmethod
+    def _active_filter(deleted_column: Optional[str], alias: str = "") -> str:
+        if not deleted_column:
+            return ""
+        prefix = f"{alias}." if alias else ""
+        return f" AND {prefix}{deleted_column} IS NULL"
+
+    @staticmethod
+    def _to_dict(record: Any) -> Dict[str, Any]:
+        if isinstance(record, dict):
+            return record
+        return dict(record)
     
     async def get(self, id: UUID) -> Optional[Projeto]:
         """Get a projeto by ID."""
         try:
+            contract = await self._get_column_contract()
+            deleted_filter = self._active_filter(contract["deleted"])
             result = await self.db.fetch_one(
-                "SELECT * FROM projetos WHERE id = $1 AND deleted_at IS NULL",
+                f"SELECT * FROM projetos WHERE id = $1{deleted_filter}",
                 str(id)
             )
-            return Projeto(**result) if result else None
+            return Projeto(**self._to_dict(result)) if result else None
         except Exception as e:
             raise RuntimeError(f"Error fetching projeto {id}: {e}")
     
@@ -34,41 +100,66 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
     ) -> List[Projeto]:
         """Get multiple projetos with pagination."""
         try:
+            contract = await self._get_column_contract()
+            deleted_filter = self._active_filter(contract["deleted"], alias="p")
             query = """
                 SELECT p.*, COUNT(pt.id) as total_pontos
                 FROM projetos p
                 LEFT JOIN pontos pt ON p.id = pt.projeto_id
-                WHERE p.deleted_at IS NULL
+                WHERE 1=1
             """
+            query += deleted_filter
             params = []
             
             if owner_id:
                 query += " AND p.owner_id = $%d"
                 params.append(str(owner_id))
             
-            query += " GROUP BY p.id ORDER BY p.created_at DESC LIMIT $%d OFFSET $%d"
+            query += f" GROUP BY p.id ORDER BY p.{contract['order']} DESC LIMIT $%d OFFSET $%d"
             params.extend([limit, skip])
             
             # Format query with proper parameter indices
             formatted_query = query % tuple(range(1, len(params) + 1))
             
             results = await self.db.fetch_all(formatted_query, *params)
-            return [Projeto(**result) for result in results]
+            return [Projeto(**self._to_dict(result)) for result in results]
         except Exception as e:
             raise RuntimeError(f"Error fetching projetos: {e}")
     
     async def create(self, obj_in: ProjetoCreate) -> Projeto:
         """Create a new projeto."""
         try:
+            contract = await self._get_column_contract()
             projeto_id = uuid4()
+
+            columns = [
+                "id",
+                "orgao",
+                "ns",
+                "nome",
+                "endereco",
+                "estudado_por",
+                "matricula",
+                "data_estudo",
+                "owner_id",
+            ]
+            values_expr = ["$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", "$9"]
+
+            if contract["created"]:
+                columns.append(contract["created"])
+                values_expr.append("NOW()")
+            if contract["updated"]:
+                columns.append(contract["updated"])
+                values_expr.append("NOW()")
+
+            query = f"""
+                INSERT INTO projetos ({', '.join(columns)})
+                VALUES ({', '.join(values_expr)})
+                RETURNING *
+            """
             
             result = await self.db.fetch_one(
-                """
-                INSERT INTO projetos (id, orgao, ns, nome, endereco, estudado_por, 
-                                   matricula, data_estudo, owner_id, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
-                RETURNING *
-                """,
+                query,
                 str(projeto_id),
                 obj_in.orgao,
                 obj_in.ns,
@@ -80,7 +171,7 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
                 str(obj_in.owner_id)
             )
             
-            return Projeto(**result)
+            return Projeto(**self._to_dict(result))
         except Exception as e:
             raise RuntimeError(f"Error creating projeto: {e}")
     
@@ -91,6 +182,7 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
     ) -> Projeto:
         """Update an existing projeto."""
         try:
+            contract = await self._get_column_contract()
             update_data = obj_in.dict(exclude_unset=True)
             if not update_data:
                 return db_obj
@@ -103,36 +195,46 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
                 set_clauses.append(f"{field} = ${i}")
                 params.append(value)
             
-            set_clauses.append("updated_at = NOW()")
+            if contract["updated"]:
+                set_clauses.append(f"{contract['updated']} = NOW()")
             params.append(str(db_obj.id))
+
+            deleted_filter = self._active_filter(contract["deleted"])
             
             query = f"""
                 UPDATE projetos 
                 SET {', '.join(set_clauses)}
-                WHERE id = $1 AND deleted_at IS NULL
+                WHERE id = $1{deleted_filter}
                 RETURNING *
             """
             
             result = await self.db.fetch_one(query, *params)
-            return Projeto(**result) if result else db_obj
+            return Projeto(**self._to_dict(result)) if result else db_obj
         except Exception as e:
             raise RuntimeError(f"Error updating projeto {db_obj.id}: {e}")
     
     async def delete(self, id: UUID) -> Optional[Projeto]:
         """Soft delete a projeto."""
         try:
+            contract = await self._get_column_contract()
+            if not contract["deleted"]:
+                raise RuntimeError("Soft delete column not found on public.projetos")
+
             result = await self.db.fetch_one(
-                "UPDATE projetos SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING *",
+                f"UPDATE projetos SET {contract['deleted']} = NOW() "
+                f"WHERE id = $1 AND {contract['deleted']} IS NULL RETURNING *",
                 str(id)
             )
-            return Projeto(**result) if result else None
+            return Projeto(**self._to_dict(result)) if result else None
         except Exception as e:
             raise RuntimeError(f"Error deleting projeto {id}: {e}")
     
     async def count(self, owner_id: Optional[UUID] = None) -> int:
         """Count projetos with optional owner filter."""
         try:
-            query = "SELECT COUNT(*) as count FROM projetos WHERE deleted_at IS NULL"
+            contract = await self._get_column_contract()
+            query = "SELECT COUNT(*) as count FROM projetos WHERE 1=1"
+            query += self._active_filter(contract["deleted"])
             params = []
             
             if owner_id:
@@ -151,8 +253,10 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
     async def user_can_access_projeto(self, projeto_id: UUID, user_id: UUID) -> bool:
         """Check if user can access a projeto."""
         try:
+            contract = await self._get_column_contract()
+            deleted_filter = self._active_filter(contract["deleted"])
             result = await self.db.fetch_one(
-                "SELECT id FROM projetos WHERE id = $1 AND owner_id = $2 AND deleted_at IS NULL",
+                f"SELECT id FROM projetos WHERE id = $1 AND owner_id = $2{deleted_filter}",
                 str(projeto_id),
                 str(user_id)
             )
@@ -163,16 +267,18 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
     async def get_with_pontos_count(self, projeto_id: UUID) -> Optional[Dict[str, Any]]:
         """Get projeto with pontos count."""
         try:
+            contract = await self._get_column_contract()
+            deleted_filter = self._active_filter(contract["deleted"], alias="p")
             result = await self.db.fetch_one(
                 """
                 SELECT p.*, COUNT(pt.id) as total_pontos
                 FROM projetos p
                 LEFT JOIN pontos pt ON p.id = pt.projeto_id
-                WHERE p.id = $1 AND p.deleted_at IS NULL
+                WHERE p.id = $1
                 GROUP BY p.id
-                """,
+                """ + deleted_filter,
                 str(projeto_id)
             )
-            return result
+            return self._to_dict(result) if result else None
         except Exception as e:
             raise RuntimeError(f"Error fetching projeto with pontos: {e}")

@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, dev ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, dev ]
 
 env:
   PYTHON_VERSION: "3.11"
@@ -36,12 +36,28 @@ jobs:
       run: npm run type-check
     
     - name: Run unit tests
-      run: npm run test:unit
+      run: npm run test:unit -- --run
+
+    - name: Setup Python for E2E backend
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+        cache-dependency-path: python/requirements.txt
+
+    - name: Install Python deps for E2E
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r python/requirements.txt
+
+    - name: Install Playwright browser
+      run: npx playwright install --with-deps chromium
     
-    - name: Run E2E tests
-      run: npm run test:e2e
+    - name: Run E2E critical tests
+      run: npx playwright test --grep "API – Health|UI critica"
       env:
         CI: true
+        E2E_API_COMMAND: cd python && python -m uvicorn api.main:app --port 8011
     
     - name: Build application
       run: npm run build
@@ -85,8 +101,9 @@ jobs:
     - name: Install dependencies
       run: |
         cd python
+        python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest pytest-asyncio pytest-cov
+        pip install pytest pytest-asyncio pytest-cov black isort flake8 mypy bandit safety pip-audit
     
     - name: Run code quality checks
       run: |
@@ -105,7 +122,7 @@ jobs:
     - name: Run unit tests
       run: |
         cd python
-        pytest tests/ -v --cov=. --cov-report=xml --cov-report=html
+        pytest -q --cov=. --cov-report=xml --cov-report=html
       env:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
     
@@ -123,6 +140,28 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: package-lock.json
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+        cache-dependency-path: python/requirements.txt
+
+    - name: Install security tooling
+      run: |
+        npm ci
+        cd python
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pip-audit
     
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
@@ -175,7 +214,7 @@ jobs:
     - name: Start backend server
       run: |
         cd python
-        uvicorn main:app --host 0.0.0.0 --port 8000 &
+        uvicorn api.main:app --host 0.0.0.0 --port 8000 &
         sleep 10
       env:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db

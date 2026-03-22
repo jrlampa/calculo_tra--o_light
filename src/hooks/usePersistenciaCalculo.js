@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { buildSalvarCalculoPayload, persistCalculo } from '../services/calculoApi.js'
+import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstrumentation.js'
 
 const PERSIST_WINDOW_MS = 5000
 const MAX_RETRIES = 3
@@ -90,6 +91,10 @@ export default function usePersistenciaCalculo({ pontoId, lastPayload, resultado
         willRetry: false,
         isForbidden: false
       }))
+      trackUxFunnelEvent(UX_FUNNEL_EVENTS.PERSISTENCE_SAVED, {
+        ponto_id: nextPersist.pontoId,
+        has_queue: Boolean(pendingPersistRef.current),
+      })
     } catch (err) {
       // Detectar erro de autorização (403, FORBIDDEN, permission denied)
       const isForbidden = err.status === 403 || err.isForbidden || err.code === 'FORBIDDEN'
@@ -106,6 +111,12 @@ export default function usePersistenciaCalculo({ pontoId, lastPayload, resultado
           retryInSeconds: 0
         }))
         retryCountRef.current = 0
+        trackUxFunnelEvent(UX_FUNNEL_EVENTS.PERSISTENCE_FAILED, {
+          ponto_id: nextPersist.pontoId,
+          is_forbidden: true,
+          will_retry: false,
+          error: err.message || 'Acesso negado',
+        })
       } else {
         // Erro transiente: tentar retentar automaticamente
         retryCountRef.current += 1
@@ -122,6 +133,13 @@ export default function usePersistenciaCalculo({ pontoId, lastPayload, resultado
           }))
           clearPersistTimer()
           persistTimerRef.current = setTimeout(() => void flushPersistQueue(), backoffMs)
+          trackUxFunnelEvent(UX_FUNNEL_EVENTS.PERSISTENCE_FAILED, {
+            ponto_id: nextPersist.pontoId,
+            is_forbidden: false,
+            will_retry: true,
+            retry_count: retryCountRef.current,
+            error: err.message || 'Erro ao persistir cálculo',
+          })
         } else {
           // Esgotadas as tentativas
           retryCountRef.current = 0
@@ -134,6 +152,13 @@ export default function usePersistenciaCalculo({ pontoId, lastPayload, resultado
             isForbidden: false,
             retryInSeconds: 0
           }))
+          trackUxFunnelEvent(UX_FUNNEL_EVENTS.PERSISTENCE_FAILED, {
+            ponto_id: nextPersist.pontoId,
+            is_forbidden: false,
+            will_retry: false,
+            retry_count: MAX_RETRIES,
+            error: err.message || 'Erro ao persistir cálculo',
+          })
         }
       }
     } finally {

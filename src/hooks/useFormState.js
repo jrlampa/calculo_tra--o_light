@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react'
-import { useOptimizedCallback, useStableObject, useStableArray } from './useOptimizedCallbacks.js'
+import { useOptimizedCallback } from './useOptimizedCallbacks.js'
 import {
   TRAVESSIA_BTZ_VAZIA,
   TRAVESSIA_MT_VAZIA,
@@ -18,11 +18,11 @@ export const useFormState = () => {
 
   // Memoizar estado do formulário com estabilização
   const formState = useMemo(() => ({
-    mt1: useStableObject(mt1),
-    mt2: useStableObject(mt2),
-    bt: useStableObject(bt),
-    btz: useStableObject(btz),
-    ral: useStableObject(ral)
+    mt1,
+    mt2,
+    bt,
+    btz,
+    ral
   }), [mt1, mt2, bt, btz, ral])
 
   // Handler genérico para atualizar travessias otimizado
@@ -90,14 +90,14 @@ export const useFormState = () => {
   const formStateMemo = useMemo(() => ({
     formState,
     travessias: { 
-      mt1: useStableObject(mt1),
-      mt2: useStableObject(mt2),
-      bt: useStableObject(bt),
-      btz: useStableObject(btz),
-      ral: useStableObject(ral)
+      mt1,
+      mt2,
+      bt,
+      btz,
+      ral
     },
     hasFormData,
-    travessiasPreenchidas: useStableObject(travessiasPreenchidas),
+    travessiasPreenchidas,
     handlers: {
       handleTravessiaChange,
       resetForm,

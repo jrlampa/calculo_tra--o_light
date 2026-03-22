@@ -7,12 +7,19 @@ import { usePontoState } from './usePontoState.js'
 import { useFormState } from './useFormState.js'
 import { useConfigState } from './useConfigState.js'
 import { TABELA_CARGAS_POSTE } from '../constants/tabelaCargasPoste.js'
+import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstrumentation.js'
 
 export const useAppOptimizedState = () => {
   // Estado particionado
   const projetoState = useProjetoState()
   const formState = useFormState()
   const configState = useConfigState()
+
+  useEffect(() => {
+    trackUxFunnelEvent(UX_FUNNEL_EVENTS.FLOW_STARTED, {
+      origin: 'app_loaded',
+    })
+  }, [])
 
   // Hooks existentes
   const { resultado, loading, error, lastPayload } = useCalculo(
@@ -55,6 +62,9 @@ export const useAppOptimizedState = () => {
         const action = undo()
         if (action) {
           console.log(`Undo: ${action.fieldKey} ← ${action.oldValue}`)
+          trackUxFunnelEvent(UX_FUNNEL_EVENTS.UNDO_APPLIED, {
+            field_key: action.fieldKey,
+          })
           // TODO: Implementar restauração específica do campo
         }
       }
@@ -88,31 +98,31 @@ export const useAppOptimizedState = () => {
   // Memoizar feedback de persistência
   const persistenciaFeedback = useMemo(() => {
     if (persistencia.status === 'saving') {
-      return { tone: 'saving', message: 'Persistindo níveis e resultado do cálculo...' }
+      return { tone: 'saving', message: 'Salvando cálculo...' }
     }
 
     if (persistencia.status === 'queued') {
-      return { tone: 'saving', message: 'Cálculo atualizado. Persistência em fila, aguardando janela de 5s.' }
+      return { tone: 'saving', message: 'Na fila. Salvando em instantes.' }
     }
 
     if (persistencia.status === 'error') {
       if (persistencia.isForbidden) {
         return {
           tone: 'error',
-          message: `Acesso negado: ${persistencia.error}. Reconfirme o ponto ou contate o administrador.`,
+          message: 'Sem permissão para salvar este ponto. Reconfirme o projeto.',
         }
       }
       return {
         tone: 'error',
-        message: persistencia.error || 'Erro ao persistir o cálculo.',
+        message: persistencia.error ? `Falha ao salvar: ${persistencia.error}` : 'Falha ao salvar. Tente novamente.',
       }
     }
 
     if (persistencia.status === 'saved') {
-      return { tone: 'saved', message: 'Cálculo persistido com sucesso! ✓' }
+      return { tone: 'saved', message: 'Cálculo salvo.' }
     }
 
-    return { tone: 'idle', message: 'Aguardando persistência…' }
+    return { tone: 'idle', message: 'Aguardando envio.' }
   }, [persistencia.error, persistencia.isForbidden, persistencia.status])
 
   // Handler para apagar dados
@@ -124,10 +134,23 @@ export const useAppOptimizedState = () => {
 
   // Handler para próximo ponto
   const handleProximoPonto = useCallback(() => {
+    trackUxFunnelEvent(UX_FUNNEL_EVENTS.NEXT_POINT_CLICKED, {
+      projeto_id: projetoState.projetoAtual?.id ?? null,
+      ponto_id: pontoState.pontoAtual?.id ?? null,
+    })
     formState.handlers.resetFormParaProximoPonto()
     pontoState.handlers.handleProximoPonto()
     projetoState.handlers.handleHeader('ponto', '')
-  }, [formState.handlers, pontoState.handlers, projetoState.handlers])
+  }, [formState.handlers, pontoState.handlers, projetoState.handlers, projetoState.projetoAtual?.id, pontoState.pontoAtual?.id])
+
+  const handleManualPersistRetry = useCallback(() => {
+    trackUxFunnelEvent(UX_FUNNEL_EVENTS.PERSIST_RETRY_MANUAL, {
+      projeto_id: projetoState.projetoAtual?.id ?? null,
+      ponto_id: pontoState.pontoAtual?.id ?? null,
+      persist_status: persistencia.status,
+    })
+    void flushPersistQueue()
+  }, [flushPersistQueue, persistencia.status, projetoState.projetoAtual?.id, pontoState.pontoAtual?.id])
 
   // Memoizar dados para componentes
   const dadosParaComponentes = useMemo(() => ({
@@ -146,7 +169,7 @@ export const useAppOptimizedState = () => {
       persistenciaRetryInSeconds: persistencia.retryInSeconds,
       canConfirmPonto: pontoState.canConfirmPonto,
       onRetryPersistencia: persistencia.status === 'error' && !persistencia.isForbidden && persistencia.canRetry
-        ? flushPersistQueue
+        ? handleManualPersistRetry
         : undefined,
     },
     
@@ -166,8 +189,8 @@ export const useAppOptimizedState = () => {
       modeloPoste: pontoState.poste.modeloPoste || '',
       onTipoChange: (valor) => pontoState.handlers.handlePoste('tipoPoste', valor),
       onModeloChange: (valor) => pontoState.handlers.handlePoste('modeloPoste', valor),
-      tiposDisponiveis: configState.getTiposPoste(),
-      modelosDisponiveis: configState.getModelosForTipo(pontoState.poste.tipoPoste),
+      tiposDisponiveis: configState.helpers.getTiposPoste(),
+      modelosDisponiveis: configState.helpers.getModelosForTipo(pontoState.poste.tipoPoste),
     },
     
     // Seções de nível
@@ -231,7 +254,7 @@ export const useAppOptimizedState = () => {
     // Mobile Action Bar
     mobileActionBar: {
       onConfirm: () => flushPersistQueue(),
-      onRetry: persistencia.canRetry ? flushPersistQueue : undefined,
+      onRetry: persistencia.canRetry ? handleManualPersistRetry : undefined,
       onNextPoint: persistencia.status === 'saved' ? handleProximoPonto : undefined,
       statusPersistencia: persistencia.status,
       canRetry: persistencia.canRetry && persistencia.status === 'error',
@@ -249,6 +272,7 @@ export const useAppOptimizedState = () => {
     resultante,
     persistenciaFeedback,
     handleProximoPonto,
+    handleManualPersistRetry,
     flushPersistQueue
   ])
 

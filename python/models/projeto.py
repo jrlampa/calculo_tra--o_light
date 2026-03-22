@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, root_validator, validator
 
 
 class ProjetoBase(BaseModel):
@@ -57,6 +57,23 @@ class ProjetoInDBBase(ProjetoBase):
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime] = None
+
+    @root_validator(pre=True)
+    def normalize_timestamp_contract(cls, values):
+        """Support both EN and PT-BR timestamp column contracts."""
+        if not isinstance(values, dict):
+            return values
+
+        if values.get("created_at") is None and values.get("criado_em") is not None:
+            values["created_at"] = values["criado_em"]
+
+        if values.get("updated_at") is None and values.get("atualizado_em") is not None:
+            values["updated_at"] = values["atualizado_em"]
+
+        if values.get("deleted_at") is None and values.get("deletado_em") is not None:
+            values["deleted_at"] = values["deletado_em"]
+
+        return values
     
     class Config:
         from_attributes = True

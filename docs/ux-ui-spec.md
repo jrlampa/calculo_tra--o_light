@@ -203,6 +203,83 @@ Pendente para fechar requisito funcional completo de undo:
 - Toast de desfazer com countdown de 5 s para acao APAGA.
 - Restauracao efetiva de valores no Ctrl+Z e no CTA Desfazer.
 
+### 3.5 Contrato funcional APAGA + desfazer (5 s)
+
+Escopo da limpeza:
+
+- APAGA atua somente nos dados tecnicos do ponto atual.
+- Projeto e contexto de navegacao nao podem ser limpos por APAGA.
+
+Maquina de estados:
+
+- `idle`: nenhum pedido de limpeza pendente.
+- `undo_pending`: janela de 5 s aberta; limpeza definitiva ainda nao aplicada.
+- `undone`: usuario acionou Desfazer dentro da janela; estado anterior restaurado.
+- `committed`: timeout encerrado sem desfazer; limpeza aplicada ao ponto atual.
+
+Mensagens e CTA esperados:
+
+- Entrada em `undo_pending`: toast com texto "Dados tecnicos serao apagados em 5 s." e CTA primario "Desfazer".
+- Countdown visivel no toast: "Apagando em {N}s" com atualizacao por segundo.
+- `undone`: feedback "Dados restaurados." por tempo curto e sem recarregar a pagina.
+- `committed`: feedback "Dados tecnicos apagados." e sem CTA de desfazer.
+
+Comportamento de foco:
+
+- Ao abrir o toast de undo, foco vai para o botao "Desfazer".
+- Se usuario aciona "Desfazer", foco retorna para o ultimo campo tecnico ativo; se nao existir, vai para o primeiro campo tecnico editavel.
+- Se timeout expira e a limpeza e confirmada, foco vai para o primeiro campo tecnico editavel do ponto atual.
+
+Criterios de aceite testaveis:
+
+1. Acionar APAGA inicia janela exata de 5 s (tolerancia maxima de 200 ms).
+2. Durante `undo_pending`, valores visiveis ainda representam o snapshot anterior.
+3. Clicar "Desfazer" dentro da janela restaura integralmente os dados tecnicos do ponto atual.
+4. Expirar 5 s sem desfazer remove dados tecnicos e nao remove dados de projeto.
+5. Fluxo e totalmente operavel por teclado (Tab/Enter) com foco visivel.
+
+### 3.6 Contrato de estados de persistencia
+
+Estados obrigatorios e comportamento:
+
+- `saving`
+	- Mensagem: "Salvando..."
+	- Comportamento: bloqueia acao redundante de salvar enquanto requisicao atual estiver em voo.
+	- CTA: nenhum CTA de retry.
+
+- `queued`
+	- Mensagem base: "Na fila. Tentando em {N}s..."
+	- Comportamento: exibe countdown de tentativa automatica e mantem UI responsiva.
+	- CTA: "Reenviar" para antecipar `flushPersistQueue`.
+
+- `saved`
+	- Mensagem: "Salvo"
+	- Comportamento: confirma persistencia do ponto atual sem resetar projeto.
+	- CTA: habilita "Proximo ponto".
+
+- `error_transient`
+	- Mensagem durante retries: "Falha ao salvar. Tentando novamente em {N}s..."
+	- Mensagem apos retries esgotados: "Falha ao salvar. Verifique conexao e tente novamente."
+	- Comportamento: retry automatico com backoff enquanto houver tentativas restantes.
+	- CTA: "Tentar novamente" e "Reenviar" disponiveis.
+
+- `error_permission` (403/42501)
+	- Mensagem: "Sem permissao para salvar este ponto. Reconfirme o projeto."
+	- Comportamento: sem retry automatico.
+	- CTA: "Reconfirmar projeto" (retorna ao passo Projeto/Ponto mantendo dados tecnicos locais somente para revisao).
+
+Regras de prioridade visual:
+
+- `error_permission` sempre prevalece sobre `error_transient` quando ambos sinais ocorrerem na mesma tentativa.
+- Chip de persistencia deve refletir estado unico por vez, sem mensagens concorrentes.
+
+Criterios de aceite testaveis:
+
+1. Cada estado acima renderiza mensagem exata prevista no chip de persistencia.
+2. Countdown de `queued` e `error_transient` atualiza em passos de 1 s sem congelar interacao de formulario.
+3. Em 403/42501, nao ocorre retry automatico e CTA "Reconfirmar projeto" fica visivel.
+4. Em `saved`, CTA "Proximo ponto" aparece sem recarregar ou perder contexto do projeto.
+
 ## 4. Responsividade
 
 ### Desktop (>= 1024)
@@ -279,19 +356,51 @@ Undo/APAGA:
 - Time on task: inicio do formulario ate persistencia com sucesso.
 - Drop-off rate: abandono antes de confirmar ponto ou persistir calculo.
 
-### Eventos recomendados
+### Eventos minimos instrumentados (frontend local)
 
-- project_created.
-- point_confirmed.
-- calculation_succeeded.
-- calculation_persist_queued.
-- calculation_persisted.
-- calculation_persist_failed.
-- calculation_persist_forbidden.
-- undo_triggered.
-- undo_applied.
-- apaga_clicked.
-- apaga_undo_window_opened.
+Canal:
+
+- `console.info('[ux-funnel]', event)`.
+- Callback local opcional via utilitario de instrumentacao (sem vendor externo).
+
+Dicionario de eventos:
+
+- `flow_started`
+  Quando: abertura do fluxo principal no app.
+  Propriedades minimas: `origin`.
+- `project_confirmed`
+  Quando: projeto criado e etapa avanca para calculo.
+  Propriedades minimas: `projeto_id`, `projeto_nome`.
+- `point_confirmed`
+  Quando: ponto criado e vinculado ao projeto.
+  Propriedades minimas: `projeto_id`, `ponto_id`, `ponto`, `tipo_poste`, `modelo_poste`.
+- `calculation_succeeded`
+  Quando: retorno `200` do endpoint de calculo.
+  Propriedades minimas: `total_tracao_dan`, `total_angulo_graus`.
+- `persistence_saved`
+  Quando: persistencia de calculo salva com sucesso.
+  Propriedades minimas: `ponto_id`, `has_queue`.
+- `persistence_failed`
+  Quando: tentativa de persistencia falha (transiente ou permissao).
+  Propriedades minimas: `ponto_id`, `is_forbidden`, `will_retry`, `error`.
+- `persist_retry_manual`
+  Quando: usuario aciona retry manual de persistencia.
+  Propriedades minimas: `projeto_id`, `ponto_id`, `persist_status`.
+- `next_point_clicked`
+  Quando: usuario clica em Proximo Ponto apos persistencia.
+  Propriedades minimas: `projeto_id`, `ponto_id`.
+- `undo_applied`
+  Quando: atalho Ctrl+Z/Meta+Z aplica acao disponivel.
+  Propriedades minimas: `field_key`.
+- `undo_expired`
+  Quando: TTL da pilha de undo expira e limpa acoes.
+  Propriedades minimas: `expired_actions_count`.
+
+Observacao para analise:
+
+- Task success rate: derivar de `flow_started -> project_confirmed -> point_confirmed -> persistence_saved`.
+- Time on task: diferenca entre timestamp de `flow_started` e primeiro `persistence_saved`.
+- Drop-off rate: sessoes com `flow_started` sem `point_confirmed` ou sem `persistence_saved`.
 
 ## 8. Plano de validacao
 
@@ -322,3 +431,46 @@ A arquitetura UX/UI do fluxo operacional esta consolidada para uso em campo com 
 - reducao de retrabalho.
 
 A implementacao atual cobre stepper, status duplo e action bar. O requisito de undo precisa do ultimo passo de wiring funcional no APAGA para fechamento completo de produto.
+
+## 10. Governanca normativa operacional e fluxo de liberacao
+
+### Regras operacionais obrigatorias
+
+- Paridade LIGHT e criterio mandatorio de liberacao para fluxos de calculo e persistencia.
+- Rastreabilidade minima por operacao e obrigatoria: identificadores de projeto/ponto, estado de calculo, estado de persistencia, timestamp e resultado.
+- Qualquer divergencia em dominio critico deve gerar bloqueio de liberacao ate analise e parecer tecnico formal.
+- Excecoes de regra so podem ser aplicadas com registro de decisao, risco residual e aprovacao explicita.
+
+### Criterios de bloqueio
+
+- Bloquear se nao houver evidencia objetiva de paridade LIGHT no fluxo ponta a ponta.
+- Bloquear se eventos/estados nao permitirem auditoria minima de uma operacao completa.
+- Bloquear se existir erro critico aberto sem mitigacao validada (calculo, persistencia, permissao ou consistencia de dominio).
+- Bloquear se o plano de resposta operacional nao estiver definido para falhas recorrentes.
+
+### Fluxo de gate (Go/No-Go)
+
+1. Gate de paridade: validar evidencia de equivalencia com workbook LIGHT.
+2. Gate de rastreabilidade: validar trilha auditavel dos estados operacionais.
+3. Gate de risco critico: validar inexistencia de bloqueadores sem mitigacao aprovada.
+4. Gate de operacao assistida: confirmar responsavel tecnico designado e janela de monitoramento.
+5. Gate final de liberacao: registrar decisao Go/No-Go com escopo, responsaveis e pendencias.
+
+## 11. Uso assistido por responsavel tecnico
+
+### Regra de uso inicial
+
+- Em primeira liberacao ou alteracao sensivel de calculo/persistencia, operacao deve ocorrer em modo assistido.
+- O responsavel tecnico acompanha execucao, valida evidencias e autoriza continuidade do fluxo.
+
+### Responsabilidades minimas
+
+- Confirmar aderencia de paridade LIGHT nos casos operacionais priorizados.
+- Validar tratamento de erro e a classificacao de dominio critico.
+- Registrar decisao de continuidade, rollback operacional ou bloqueio.
+
+### Criterios de saida do modo assistido
+
+- Ciclo minimo de execucao sem divergencia critica dentro da janela definida.
+- Rastreabilidade completa dos pontos avaliados e parecer tecnico arquivado.
+- Aprovacao formal do responsavel tecnico para transicao ao fluxo padrao.

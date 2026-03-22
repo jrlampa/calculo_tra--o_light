@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstrumentation.js'
 
 const DEFAULT_MAX_SIZE = 10
 const DEFAULT_TTL_MS = 5 * 60 * 1000 // 5 minutes
@@ -26,10 +27,14 @@ export default function useUndoStack(pontoId, maxSize = DEFAULT_MAX_SIZE, ttlMs 
       if (ttlTimerRef.current) clearTimeout(ttlTimerRef.current)
       
       ttlTimerRef.current = setTimeout(() => {
+        const expiredCount = stackRef.current.undo.length
         setUndoStack([])
         setRedoStack([])
         stackRef.current = { undo: [], redo: [], expiresAt: null }
         ttlTimerRef.current = null
+        trackUxFunnelEvent(UX_FUNNEL_EVENTS.UNDO_EXPIRED, {
+          expired_actions_count: expiredCount,
+        })
       }, ttlMs)
     }
 

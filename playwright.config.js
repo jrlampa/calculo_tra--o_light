@@ -4,6 +4,10 @@ const E2E_UI_PORT = 4173
 const E2E_UI_URL = `http://127.0.0.1:${E2E_UI_PORT}`
 const E2E_API_PORT = Number.parseInt(process.env.E2E_API_PORT ?? '8011', 10) || 8011
 const E2E_API_URL = process.env.E2E_API_URL || `http://localhost:${E2E_API_PORT}`
+const DEFAULT_E2E_API_COMMAND = process.platform === 'win32'
+  ? `cd python && (..\\.venv\\Scripts\\python.exe -m uvicorn api.main:app --port ${E2E_API_PORT} || python -m uvicorn api.main:app --port ${E2E_API_PORT})`
+  : `cd python && python -m uvicorn api.main:app --port ${E2E_API_PORT}`
+const E2E_API_COMMAND = process.env.E2E_API_COMMAND || DEFAULT_E2E_API_COMMAND
 
 process.env.E2E_API_URL = E2E_API_URL
 
@@ -63,7 +67,7 @@ export default defineConfig({
     },
     // ── FastAPI (Python backend) ─────────────────────────────────────────
     {
-      command: `cd python && uvicorn api.main:app --port ${E2E_API_PORT}`,
+      command: E2E_API_COMMAND,
       url: `${E2E_API_URL}/health`,
       reuseExistingServer: true,
       timeout: 30_000,
