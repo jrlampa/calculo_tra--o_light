@@ -44,7 +44,10 @@ export default function useCalculo(formState, debounceMs = 600, enabled = true) 
           signal: controller.signal,
         })
 
-        if (!response.ok) throw new Error(`Traction API error: ${response.status}`)
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(errorData.detail || `Traction API error: ${response.status}`)
+        }
 
         const data = await response.json()
         setResultado(data)
