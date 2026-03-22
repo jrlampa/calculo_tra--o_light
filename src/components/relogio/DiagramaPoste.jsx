@@ -1,7 +1,7 @@
 // DiagramaPoste.jsx — Diagrama SVG fiel ao Excel: poste com CN (seta baixo), R (diagonal) e α (arco)
 import React, { useId, memo } from 'react'
 
-const DiagramaPoste = memo(function DiagramaPoste() {
+const DiagramaPoste = memo(() => {
   const rawId = useId()
   const safeId = rawId.replace(/:/g, '')
   const markerDownId = `${safeId}-arr-d`
@@ -55,6 +55,6 @@ const DiagramaPoste = memo(function DiagramaPoste() {
       </figcaption>
     </figure>
   )
-}
+})
 
 export default DiagramaPoste;

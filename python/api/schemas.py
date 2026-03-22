@@ -14,13 +14,27 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 # ── Input models ──────────────────────────────────────────────────────────
 
 class MTTraversalIn(BaseModel):
-    tipo_rede: str = Field(default="", max_length=50)
-    tipo_cabo: str = Field(default="", max_length=150)
-    vao: float = Field(default=0.0, ge=0, le=5000)
-    flecha: float = Field(default=0.0, ge=0, le=5000)
-    angulo: float = Field(default=0.0, ge=0, le=360)
-    altura_poste: float = Field(default=0.0, ge=0, le=100)
-    altura_ancoragem: float = Field(default=0.0, ge=0, le=100)
+    tipo_rede: str = Field(default="", max_length=50, description="Tipo de rede (ex: Convencional, Compacta)")
+    tipo_cabo: str = Field(default="", max_length=150, description="Nome do cabo conforme tabela técnica")
+    vao: float = Field(default=0.0, ge=0, le=5000, description="Comprimento do vão em metros")
+    flecha: float = Field(default=0.0, ge=0, le=5000, description="Flecha do cabo em metros")
+    angulo: float = Field(default=0.0, ge=0, le=360, description="Ângulo de deflexão em graus (0-360)")
+    altura_poste: float = Field(default=0.0, ge=0, le=100, description="Altura total do poste em metros")
+    altura_ancoragem: float = Field(default=0.0, ge=0, le=100, description="Altura do ponto de fixação em metros")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "tipo_rede": "Convencional",
+                "tipo_cabo": "397MCM-CA, Nu",
+                "vao": 33.0,
+                "flecha": 0.5,
+                "angulo": 0.0,
+                "altura_poste": 11.0,
+                "altura_ancoragem": 9.2
+            }
+        }
+    }
 
     @model_validator(mode='after')
     def flecha_required_when_vao(self) -> 'MTTraversalIn':
@@ -138,18 +152,40 @@ class CalculoOutput(BaseModel):
     vetores: list[VetorOut] = Field(default_factory=list)
     poste_ecc_dan: float = 0.0
 
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "total_tracao_dan": 450.5,
+                "total_angulo_graus": 12.3,
+                "texto_total": "Resultado Final: 450 daN",
+                "poste_ecc_dan": 120.0
+            }
+        }
+    }
+
 
 # ── QDT models ────────────────────────────────────────────────────────────
 
 class QDTInput(BaseModel):
-    v_nominal_mt: float = 13200.0
-    v_nominal_bt: float = 220.0
-    coef_perda: float = 75.0
-    reg_mt: float = 1.02
-    drop_mt_pct: float = 0.0
-    drop_trafo_pct: float = 0.0
-    drop_bt1_pct: float = 0.0
-    drop_bt2_pct: float = 0.0
+    v_nominal_mt: float = Field(default=13200.0, description="Tensão nominal MT em Volts")
+    v_nominal_bt: float = Field(default=220.0, description="Tensão nominal BT em Volts")
+    coef_perda: float = Field(default=75.0, description="Coeficiente de perda")
+    reg_mt: float = Field(default=1.02, description="Regulação da MT")
+    drop_mt_pct: float = Field(default=0.0, ge=0, le=100, description="Queda MT (%)")
+    drop_trafo_pct: float = Field(default=0.0, ge=0, le=100, description="Queda Trafo (%)")
+    drop_bt1_pct: float = Field(default=0.0, ge=0, le=100, description="Queda Trecho 1 (%)")
+    drop_bt2_pct: float = Field(default=0.0, ge=0, le=100, description="Queda Trecho 2 (%)")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "v_nominal_mt": 13800.0,
+                "v_nominal_bt": 220.0,
+                "drop_mt_pct": 0.5,
+                "drop_trafo_pct": 1.2
+            }
+        }
+    }
 
 
 class QDTOutput(BaseModel):
@@ -164,13 +200,27 @@ class QDTOutput(BaseModel):
 # ── Projeto / Ponto transactional models ─────────────────────────────────
 
 class ProjetoIn(BaseModel):
-    orgao: str = ""
-    ns: str = ""
+    orgao: str = Field(default="", max_length=100)
+    ns: str = Field(default="", max_length=50)
     nome: str = Field(min_length=1, max_length=200)  # campo "Projeto" na UI (obrigatório)
     endereco: str = ""
     estudado_por: str = ""
     matricula: str = ""
     data_estudo: str = ""       # dd/mm/yyyy
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "orgao": "IM3 Brasil",
+                "ns": "123456",
+                "nome": "Expansão Rede Centro",
+                "endereco": "Av. Brasil, 1000",
+                "estudado_por": "Eng. Silva",
+                "matricula": "M123",
+                "data_estudo": "22/03/2026"
+            }
+        }
+    }
 
 
 class ProjetoOut(BaseModel):
@@ -189,6 +239,16 @@ class PontoIn(BaseModel):
     ponto: str = Field(min_length=1, max_length=10, pattern=r"^[A-Za-z0-9]+$")  # ex: "01", "1A"
     tipo_poste: str = Field(default="", max_length=100)
     modelo_poste: str = Field(default="", max_length=100)
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "ponto": "12A",
+                "tipo_poste": "DT",
+                "modelo_poste": "11/600"
+            }
+        }
+    }
 
 
 class PontoOut(BaseModel):
@@ -253,9 +313,22 @@ class ResultadoSalvarIn(BaseModel):
 
 class SalvarCalculoIn(BaseModel):
     """Payload para persistir travessias + resultado em uma só chamada."""
-    ponto_id: UUID
-    niveis: list[NivelSalvarIn] = Field(min_length=5, max_length=5)
-    resultado: ResultadoSalvarIn
+    ponto_id: UUID = Field(description="ID único do ponto (UUID)")
+    niveis: list[NivelSalvarIn] = Field(min_length=5, max_length=5, description="Lista de 5 níveis (MT1, MT2, BT, BTZ, RAL)")
+    resultado: ResultadoSalvarIn = Field(description="Resultado sumarizado do cálculo")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "ponto_id": "550e8400-e29b-41d4-a716-446655440000",
+                "niveis": [],
+                "resultado": {
+                    "total_tracao": 450.0,
+                    "total_angulo": 15.5
+                }
+            }
+        }
+    }
 
     @model_validator(mode="after")
     def validate_niveis_set(self) -> SalvarCalculoIn:

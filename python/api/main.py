@@ -17,6 +17,7 @@ import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from prometheus_fastapi_instrumentator import Instrumentator
 
 # Allow imports from the python/ directory
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
@@ -64,6 +65,9 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
     description="Sistema de Engenharia Elétrica para Cálculo de Tração em Redes Aéreas"
 )
+
+# Initialize Prometheus Instrumentator
+Instrumentator().instrument(app).expose(app, endpoint="/metrics", tags=["Monitoring"])
 
 # ----------------------------------------------------------------------------
 # Middlewares

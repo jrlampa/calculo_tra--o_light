@@ -70,7 +70,13 @@ export default function TelaProjetoInicial({ dados, onChange, onConfirm, loading
                   {error}
                 </p>
               ) : null}
-              <button type="submit" className="project-submit" disabled={loading}>
+              <button 
+                type="submit" 
+                id="project-submit-btn"
+                className="project-submit" 
+                disabled={loading}
+                aria-label={loading ? 'Salvando projeto' : 'Confirmar dados e iniciar cálculo'}
+              >
                 {loading ? 'Salvando projeto...' : 'Confirmar e iniciar cálculo'}
               </button>
             </div>
