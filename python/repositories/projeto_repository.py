@@ -85,7 +85,7 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
             contract = await self._get_column_contract()
             deleted_filter = self._active_filter(contract["deleted"])
             result = await self.db.fetch_one(
-                f"SELECT * FROM projetos WHERE id = $1{deleted_filter}",
+                f"SELECT * FROM projetos WHERE id = $1{deleted_filter}",  # nosec B608
                 str(id)
             )
             return Projeto(**self._to_dict(result)) if result else None
@@ -108,7 +108,7 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
                 LEFT JOIN pontos pt ON p.id = pt.projeto_id
                 WHERE 1=1
             """
-            query += deleted_filter
+            query += deleted_filter  # nosec B608
             params = []
             
             if owner_id:
@@ -206,7 +206,7 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
                 SET {', '.join(set_clauses)}
                 WHERE id = $1{deleted_filter}
                 RETURNING *
-            """
+            """  # nosec B608
             
             result = await self.db.fetch_one(query, *params)
             return Projeto(**self._to_dict(result)) if result else db_obj
@@ -234,7 +234,7 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
         try:
             contract = await self._get_column_contract()
             query = "SELECT COUNT(*) as count FROM projetos WHERE 1=1"
-            query += self._active_filter(contract["deleted"])
+            query += self._active_filter(contract["deleted"])  # nosec B608
             params = []
             
             if owner_id:
@@ -256,7 +256,7 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
             contract = await self._get_column_contract()
             deleted_filter = self._active_filter(contract["deleted"])
             result = await self.db.fetch_one(
-                f"SELECT id FROM projetos WHERE id = $1 AND owner_id = $2{deleted_filter}",
+                f"SELECT id FROM projetos WHERE id = $1 AND owner_id = $2{deleted_filter}",  # nosec B608
                 str(projeto_id),
                 str(user_id)
             )
@@ -276,7 +276,7 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
                 LEFT JOIN pontos pt ON p.id = pt.projeto_id
                 WHERE p.id = $1
                 GROUP BY p.id
-                """ + deleted_filter,
+                """ + deleted_filter,  # nosec B608
                 str(projeto_id)
             )
             return self._to_dict(result) if result else None

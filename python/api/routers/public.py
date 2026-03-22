@@ -6,9 +6,11 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Depends
 
+from translated.plan1_tables import CABOS_POR_REDE, CABOS_TABLE, POSTE_TABLE, REDE_TABLE
+
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/public", tags=["Publico"])
+router = APIRouter(tags=["Publico"])
 
 
 async def _ensure_supabase_available(supabase) -> None:
@@ -78,7 +80,25 @@ async def list_public_normas(
     return await _run_supabase_lookup(supabase, supabase.fetch_normas)
 
 
-@router.get("/normas/categorias")
+@router.get("/public/normas/categorias")
 async def list_public_normas_categorias(supabase: object = Depends()) -> dict:
     """Lista pública de categorias de normas."""
     return await _run_supabase_lookup(supabase, supabase.fetch_normas_categorias)
+
+
+@router.get("/config")
+async def get_config() -> dict:
+    """Retorna opções de lookup a partir das tabelas traduzidas do workbook."""
+    cabos_nomes = [str(row[0]) for row in CABOS_TABLE if row and row[0]]
+    redes_nomes = [str(row[0]) for row in REDE_TABLE if row and row[0]]
+    postes_por_tipo: dict[str, list[str]] = {
+        str(tipo): [str(modelo[0]) for modelo in modelos if modelo and modelo[0]]
+        for tipo, modelos in POSTE_TABLE.items()
+    }
+
+    return {
+        "redes": redes_nomes,
+        "cabos": cabos_nomes,
+        "postes": postes_por_tipo,
+        "cabos_por_rede": CABOS_POR_REDE,
+    }

@@ -25,7 +25,7 @@ from db import get_supabase_client
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/projetos", tags=["Projetos"])
+router = APIRouter(tags=["Projetos"])
 
 
 async def get_projeto_service() -> ProjetoService:
@@ -35,7 +35,7 @@ async def get_projeto_service() -> ProjetoService:
     return ProjetoService(projeto_repository)
 
 
-@router.get("")
+@router.get("/projetos")
 async def list_projetos(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0, le=10000),
@@ -57,7 +57,7 @@ async def list_projetos(
         raise HTTPException(status_code=500, detail="Erro interno ao listar projetos")
 
 
-@router.post("", response_model=ProjetoOut, status_code=201)
+@router.post("/projetos", response_model=ProjetoOut, status_code=201)
 async def create_projeto(
     inp: ProjetoIn,
     user: CurrentUser = Depends(require_mutation_identity),
@@ -86,7 +86,7 @@ async def create_projeto(
         raise HTTPException(status_code=500, detail="Erro ao criar projeto")
 
 
-@router.post("/{projeto_id}/pontos", response_model=PontoOut, status_code=201)
+@router.post("/projetos/{projeto_id}/pontos", response_model=PontoOut, status_code=201)
 async def create_ponto(
     projeto_id: str,
     inp: PontoIn,

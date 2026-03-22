@@ -38,11 +38,22 @@ jobs:
       - name: Frontend unit tests
         run: npm run test:unit -- --run
 
-      - name: Backend pytest suite
+      - name: Backend pytest suite with Coverage
         run: |
           cd python
-          python -m pytest -q
+          python -m pytest --cov=. --cov-report=xml -q
 
+      - name: Bandit Security Scan
+        run: |
+          pip install bandit
+          python -m bandit -r python/ -ll --exclude python/tests/
+
+      - name: Check Code Coverage
+        run: |
+          pip install coverage
+          cd python
+          python -m coverage report --fail-under=40
+          
       - name: E2E critical flows
         env:
           E2E_API_COMMAND: cd python && python -m uvicorn api.main:app --port 8011
