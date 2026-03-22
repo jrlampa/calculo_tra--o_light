@@ -73,6 +73,7 @@ async function alturaEfetiva(locator) {
 }
 
 async function iniciarEtapaCalculo(page) {
+  await page.addInitScript(() => { window.localStorage.setItem('guest_mode', 'true'); });
   await page.goto('/')
   await expect(page.getByRole('heading', { name: /Cadastro do projeto/i })).toBeVisible()
 
@@ -93,6 +94,7 @@ test.describe('UI mobile touch - alvos e reflow', () => {
 
   test('valida ambiente touch/coarse e altura minima dos alvos principais', async ({ page }) => {
     await mockApiForMobile(page)
+    await page.addInitScript(() => { window.localStorage.setItem('guest_mode', 'true'); });
     await page.goto('/')
 
     const pointerInfo = await page.evaluate(() => ({

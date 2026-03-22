@@ -7,6 +7,7 @@ test.describe('Undo/Redo + Mobile Action Bar - UI Integration', () => {
 
   test.beforeEach(async ({ browser }) => {
     page = await browser.newPage()
+    await page.addInitScript(() => { window.localStorage.setItem('guest_mode', 'true'); });
     await page.goto(`${BASE_URL}`, { waitUntil: 'networkidle' })
     await page.waitForSelector('input, button', { timeout: 5000 }).catch(() => null)
   })

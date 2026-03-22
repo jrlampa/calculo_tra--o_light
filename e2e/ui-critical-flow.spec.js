@@ -111,6 +111,7 @@ async function mockCalculo(page, onRequest) {
 }
 
 async function iniciarFluxoProjeto(page, nomeProjeto = 'Projeto fluxo critico E2E') {
+  await page.addInitScript(() => { window.localStorage.setItem('guest_mode', 'true'); });
   await page.goto('/')
   await expect(page.getByRole('heading', { name: /Cadastro do projeto/i })).toBeVisible()
 
@@ -124,6 +125,7 @@ test.describe('UI critica - checklist rapido e fluxo completo', () => {
   test('a11y: submit sem projeto marca campo, associa erro e mantem foco', async ({ page }) => {
     await mockConfigSuccess(page)
 
+    await page.addInitScript(() => { window.localStorage.setItem('guest_mode', 'true'); });
     await page.goto('/')
 
     const projetoInput = page.getByLabel('Projeto')

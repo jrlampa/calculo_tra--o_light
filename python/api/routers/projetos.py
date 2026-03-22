@@ -22,6 +22,7 @@ from services.projeto_service import ProjetoService
 from repositories.projeto_repository import ProjetoRepository
 from core.exceptions import NotFoundError, PermissionError, ValidationError
 from db import get_supabase_client
+from api.dependencies import get_supabase_dependency
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +92,7 @@ async def create_ponto(
     projeto_id: str,
     inp: PontoIn,
     user: CurrentUser = Depends(require_mutation_identity),
-    supabase: object = Depends(),
+    supabase: object = Depends(get_supabase_dependency),
 ) -> PontoOut:
     """Adiciona um novo ponto (poste) a um projeto existente."""
     await _ensure_supabase_available(supabase)
@@ -128,7 +129,7 @@ async def salvar_calculo(
     ponto_id: str,
     inp: SalvarCalculoIn,
     user: CurrentUser = Depends(require_mutation_identity),
-    supabase: object = Depends(),
+    supabase: object = Depends(get_supabase_dependency),
 ) -> dict:
     """Persiste travessias + resultado do cálculo para um ponto.
 

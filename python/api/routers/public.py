@@ -7,6 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends
 
 from translated.plan1_tables import CABOS_POR_REDE, CABOS_TABLE, POSTE_TABLE, REDE_TABLE
+from api.dependencies import get_supabase_dependency
 
 logger = logging.getLogger(__name__)
 
@@ -49,19 +50,19 @@ async def _run_supabase_lookup(supabase, fetcher):
 
 
 @router.get("/cabos")
-async def list_public_cabos(supabase: object = Depends()) -> list:
+async def list_public_cabos(supabase: object = Depends(get_supabase_dependency)) -> list:
     """Lista pública de cabos."""
     return await _run_supabase_lookup(supabase, supabase.fetch_cabos)
 
 
 @router.get("/postes")
-async def list_public_postes(supabase: object = Depends()) -> list:
+async def list_public_postes(supabase: object = Depends(get_supabase_dependency)) -> list:
     """Lista pública de postes."""
     return await _run_supabase_lookup(supabase, supabase.fetch_postes)
 
 
 @router.get("/redes")
-async def list_public_redes(supabase: object = Depends()) -> list:
+async def list_public_redes(supabase: object = Depends(get_supabase_dependency)) -> list:
     """Lista pública de redes."""
     return await _run_supabase_lookup(supabase, supabase.fetch_redes)
 
@@ -69,7 +70,7 @@ async def list_public_redes(supabase: object = Depends()) -> list:
 @router.get("/normas")
 async def list_public_normas(
     categoria: Optional[str] = None,
-    supabase: object = Depends()
+    supabase: object = Depends(get_supabase_dependency)
 ) -> list:
     """Lista pública de normas e regras."""
     if categoria:
@@ -81,7 +82,7 @@ async def list_public_normas(
 
 
 @router.get("/public/normas/categorias")
-async def list_public_normas_categorias(supabase: object = Depends()) -> dict:
+async def list_public_normas_categorias(supabase: object = Depends(get_supabase_dependency)) -> dict:
     """Lista pública de categorias de normas."""
     return await _run_supabase_lookup(supabase, supabase.fetch_normas_categorias)
 

@@ -5,6 +5,7 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from api.dependencies import get_supabase_dependency
 
 from api.auth import (
     CurrentUser,
@@ -62,7 +63,7 @@ def _supabase_indisponivel_exc() -> HTTPException:
 @router.get("/cabos")
 async def list_admin_cabos(
     _: CurrentUser = Depends(require_admin),
-    supabase: object = Depends()
+    supabase: object = Depends(get_supabase_dependency)
 ) -> list:
     """Lista administrativa de cabos."""
     return await _run_supabase_lookup(supabase, supabase.fetch_cabos)
@@ -74,7 +75,7 @@ async def create_cabo(
     diametro: float,
     peso: float,
     _: CurrentUser = Depends(require_admin),
-    supabase: object = Depends(),
+    supabase: object = Depends(get_supabase_dependency),
 ):
     """Cria um novo cabo."""
     await _ensure_supabase_available(supabase)
@@ -93,7 +94,7 @@ async def create_cabo(
 async def delete_cabo(
     cable_id: int, 
     _: CurrentUser = Depends(require_admin),
-    supabase: object = Depends()
+    supabase: object = Depends(get_supabase_dependency)
 ):
     """Remove um cabo."""
     await _ensure_supabase_available(supabase)
@@ -111,7 +112,7 @@ async def delete_cabo(
 @router.get("/postes")
 async def list_admin_postes(
     _: CurrentUser = Depends(require_admin),
-    supabase: object = Depends()
+    supabase: object = Depends(get_supabase_dependency)
 ) -> list:
     """Lista administrativa de postes."""
     return await _run_supabase_lookup(supabase, supabase.fetch_postes)
@@ -124,7 +125,7 @@ async def create_poste(
     altura_m: float,
     carga_admissivel_dan: float,
     _: CurrentUser = Depends(require_admin),
-    supabase: object = Depends(),
+    supabase: object = Depends(get_supabase_dependency),
 ):
     """Cria um novo poste."""
     await _ensure_supabase_available(supabase)
@@ -143,7 +144,7 @@ async def create_poste(
 async def delete_poste(
     poste_id: int, 
     _: CurrentUser = Depends(require_admin),
-    supabase: object = Depends()
+    supabase: object = Depends(get_supabase_dependency)
 ):
     """Remove um poste."""
     await _ensure_supabase_available(supabase)
@@ -161,7 +162,7 @@ async def delete_poste(
 @router.get("/redes")
 async def list_admin_redes(
     _: CurrentUser = Depends(require_admin),
-    supabase: object = Depends()
+    supabase: object = Depends(get_supabase_dependency)
 ) -> list:
     """Lista administrativa de redes."""
     return await _run_supabase_lookup(supabase, supabase.fetch_redes)
@@ -171,7 +172,7 @@ async def list_admin_redes(
 async def list_admin_normas(
     categoria: Optional[str] = None,
     _: CurrentUser = Depends(require_admin),
-    supabase: object = Depends(),
+    supabase: object = Depends(get_supabase_dependency),
 ):
     """Lista administrativa de normas e regras."""
     if categoria:
@@ -185,7 +186,7 @@ async def list_admin_normas(
 @router.get("/normas/categorias")
 async def list_admin_normas_categorias(
     _: CurrentUser = Depends(require_admin),
-    supabase: object = Depends()
+    supabase: object = Depends(get_supabase_dependency)
 ):
     """Lista administrativa de categorias de normas."""
     return await _run_supabase_lookup(supabase, supabase.fetch_normas_categorias)
