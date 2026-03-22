@@ -53,16 +53,57 @@ from translated.ponto_blocks import (
 from translated.qdt_blocks import calcular_qdt, QDTInput as QDTLogicInput
 from translated.plan1_tables import CABOS_POR_REDE, CABOS_TABLE, POSTE_TABLE, REDE_TABLE
 from contextlib import asynccontextmanager
+import structlog
+from core.config import get_settings
+from core.logging import setup_logging
+from db.pool import get_db_pool, db_pool
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
-    from db.pool import db_pool
-    if db_pool:
-        await db_pool.close()
+    await db_pool.close()
 
-app = FastAPI(title="Calculo Tração Poste", version="1.0.0", lifespan=lifespan)
-logger = logging.getLogger(__name__)
+# Initialize logging
+setup_logging()
+logger = structlog.get_logger(__name__)
+
+app = FastAPI(
+    title="Calculo Tração Poste",
+    version="1.0.0",
+    lifespan=lifespan,
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json"
+)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=get_settings().cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch-all exception handler for standardized error responses."""
+    logger.exception("unhandled_exception", path=request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Internal Server Error",
+            "type": "INTERNAL_ERROR",
+            "path": request.url.path
+        }
+    )
+
+
+@app.get("/health")
+async def health():
+    """Health check endpoint."""
+    return {"status": "ok"}
+
 
 # Initialize Supabase client
 supabase = get_supabase_client()
