@@ -3,7 +3,9 @@
  */
 import { test, expect } from '@playwright/test'
 
-const API = process.env.E2E_API_URL || 'http://127.0.0.1:8000'
+// URL definida via playwright.config.js (process.env.E2E_API_URL)
+// Fallback para http://localhost:8000 se rodar fora do contexto Playwright
+const API = process.env.E2E_API_URL ?? 'http://localhost:8000'
 
 async function parseJsonOuSkipSupabase(res, endpoint) {
   const status = res.status()
