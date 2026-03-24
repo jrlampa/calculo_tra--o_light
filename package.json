@@ -9,6 +9,8 @@
     "dev:full": "concurrently -n api,ui -c cyan,yellow \"npm run dev:api\" \"npm run dev\"",
     "build": "vite build",
     "preview": "vite preview",
+    "test:parity": "python -m pytest python/tests/test_parity_excel.py",
+    "audit:legacy": "python scripts/audit_legacy_tracao.py",
     "lint": "node -e \"const fs=require('fs');const {execSync}=require('child_process');const configs=['eslint.config.js','eslint.config.mjs','eslint.config.cjs','.eslintrc','.eslintrc.js','.eslintrc.cjs','.eslintrc.json','.eslintrc.yml','.eslintrc.yaml'];if(!configs.some((f)=>fs.existsSync(f))){console.log('ESLint config ausente; lint ignorado.');process.exit(0);}execSync('eslint src --ext .js,.jsx,.ts,.tsx',{stdio:'inherit'});\"",
     "lint:fix": "eslint src --ext .js,.jsx,.ts,.tsx --fix",
     "type-check": "node -e \"const fs=require('fs');const {execSync}=require('child_process');if(!fs.existsSync('tsconfig.json')){console.log('tsconfig.json ausente; type-check ignorado.');process.exit(0);}execSync('tsc --noEmit',{stdio:'inherit'});\"",
@@ -21,6 +23,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
     "test:performance": "lhci autorun",
+    "test:api": "cross-env E2E_API_URL=http://127.0.0.1:8000 playwright test --config=playwright.api.config.js",
+    "test:api:headed": "cross-env E2E_API_URL=http://127.0.0.1:8000 playwright test --config=playwright.api.config.js --headed",
     "test": "npm run test:unit && npm run test:e2e"
   },
   "dependencies": {
@@ -28,16 +32,16 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@playwright/test": "^1.58.2",
-    "@types/react": "^18.3.1",
-    "@types/react-dom": "^18.3.1",
-    "@vitejs/plugin-react": "^4.3.4",
     "@lhci/cli": "^0.12.0",
     "@lhci/server": "^0.12.0",
     "@lhci/utils": "^0.12.0",
-    "@testing-library/react": "^14.1.2",
+    "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.1.4",
+    "@testing-library/react": "^14.1.2",
     "@testing-library/user-event": "^14.5.1",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
     "@vitest/coverage-v8": "^1.0.4",
     "autoprefixer": "^10.4.20",
     "concurrently": "^9.0.0",
@@ -49,6 +53,7 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^5.3.2",
     "vite": "^6.0.1",
+    "vite-plugin-pwa": "^1.2.0",
     "vitest": "^1.0.4"
   }
 }

@@ -69,7 +69,7 @@ def _r(x: Any, decimals: int = 2) -> Any:
     if not isinstance(x, (int, float)):
         return x
     factor = 10 ** decimals
-    return round(x * factor) / factor
+    return round(x * factor + 1e-15) / factor
 
 
 def _roundup(x: Any, decimals: int = 0) -> Any:
@@ -482,7 +482,7 @@ def calcular_polo(
 
     # ── Text outputs (rows 143-148) ────────────────────────────────────────
     def _txt(f: float) -> str:
-        return str(int(round(f)))
+        return str(round(f))
 
     out.texto_total = f"TRAÇÃO TOTAL: {_txt(out.total_tracao)} daN {_txt(out.total_angulo)}°"
     out.texto_mt1  = (
