@@ -16,8 +16,8 @@ from translated.ponto_blocks import (
     RamaisTraversalInput
 )
 
-TARGET_DIR = r"C:\Users\jonat\OneDrive - IM3 Brasil\LIGHT\PROJETOS\REDE CLANDESTINA - RUAS JERUSALÉM E UVA - SANTA CRUZ RJ\CALC TRAÇÃO"
-REPORT_FILE = "legacy_audit_report.csv"
+TARGET_DIR = r"C:\Users\jonat\OneDrive - IM3 Brasil\LIGHT\PROJETOS\AP COSMO LINHA NOVA 3\CALC TRAÇÃO"
+REPORT_FILE = "legacy_audit_report_ap_cosmo.csv"
 TOL = 0.0001
 
 def extract_resistance(modelo_str):
