@@ -160,15 +160,24 @@ export default function App() {
                 }}
               />
               <button 
-                className="btn-importar w-full py-2 px-4 rounded font-bold shadow-md transition-all hover:brightness-110 active:scale-95 flex items-center justify-center gap-2"
-                style={{ backgroundColor: '#2e7d32', color: 'white' }}
+                className="btn-importar w-full py-3 px-4 rounded-lg font-bold shadow-lg transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center justify-center gap-3 border-b-4"
+                style={{ 
+                  backgroundColor: '#1b5e20', 
+                  color: '#e8f5e9',
+                  borderColor: '#113e11',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.1)'
+                }}
                 onClick={() => fileInputRef.current?.click()}
               >
-                📥 IMPORTAR EXCEL
+                <span style={{ fontSize: '1.2rem' }}>📥</span>
+                <span>IMPORTAR PLANILHA LEGADA</span>
               </button>
               
-              <button className="btn-apaga w-full py-2 px-4 rounded font-bold shadow-md" onClick={appState.handlers.handleApaga}>
-                🗑️ APAGA
+              <button 
+                className="btn-apaga w-full py-2 px-4 rounded-lg font-bold shadow-md transition-all hover:bg-red-800" 
+                onClick={appState.handlers.handleApaga}
+              >
+                🗑️ LIMPAR TUDO
               </button>
             </div>
 
