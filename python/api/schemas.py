@@ -36,11 +36,6 @@ class MTTraversalIn(BaseModel):
         }
     }
 
-    @model_validator(mode='after')
-    def flecha_required_when_vao(self) -> 'MTTraversalIn':
-        if self.vao > 0 and self.flecha <= 0:
-            raise ValueError("flecha deve ser > 0 quando vao > 0")
-        return self
 
 
 class BTTraversalIn(BaseModel):
@@ -58,11 +53,6 @@ class BTTraversalIn(BaseModel):
     altura_poste: float = Field(default=0.0, ge=0, le=100)
     altura_ancoragem: float = Field(default=0.0, ge=0, le=100)
 
-    @model_validator(mode='after')
-    def flecha_required_when_vao(self) -> 'BTTraversalIn':
-        if self.vao > 0 and self.flecha <= 0:
-            raise ValueError("flecha deve ser > 0 quando vao > 0")
-        return self
 
 
 class BTZeroTraversalIn(BaseModel):
@@ -73,11 +63,6 @@ class BTZeroTraversalIn(BaseModel):
     altura_poste: float = Field(default=0.0, ge=0, le=100)
     altura_ancoragem: float = Field(default=0.0, ge=0, le=100)
 
-    @model_validator(mode='after')
-    def flecha_required_when_vao(self) -> 'BTZeroTraversalIn':
-        if self.vao > 0 and self.flecha <= 0:
-            raise ValueError("flecha deve ser > 0 quando vao > 0")
-        return self
 
 
 class RamaisTraversalIn(BaseModel):
@@ -89,11 +74,6 @@ class RamaisTraversalIn(BaseModel):
     altura_poste: float = Field(default=0.0, ge=0, le=100)
     altura_ancoragem: float = Field(default=0.0, ge=0, le=100)
 
-    @model_validator(mode='after')
-    def flecha_required_when_vao(self) -> 'RamaisTraversalIn':
-        if self.vao > 0 and self.flecha <= 0:
-            raise ValueError("flecha deve ser > 0 quando vao > 0")
-        return self
 
 
 class CabecalhoIn(BaseModel):

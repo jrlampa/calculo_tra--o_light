@@ -220,6 +220,12 @@ def _calc_mt_traversal(
     t.peso_linear = lookup_cable_peso(tipo_cabo)
     t.diam = lookup_cable_diam(tipo_cabo)
     t.qtd_cabos = lookup_rede_qtd_cabos(tipo_rede)
+    
+    if t.peso_linear is None or t.diam is None or t.qtd_cabos is None:
+        # Fallback to safe defaults to avoid 500
+        t.peso_linear = t.peso_linear if t.peso_linear is not None else 0.0
+        t.diam = t.diam if t.diam is not None else 0.0
+        t.qtd_cabos = t.qtd_cabos if t.qtd_cabos is not None else 1
 
     # Cordoalha extra (Plan1 row 22: peso_extra if Compacta)
     t.peso_extra = PESO_MENSAGEIRO if tipo_rede == TIPO_COMPACTA else 0

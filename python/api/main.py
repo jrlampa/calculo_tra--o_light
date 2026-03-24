@@ -114,6 +114,21 @@ async def authentication_middleware(request: Request, call_next):
 # Global Error Handlers
 # ----------------------------------------------------------------------------
 
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Log detail of 422 validation errors."""
+    logger.error(f"VAL_ERROR: {exc.errors()}")
+    print("VALIDATION_ERROR_DETAILS:")
+    for err in exc.errors():
+        print(f"  - {err['loc']}: {err['msg']} (type={err['type']})")
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors(), "body": exc.body},
+    )
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Catch-all exception handler for standardized enterprise error responses."""

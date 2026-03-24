@@ -90,16 +90,23 @@ async def list_public_normas_categorias(supabase: object = Depends(get_supabase_
 @router.get("/config")
 async def get_config() -> dict:
     """Retorna opções de lookup a partir das tabelas traduzidas do workbook."""
-    cabos_nomes = [str(row[0]) for row in CABOS_TABLE if row and row[0]]
-    redes_nomes = [str(row[0]) for row in REDE_TABLE if row and row[0]]
-    postes_por_tipo: dict[str, list[str]] = {
-        str(tipo): [str(modelo[0]) for modelo in modelos if modelo and modelo[0]]
-        for tipo, modelos in POSTE_TABLE.items()
-    }
+    try:
+        cabos_nomes = [str(row[0]) for row in CABOS_TABLE if row and row[0]]
+        redes_nomes = [str(row[0]) for row in REDE_TABLE if row and row[0]]
+        postes_por_tipo: dict[str, list[str]] = {
+            str(tipo): [str(modelo[0]) for modelo in modelos if modelo and modelo[0]]
+            for tipo, modelos in POSTE_TABLE.items()
+        }
 
-    return {
-        "redes": redes_nomes,
-        "cabos": cabos_nomes,
-        "postes": postes_por_tipo,
-        "cabos_por_rede": CABOS_POR_REDE,
-    }
+        return {
+            "redes": redes_nomes,
+            "cabos": cabos_nomes,
+            "postes": postes_por_tipo,
+            "cabos_por_rede": CABOS_POR_REDE,
+        }
+    except Exception as e:
+        import traceback
+        logger.error(f"Erro em /api/config: {str(e)}")
+        print("TRACEBACK_CONFIG_ENDPOINT:")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Erro interno ao carregar configuracoes")

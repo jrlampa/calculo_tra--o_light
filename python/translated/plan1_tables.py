@@ -45,6 +45,11 @@ CABOS_TABLE: list[list] = [
     ["4/0-AWG, MTX-BT ",           0.0347,   1.560],
     ["3/0-AWG, MTX-BT ",           0.0313,   1.270],
     ["4-AWG, MTX-BT ",             0.01630,  0.349],
+    ["ACSR 4/0",                   0.0143,   0.435],  # 4/0 AWG ACSR "Penguin" equiv
+    ["ACSR 1/0",                   0.0101,   0.216],  # 1/0 AWG ACSR "Raven"
+    ["ACSR 2",                     0.0080,   0.135],  # 2 AWG ACSR "Sparrow"
+    ["ACSR 4",                     0.0063,   0.085],  # 4 AWG ACSR "Swan"
+    ["ACSR 397",                   0.0189,   0.804],  # 397 MCM ACSR "Brant"
 ]
 
 REDE_TABLE: list[list] = [
@@ -54,6 +59,7 @@ REDE_TABLE: list[list] = [
     ["Multiplexada", 1],
     ["Aberta ",      3],
     ["Armado",       1],
+    ["Nua",          3],
 ]
 
 TIPO_COMPACTA: str = "Compacta"
@@ -169,5 +175,16 @@ CABOS_POR_REDE = {
     "Armado": [
         "Cabo armado 240mm² ",
         "Cabo armado 95mm² ",
+    ],
+    "Nua": [
+        "556MCM-CA, Nu",
+        "397MCM-CA, Nu",
+        "1/0AWG-CAA, Nu",
+        "4 AWG-CAA, Nu",
+        "ACSR 4/0",
+        "ACSR 1/0",
+        "ACSR 2",
+        "ACSR 4",
+        "ACSR 397",
     ],
 }

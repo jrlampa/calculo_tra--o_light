@@ -109,7 +109,7 @@ export default function App() {
                 </select>
               </div>
               <p id="modelo-poste-helper" className="poste-helper-text">
-                Ao alterar o tipo do poste, o modelo é limpo automaticamente para manter a integridade do ponto.
+                Dica: Ao alterar o tipo ou modelo do poste, as travessias e dados de cálculo sçúo preservados para re-cálculo automático.
               </p>
             </div>
 

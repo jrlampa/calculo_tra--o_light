@@ -105,18 +105,18 @@ export const usePontoState = ({ projetoAtual, cabecalho, resetPersistencia }) =>
     if (resetPersistencia) resetPersistencia()
   }, [resetPersistencia])
 
-  // Efeito para detectar mudanças no ponto atual
+  // Efeito para detectar mudanças APENAS no nome do ponto
   useEffect(() => {
     if (!pontoSnapshot) return
 
     const pontoMudou = (cabecalho.ponto || '').trim() !== pontoSnapshot.ponto
-    const tipoMudou = (poste.tipoPoste || '') !== pontoSnapshot.tipoPoste
-    const modeloMudou = (poste.modeloPoste || '') !== pontoSnapshot.modeloPoste
-
-    if (!pontoMudou && !tipoMudou && !modeloMudou) return
+    
+    // NOTA: Mudanças no poste.tipoPoste ou poste.modeloPoste NÃO reiniciam mais o ponto.
+    // Isso evita o "Zera tudo" reportado pelo usuário e permite recalcular mantendo os vetores.
+    if (!pontoMudou) return
 
     resetPonto()
-  }, [cabecalho.ponto, pontoSnapshot, poste.modeloPoste, poste.tipoPoste, resetPonto])
+  }, [cabecalho.ponto, pontoSnapshot, resetPonto])
 
   // Memoizar feedback do header
   const headerFeedback = useMemo(() => {
