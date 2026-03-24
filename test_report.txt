@@ -1,0 +1,205 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.0.2, pluggy-1.6.0
+rootdir: C:\Users\jonat\OneDrive - IM3 Brasil\utils\myworld\calculo_tração_light
+plugins: anyio-3.7.1, Faker-40.5.1, langsmith-0.7.17, asyncio-1.3.0, cov-4.1.0, mock-3.15.1, timeout-2.4.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 46 items / 1 skipped
+
+python\tests\test_api_validation.py FFFFFF                               [ 13%]
+python\tests\test_cache_redis_client.py .....                            [ 23%]
+python\tests\test_fuzzy_inputs.py sss                                    [ 30%]
+python\tests\test_parity_excel.py ..............                         [ 60%]
+python\tests\test_persistence_retry.py ....                              [ 69%]
+python\tests\test_projeto_contract_compat.py ...                         [ 76%]
+python\tests\test_projeto_service.py ..........                          [ 97%]
+python\tests\test_qdt_parity.py .                                        [100%]
+
+================================== FAILURES ===================================
+__________________ test_calcular_payload_valido_retorna_200 ___________________
+
+    def test_calcular_payload_valido_retorna_200():
+        """Payload mínimo (tudo zero/vazio) deve retornar 200 com zeros."""
+        resp = client.post("/calcular", json=_minimal_calcular_payload())
+>       assert resp.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+python\tests\test_api_validation.py:52: AssertionError
+------------------------------ Captured log call ------------------------------
+ERROR    cache.redis_client:redis_client.py:80 Failed to connect to Redis: Error 22 connecting to localhost:6379. O computador remoto recusou a conexão de rede.
+_____________ test_calcular_vao_positivo_flecha_zero_retorna_422 ______________
+
+    def test_calcular_vao_positivo_flecha_zero_retorna_422():
+        """vao > 0 com flecha = 0 deve retornar 422 (domínio inválido)."""
+        payload = _minimal_calcular_payload()
+        # Substituir posição 0 sem usar lista mutável compartilhada
+        payload["mt1"] = list(payload["mt1"])
+        payload["mt1"][0] = {
+            "tipo_rede": "Convencional",
+            "tipo_cabo": "397MCM-CA, Nu",
+            "vao": 30.0,
+            "flecha": 0.0,   # inválido: vao > 0 exige flecha > 0
+            "angulo": 0,
+            "altura_poste": 11,
+            "altura_ancoragem": 9,
+        }
+        resp = client.post("/calcular", json=payload)
+>       assert resp.status_code == 422
+E       assert 404 == 422
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+python\tests\test_api_validation.py:70: AssertionError
+______________ test_calcular_payload_completo_cosmo_retorna_200 _______________
+
+    def test_calcular_payload_completo_cosmo_retorna_200():
+        """Payload completo do projeto Cosmo LDA deve ser processado com 200."""
+        payload = _minimal_calcular_payload()
+        payload["mt1"] = [
+            {
+                "tipo_rede": "Convencional", "tipo_cabo": "397MCM-CA, Nu",
+                "vao": 33.0, "flecha": 0.5, "angulo": 0.0,
+                "altura_poste": 11.0, "altura_ancoragem": 9.2,
+            },
+            {
+                "tipo_rede": "Convencional", "tipo_cabo": "397MCM-CA, Nu",
+                "vao": 40.0, "flecha": 0.5, "angulo": 179.0,
+                "altura_poste": 11.0, "altura_ancoragem": 9.2,
+            },
+            {"tipo_rede": "", "tipo_cabo": "", "vao": 0, "flecha": 0,
+             "angulo": 0, "altura_poste": 0, "altura_ancoragem": 0},
+            {"tipo_rede": "", "tipo_cabo": "", "vao": 0, "flecha": 0,
+             "angulo": 0, "altura_poste": 0, "altura_ancoragem": 0},
+        ]
+        resp = client.post("/calcular", json=payload)
+>       assert resp.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+python\tests\test_api_validation.py:93: AssertionError
+___________________________ test_health_retorna_200 ___________________________
+
+    def test_health_retorna_200():
+        """Endpoint /health deve retornar 200 sem autenticação."""
+        resp = client.get("/health")
+        assert resp.status_code == 200
+>       assert resp.json() == {"status": "ok"}
+E       AssertionError: assert {'status': 'o...39:41.179955'} == {'status': 'ok'}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Left contains 1 more item:
+E         {'timestamp': '2026-03-22T21:39:41.179955'}
+E         Use -v to get more diff
+
+python\tests\test_api_validation.py:102: AssertionError
+____________ test_calcular_bt_vao_positivo_flecha_zero_retorna_422 ____________
+
+    def test_calcular_bt_vao_positivo_flecha_zero_retorna_422():
+        """Validação flecha/vao também se aplica a entradas BT."""
+        payload = _minimal_calcular_payload()
+        payload["bt"] = list(payload["bt"])
+        payload["bt"][2] = {
+            "tipo_rede": "Multiplexada", "tipo_cabo": "70mm², MTX-BT",
+            "vao": 20.0, "flecha": 0.0,   # inválido
+            "angulo": 85.0,
+            "altura_poste": 11.0, "altura_ancoragem": 7.0,
+        }
+        resp = client.post("/calcular", json=payload)
+>       assert resp.status_code == 422
+E       assert 404 == 422
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+python\tests\test_api_validation.py:116: AssertionError
+____________ test_calcular_retorna_erro_500_nao_vaza_para_cliente _____________
+
+    def test_calcular_retorna_erro_500_nao_vaza_para_cliente():
+        """A API deve retornar 422 ou 200, nunca um traceback Python em texto plano."""
+        resp = client.post("/calcular", json=_minimal_calcular_payload())
+>       assert resp.status_code in (200, 422, 500)
+E       assert 404 in (200, 422, 500)
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+python\tests\test_api_validation.py:122: AssertionError
+============================== warnings summary ===============================
+python\models\projeto.py:21
+  C:\Users\jonat\OneDrive - IM3 Brasil\utils\myworld\calculo_tração_light\python\models\projeto.py:21: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    @validator('data_estudo', pre=True, always=True)
+
+python\models\projeto.py:30
+  C:\Users\jonat\OneDrive - IM3 Brasil\utils\myworld\calculo_tração_light\python\models\projeto.py:30: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    @validator('orgao', 'ns', 'nome', 'estudado_por')
+
+python\models\projeto.py:45
+  C:\Users\jonat\OneDrive - IM3 Brasil\utils\myworld\calculo_tração_light\python\models\projeto.py:45: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    @validator('orgao', 'ns', 'nome', 'estudado_por')
+
+python\models\projeto.py:61
+  C:\Users\jonat\OneDrive - IM3 Brasil\utils\myworld\calculo_tração_light\python\models\projeto.py:61: PydanticDeprecatedSince20: Pydantic V1 style `@root_validator` validators are deprecated. You should migrate to Pydantic V2 style `@model_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    @root_validator(pre=True)
+
+python\models\projeto.py:52
+  C:\Users\jonat\OneDrive - IM3 Brasil\utils\myworld\calculo_tração_light\python\models\projeto.py:52: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ProjetoInDBBase(ProjetoBase):
+
+python/tests/test_api_validation.py::test_calcular_payload_valido_retorna_200
+  C:\Users\jonat\OneDrive - IM3 Brasil\utils\myworld\calculo_tração_light\python\cache\redis_client.py:342: DeprecationWarning: Call to '__init__' function with deprecated usage of input argument/s 'retry_on_timeout'. (TimeoutError is included by default.) -- Deprecated since version 6.0.0.
+    self._connected = await self.cache.connect()
+
+python/tests/test_api_validation.py::test_health_retorna_200
+  C:\Users\jonat\OneDrive - IM3 Brasil\utils\myworld\calculo_tração_light\python\api\main.py:117: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
+
+python/tests/test_projeto_contract_compat.py::test_model_accepts_ptbr_timestamp_columns
+python/tests/test_projeto_contract_compat.py::test_repository_get_uses_ptbr_soft_delete_when_available
+  C:\Users\jonat\OneDrive - IM3 Brasil\utils\myworld\calculo_tração_light\python\tests\test_projeto_contract_compat.py:52: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+python/tests/test_projeto_contract_compat.py::test_repository_get_uses_english_soft_delete_when_available
+  C:\Users\jonat\OneDrive - IM3 Brasil\utils\myworld\calculo_tração_light\python\tests\test_projeto_contract_compat.py:33: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+python/tests/test_projeto_service.py::TestProjetoService::test_create_projeto_success
+  C:\Users\jonat\OneDrive - IM3 Brasil\utils\myworld\calculo_tração_light\python\tests\test_projeto_service.py:120: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    data_estudo=datetime.utcnow(),
+
+python/tests/test_projeto_service.py: 36 warnings
+  C:\Users\jonat\OneDrive - IM3 Brasil\utils\myworld\calculo_tração_light\python\services\projeto_service.py:133: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    if projeto_in.data_estudo and projeto_in.data_estudo > datetime.utcnow():
+
+python/tests/test_projeto_service.py: 35 warnings
+  C:\Users\jonat\OneDrive - IM3 Brasil\utils\myworld\calculo_tração_light\python\tests\test_projeto_service.py:31: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    **obj_in.dict(),
+
+python/tests/test_projeto_service.py: 35 warnings
+  C:\Users\jonat\OneDrive - IM3 Brasil\utils\myworld\calculo_tração_light\python\tests\test_projeto_service.py:33: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+python/tests/test_projeto_service.py: 35 warnings
+  C:\Users\jonat\OneDrive - IM3 Brasil\utils\myworld\calculo_tração_light\python\tests\test_projeto_service.py:34: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    updated_at=datetime.utcnow()
+
+python/tests/test_projeto_service.py: 35 warnings
+  C:\Users\jonat\OneDrive - IM3 Brasil\utils\myworld\calculo_tração_light\python\models\projeto.py:23: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return v or datetime.utcnow()
+
+python/tests/test_projeto_service.py::TestProjetoService::test_update_projeto_success
+  C:\Users\jonat\OneDrive - IM3 Brasil\utils\myworld\calculo_tração_light\python\tests\test_projeto_service.py:41: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    update_data = obj_in.dict(exclude_unset=True)
+
+python/tests/test_projeto_service.py::TestProjetoService::test_update_projeto_success
+  C:\Users\jonat\OneDrive - IM3 Brasil\utils\myworld\calculo_tração_light\python\tests\test_projeto_service.py:44: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    db_obj.updated_at = datetime.utcnow()
+
+python/tests/test_projeto_service.py::TestProjetoService::test_delete_projeto_success
+python/tests/test_projeto_service.py::TestProjetoService::test_delete_projeto_with_pontos
+  C:\Users\jonat\OneDrive - IM3 Brasil\utils\myworld\calculo_tração_light\python\tests\test_projeto_service.py:68: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    **projeto.dict(),
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED python/tests/test_api_validation.py::test_calcular_payload_valido_retorna_200
+FAILED python/tests/test_api_validation.py::test_calcular_vao_positivo_flecha_zero_retorna_422
+FAILED python/tests/test_api_validation.py::test_calcular_payload_completo_cosmo_retorna_200
+FAILED python/tests/test_api_validation.py::test_health_retorna_200 - Asserti...
+FAILED python/tests/test_api_validation.py::test_calcular_bt_vao_positivo_flecha_zero_retorna_422
+FAILED python/tests/test_api_validation.py::test_calcular_retorna_erro_500_nao_vaza_para_cliente
+=========== 6 failed, 37 passed, 4 skipped, 191 warnings in 25.94s ============

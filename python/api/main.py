@@ -85,6 +85,31 @@ app.add_middleware(
 # Rate Limiting Middleware
 app.add_middleware(RateLimitMiddleware)
 
+# Authentication Middleware (Enterprise In-Process)
+@app.middleware("http")
+async def authentication_middleware(request: Request, call_next):
+    """Resolve user from JWT/Session and attach to request state."""
+    from api.auth import resolve_current_user, SESSION_COOKIE_NAME, SESSION_TTL_SECONDS
+    
+    # 1. Resolve user from headers or cookies
+    resolution = resolve_current_user(request)
+    request.state.current_user = resolution.current_user
+    
+    # 2. Process the request
+    response = await call_next(request)
+    
+    # 3. If a new session was created (e.g. guest mode), set the cookie
+    if resolution.should_set_cookie and resolution.cookie_value:
+        response.set_cookie(
+            key=SESSION_COOKIE_NAME,
+            value=resolution.cookie_value,
+            httponly=True,
+            max_age=SESSION_TTL_SECONDS,
+            samesite="lax",
+            secure=False, # Set to True in HTTPS production
+        )
+    return response
+
 # ----------------------------------------------------------------------------
 # Global Error Handlers
 # ----------------------------------------------------------------------------
@@ -92,6 +117,10 @@ app.add_middleware(RateLimitMiddleware)
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Catch-all exception handler for standardized enterprise error responses."""
+    import traceback
+    print("CRITICAL_ERROR_TRACEBACK:")
+    traceback.print_exc()
+    
     logger.exception("unhandled_exception", 
                      path=request.url.path, 
                      method=request.method,

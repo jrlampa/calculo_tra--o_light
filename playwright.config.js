@@ -1,9 +1,9 @@
 import { defineConfig, devices } from '@playwright/test'
 
 const E2E_UI_PORT = 5173
-const E2E_UI_URL = `http://127.0.0.1:${E2E_UI_PORT}`
+const E2E_UI_URL = process.env.E2E_UI_URL || 'http://127.0.0.1:5173'
 const E2E_API_PORT = 8000
-const E2E_API_URL = `http://127.0.0.1:${E2E_API_PORT}`
+const E2E_API_URL = process.env.E2E_API_URL || `http://127.0.0.1:${E2E_API_PORT}`
 const DEFAULT_E2E_API_COMMAND = process.platform === 'win32'
   ? `cd python && (..\\.venv\\Scripts\\python.exe -m uvicorn api.main:app --port ${E2E_API_PORT} || python -m uvicorn api.main:app --port ${E2E_API_PORT})`
   : `cd python && python -m uvicorn api.main:app --port ${E2E_API_PORT}`

@@ -16,11 +16,15 @@ class ProjetoBase(BaseModel):
     endereco: Optional[str] = Field(None, max_length=500)
     estudado_por: str = Field(..., min_length=1, max_length=100)
     matricula: str = Field(..., min_length=1, max_length=20)
-    data_estudo: Optional[datetime] = None
+    data_estudo: Optional[str] = None
     
     @validator('data_estudo', pre=True, always=True)
     def set_default_data_estudo(cls, v):
-        return v or datetime.utcnow()
+        if not v:
+            return datetime.utcnow().strftime("%d/%m/%Y")
+        if isinstance(v, datetime):
+            return v.strftime("%d/%m/%Y")
+        return v
 
 
 class ProjetoCreate(ProjetoBase):
@@ -40,7 +44,7 @@ class ProjetoUpdate(BaseModel):
     endereco: Optional[str] = Field(None, max_length=500)
     estudado_por: Optional[str] = Field(None, min_length=1, max_length=100)
     matricula: Optional[str] = Field(None, min_length=1, max_length=20)
-    data_estudo: Optional[datetime] = None
+    data_estudo: Optional[str] = None
     
     @validator('orgao', 'ns', 'nome', 'estudado_por')
     def normalize_string(cls, v):

@@ -95,6 +95,10 @@ class Settings(BaseSettings):
         False,
         description="Debug mode"
     )
+    guest_mode: bool = Field(
+        False,
+        description="Enable guest mode for local development/audits"
+    )
     
     # File Upload
     max_file_size: int = Field(

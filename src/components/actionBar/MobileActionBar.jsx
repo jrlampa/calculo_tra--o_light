@@ -14,7 +14,7 @@ export default function MobileActionBar({
   return (
     <>
       {/* Desktop: Botões flutuantes em corner */}
-      <div className="hidden md:flex fixed bottom-6 right-6 gap-2 flex-col z-40">
+      <div data-testid="action-bar-desktop" className="hidden md:flex fixed bottom-6 right-6 gap-2 flex-col z-40">
         <button
           onClick={onConfirm}
           disabled={isSaving}
@@ -60,7 +60,7 @@ export default function MobileActionBar({
       </div>
 
       {/* Tablet: Barra full-width */}
-      <div className="hidden sm:flex md:hidden fixed bottom-0 left-0 right-0 gap-2 p-3 
+      <div data-testid="action-bar-tablet" className="hidden sm:flex md:hidden fixed bottom-0 left-0 right-0 gap-2 p-3 
                       bg-surface-panel shadow-glass border-t border-gray-300 z-40
                       pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <button
@@ -108,7 +108,7 @@ export default function MobileActionBar({
       </div>
 
       {/* Mobile: Stacked vertical */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 flex flex-col gap-2 p-2 
+      <div data-testid="action-bar-mobile" className="sm:hidden fixed bottom-0 left-0 right-0 flex flex-col gap-2 p-2 
                       bg-surface-panel shadow-glass border-t border-gray-300 z-40
                       pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <button

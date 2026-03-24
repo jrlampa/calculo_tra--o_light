@@ -3,6 +3,10 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
+import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 from repositories.base import BaseRepository
 from models.projeto import Projeto, ProjetoCreate, ProjetoUpdate
@@ -46,17 +50,22 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
             }
         except Exception:
             # Keep safe defaults when schema introspection is unavailable.
-            found_columns = {"created_at", "updated_at", "deleted_at"}
+            # Including both English (Alembic default) and Portuguese (IM3 standard) mappings.
+            found_columns = {
+                "created_at", "updated_at", "deleted_at", 
+                "criado_em", "atualizado_em", "deletado_em"
+            }
 
         available = expected_columns.intersection(found_columns)
-        created_col = "created_at" if "created_at" in available else ("criado_em" if "criado_em" in available else None)
-        updated_col = "updated_at" if "updated_at" in available else ("atualizado_em" if "atualizado_em" in available else None)
+        # Priority: Portuguese (IM3 standard) then English (Alembic default)
+        created_col = "criado_em" if "criado_em" in available else ("created_at" if "created_at" in available else None)
+        updated_col = "atualizado_em" if "atualizado_em" in available else ("updated_at" if "updated_at" in available else None)
 
         deleted_col: Optional[str] = None
-        if "deleted_at" in available:
-            deleted_col = "deleted_at"
-        elif "deletado_em" in available:
+        if "deletado_em" in available:
             deleted_col = "deletado_em"
+        elif "deleted_at" in available:
+            deleted_col = "deleted_at"
 
         self._column_contract = {
             "created": created_col,
@@ -78,6 +87,32 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
         if isinstance(record, dict):
             return record
         return dict(record)
+    
+    async def _log_activity(
+        self, 
+        activity_type: str, 
+        user_id: Optional[UUID] = None, 
+        projeto_id: Optional[UUID] = None, 
+        details: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """Helper to log backend activities (Audit Trail)."""
+        try:
+            query = """
+                INSERT INTO activity_logs (id, projeto_id, user_id, activity_type, details, created_at)
+                VALUES ($1, $2, $3, $4, $5, NOW())
+            """
+            await self.db.execute(
+                query,
+                str(uuid4()),
+                str(projeto_id) if projeto_id else None,
+                str(user_id) if user_id else None,
+                activity_type,
+                json.dumps(details) if details else None
+            )
+        except Exception as e:
+            # Audit logging should not break the main transaction, but we log it.
+            import logging
+            logging.getLogger(__name__).error(f"Failed to log activity {activity_type}: {e}")
     
     async def get(self, id: UUID) -> Optional[Projeto]:
         """Get a projeto by ID."""
@@ -171,9 +206,20 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
                 str(obj_in.owner_id)
             )
             
-            return Projeto(**self._to_dict(result))
+            projeto = Projeto(**self._to_dict(result))
+            
+            # Audit Trail
+            await self._log_activity(
+                activity_type="PROJECT_CREATE",
+                user_id=obj_in.owner_id,
+                projeto_id=projeto.id,
+                details={"nome": projeto.nome}
+            )
+            
+            return projeto
         except Exception as e:
             raise RuntimeError(f"Error creating projeto: {e}")
+
     
     async def update(
         self, 
@@ -209,7 +255,18 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
             """  # nosec B608
             
             result = await self.db.fetch_one(query, *params)
-            return Projeto(**self._to_dict(result)) if result else db_obj
+            projeto = Projeto(**self._to_dict(result)) if result else db_obj
+            
+            # Audit Trail
+            if result:
+                await self._log_activity(
+                    activity_type="PROJECT_UPDATE",
+                    user_id=db_obj.owner_id,
+                    projeto_id=projeto.id,
+                    details={"fields_updated": list(update_data.keys())}
+                )
+            
+            return projeto
         except Exception as e:
             raise RuntimeError(f"Error updating projeto {db_obj.id}: {e}")
     

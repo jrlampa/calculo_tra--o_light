@@ -31,6 +31,9 @@ export const useProjetoState = () => {
     try {
       const projetoCriado = await createProjeto(cabecalho)
       setProjetoAtual(projetoCriado)
+      // Limpar modo convidado se existir
+      window.localStorage.removeItem('guest_mode')
+      
       setCabecalho(prev => ({
         ...prev,
         projeto: projetoCriado.nome || prev.projeto,
@@ -44,6 +47,26 @@ export const useProjetoState = () => {
       })
     } catch (err) {
       setProjetoState({ loading: false, error: err.message })
+    }
+  }, [cabecalho])
+
+  // Handler para entrar como convidado (bypass JWT)
+  const handleGuestConfirm = useCallback(async () => {
+    setProjetoState({ loading: true, error: '' })
+    try {
+      window.localStorage.setItem('guest_mode', 'true')
+      const guestCabecalho = {
+        ...cabecalho,
+        projeto: cabecalho.projeto || 'Projeto Convidado',
+        orgao: cabecalho.orgao || 'CONVIDADO'
+      }
+      const projetoCriado = await createProjeto(guestCabecalho)
+      setProjetoAtual(projetoCriado)
+      setEtapa('calculo')
+      setProjetoState({ loading: false, error: '' })
+    } catch (err) {
+      window.localStorage.removeItem('guest_mode')
+      setProjetoState({ loading: false, error: `Modo convidado indisponível: ${err.message}` })
     }
   }, [cabecalho])
 
@@ -65,6 +88,7 @@ export const useProjetoState = () => {
     handlers: {
       handleHeader,
       handleConfirmProjeto,
+      handleGuestConfirm,
       resetProjeto,
       setEtapa
     }

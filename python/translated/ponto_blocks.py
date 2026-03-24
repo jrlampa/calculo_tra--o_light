@@ -107,6 +107,21 @@ def _blank(v: Any) -> str:
     return " " if not isinstance(v, (int, float)) else v
 
 
+def _extract_resistance(modelo: str) -> float:
+    """Extract nominal resistance from '9 m / 150 daN' style strings."""
+    try:
+        if not modelo or "/" not in modelo:
+            return 0.0
+        # Split by / and then take the next part, extract the first number
+        parts = modelo.split("/")
+        if len(parts) < 2:
+            return 0.0
+        res_part = parts[1].strip().split(" ")[0]
+        return float(res_part.replace(",", "."))
+    except (ValueError, IndexError):
+        return 0.0
+
+
 # ── Traversal dataclasses ──────────────────────────────────────────────────
 
 
@@ -354,7 +369,9 @@ class PoloOutput:
     texto_mt2: str = ""
     texto_bt: str = ""
     texto_btz: str = ""
-    texto_ral: str = ""
+    # Status signals (Phase 11: 5% tolerance rule)
+    status_poste: str = "OK"  # OK, SOBRECARGA
+    resistencia_nominal: float = 0.0
 
 
 # ── Main calculation function ──────────────────────────────────────────────
@@ -480,11 +497,24 @@ def calcular_polo(
     out.total_tracao = math.sqrt(sum_x**2 + sum_y**2) + out.poste_ecc
     out.total_angulo = _angle_formula(sum_x, sum_y)
 
+    # ── Status and Validation (Phase 11: 5% Rule) ─────────────────────────
+    out.resistencia_nominal = _extract_resistance(modelo_poste)
+    if out.resistencia_nominal > 0:
+        # Rule: Overload if Traction > Nominal * 1.05
+        if out.total_tracao > out.resistencia_nominal * 1.05:
+            out.status_poste = "SOBRECARGA"
+        else:
+            out.status_poste = "OK"
+    else:
+        out.status_poste = "OK"  # No model, no validation
+
     # ── Text outputs (rows 143-148) ────────────────────────────────────────
     def _txt(f: float) -> str:
         return str(round(f))
 
     out.texto_total = f"TRAÇÃO TOTAL: {_txt(out.total_tracao)} daN {_txt(out.total_angulo)}°"
+    if out.status_poste == "SOBRECARGA":
+        out.texto_total += " [SOBRECARGA]"
     out.texto_mt1  = (
         f"TRAÇÃO MT 1° NÍVEL (100 mm do topo): {_txt(mt1_f33)} daN {_txt(mt1_ang)}°"
         if mt1_t[0].active else

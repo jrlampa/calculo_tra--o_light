@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 from datetime import datetime
 
-import aiohttp
+# import aiohttp (DISABLED: Host dependency issues)
 from pydantic import BaseModel, Field
 
 from core.config import get_settings
@@ -59,7 +59,7 @@ class OllamaClient:
     
     def __init__(self, base_url: str = "http://localhost:11434"):
         self.base_url = base_url
-        self.session: Optional[aiohttp.ClientSession] = None
+        self.session: Optional[Any] = None # aiohttp.ClientSession
         self.settings = get_settings()
         
         # Default models to try
@@ -67,22 +67,15 @@ class OllamaClient:
     
     async def __aenter__(self):
         """Async context manager entry."""
-        self.session = aiohttp.ClientSession(
-            timeout=aiohttp.ClientTimeout(total=60)
-        )
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
-        if self.session:
-            await self.session.close()
+        pass
     
     async def _ensure_session(self):
         """Ensure session is created."""
-        if not self.session:
-            self.session = aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=60)
-            )
+        pass
     
     async def check_connection(self) -> bool:
         """Check if Ollama is running and accessible."""

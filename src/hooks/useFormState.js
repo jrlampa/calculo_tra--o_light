@@ -57,6 +57,15 @@ export const useFormState = () => {
     resetForm()
   }, [resetForm])
 
+  // Aplicar dados importados em massa
+  const applyImportedData = useOptimizedCallback((data) => {
+    if (data.mt1) setMT1(data.mt1)
+    if (data.mt2) setMT2(data.mt2)
+    if (data.bt) setBT(data.bt)
+    if (data.btz) setBTZ(data.btz)
+    if (data.ral) setRAL(data.ral)
+  }, [])
+
   // Verificar se formulário tem dados otimizado
   const hasFormData = useMemo(() => {
     const checkNivel = (nivel) => {
@@ -101,7 +110,8 @@ export const useFormState = () => {
     handlers: {
       handleTravessiaChange,
       resetForm,
-      resetFormParaProximoPonto
+      resetFormParaProximoPonto,
+      applyImportedData
     }
   }), [formState, mt1, mt2, bt, btz, ral, hasFormData, travessiasPreenchidas, handleTravessiaChange, resetForm, resetFormParaProximoPonto])
 

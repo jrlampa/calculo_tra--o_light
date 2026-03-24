@@ -10,7 +10,7 @@ const CAMPOS_PROJETO = [
   { id: 'data', label: 'Data', placeholder: 'dd/mm/aaaa' },
 ]
 
-export default function TelaProjetoInicial({ dados, onChange, onConfirm, loading, error }) {
+export default function TelaProjetoInicial({ dados, onChange, onConfirm, onGuestConfirm, loading, error }) {
   const projetoInputRef = useRef(null)
   const projetoErrorId = 'project-projeto-error'
   const hasProjetoError = Boolean(error)
@@ -70,15 +70,29 @@ export default function TelaProjetoInicial({ dados, onChange, onConfirm, loading
                   {error}
                 </p>
               ) : null}
-              <button 
-                type="submit" 
-                id="project-submit-btn"
-                className="project-submit" 
-                disabled={loading}
-                aria-label={loading ? 'Salvando projeto' : 'Confirmar dados e iniciar cálculo'}
-              >
-                {loading ? 'Salvando projeto...' : 'Confirmar e iniciar cálculo'}
-              </button>
+              
+              <div className="flex flex-col gap-2 w-full">
+                <button 
+                  type="submit" 
+                  id="project-submit-btn"
+                  className="project-submit" 
+                  disabled={loading}
+                  aria-label={loading ? 'Salvando projeto' : 'Confirmar dados e iniciar cálculo'}
+                >
+                  {loading ? 'Salvando projeto...' : 'Confirmar e iniciar cálculo'}
+                </button>
+
+                {import.meta.env.DEV && (
+                  <button
+                    type="button"
+                    className="text-xs text-gray-400 hover:text-gray-200 underline mt-1"
+                    onClick={onGuestConfirm}
+                    disabled={loading}
+                  >
+                    Entrar como Convidado (Bypass JWT)
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </form>

@@ -5,6 +5,8 @@ services:
       dockerfile: Dockerfile.api
     ports:
       - "8000:8000"
+    environment:
+      - GUEST_MODE=true
 
   web:
     build:

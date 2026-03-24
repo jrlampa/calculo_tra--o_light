@@ -151,6 +151,9 @@ class CalculoOutput(BaseModel):
     texto_total: str = ""
     vetores: list[VetorOut] = Field(default_factory=list)
     poste_ecc_dan: float = 0.0
+    # Phase 11: 5% tolerance rule
+    status_poste: str = "OK"  # OK, SOBRECARGA
+    resistencia_nominal: float = 0.0
 
     model_config = {
         "json_schema_extra": {

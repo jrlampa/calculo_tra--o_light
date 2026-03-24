@@ -64,6 +64,9 @@ def run_migrations_online() -> None:
 
     """
     url = get_database_url()
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    print(f"DEBUG: Migrating to host={parsed.hostname}, db={parsed.path}")
     
     # Handle asyncpg URL for sqlalchemy
     if url.startswith("postgresql+asyncpg://"):

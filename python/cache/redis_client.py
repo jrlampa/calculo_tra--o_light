@@ -4,6 +4,8 @@ from __future__ import annotations
 import json
 import logging
 import hashlib
+import os
+import asyncio
 from typing import Any, Optional, Dict, List, Union
 from datetime import datetime, timedelta
 from dataclasses import dataclass
@@ -58,11 +60,11 @@ class RedisCache:
         }
     
     async def connect(self) -> bool:
-        """Connect to Redis."""
+        """Connect to Redis with strict timeout to prevent boot hang."""
         try:
             self.redis_client = Redis(
-                host='localhost',
-                port=6379,
+                host=os.getenv("REDIS_HOST", "localhost"),
+                port=int(os.getenv("REDIS_PORT", "6379")),
                 db=0,
                 max_connections=self.config.max_connections,
                 socket_timeout=self.config.socket_timeout,
@@ -71,13 +73,13 @@ class RedisCache:
                 decode_responses=self.config.decode_responses
             )
             
-            # Test connection
-            await self.redis_client.ping()
+            # Test connection with strict 1s timeout
+            await asyncio.wait_for(self.redis_client.ping(), timeout=1.0)
             logger.info("Connected to Redis successfully")
             return True
             
-        except Exception as e:
-            logger.error(f"Failed to connect to Redis: {e}")
+        except (Exception, asyncio.TimeoutError) as e:
+            logger.warning(f"Cache offline: Redis connection deferred or failed: {e}")
             self.redis_client = None
             return False
     
@@ -507,4 +509,3 @@ def cache_result(ttl: int = 300, prefix: str = 'default'):
             return result
         return wrapper
     return decorator
-

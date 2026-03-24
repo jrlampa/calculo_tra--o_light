@@ -143,6 +143,51 @@ export const useAppOptimizedState = () => {
     projetoState.handlers.handleHeader('ponto', '')
   }, [formState.handlers, pontoState.handlers, projetoState.handlers, projetoState.projetoAtual?.id, pontoState.pontoAtual?.id])
 
+  // Handler para importar do Excel
+  const handleImportarExcel = useCallback(async (file) => {
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      trackUxFunnelEvent('IMPORT_EXCEL_STARTED', { filename: file.name })
+      // Faz o upload para a nova rota
+      const response = await fetch('/api/calcular/importar-excel', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error('Falha ao processar arquivo Excel')
+      }
+
+      const data = await response.json()
+
+      // 1. Atualizar Cabecalho
+      if (data.cabecalho) {
+        Object.entries(data.cabecalho).forEach(([key, val]) => {
+          if (val) projetoState.handlers.handleHeader(key, val)
+        })
+      }
+
+      // 2. Atualizar Poste
+      if (data.poste) {
+        if (data.poste.tipo_poste) pontoState.handlers.handlePoste('tipoPoste', data.poste.tipo_poste)
+        if (data.poste.modelo_poste) pontoState.handlers.handlePoste('modeloPoste', data.poste.modelo_poste)
+      }
+
+      // 3. Atualizar Travessias em massa
+      formState.handlers.applyImportedData(data)
+      
+      trackUxFunnelEvent('IMPORT_EXCEL_SUCCESS', { filename: file.name })
+    } catch (err) {
+      console.error('Erro na importação:', err)
+      trackUxFunnelEvent('IMPORT_EXCEL_FAILED', { error: err.message })
+      // O erro será exibido pelo ErrorBoundary ou banner se necessário
+    }
+  }, [projetoState.handlers, pontoState.handlers, formState.handlers])
+
   const handleManualPersistRetry = useCallback(() => {
     trackUxFunnelEvent(UX_FUNNEL_EVENTS.PERSIST_RETRY_MANUAL, {
       projeto_id: projetoState.projetoAtual?.id ?? null,
@@ -308,6 +353,7 @@ export const useAppOptimizedState = () => {
       ...formState.handlers,
       handleApaga,
       handleProximoPonto,
+      handleImportarExcel,
     },
     
     // Dados para componentes

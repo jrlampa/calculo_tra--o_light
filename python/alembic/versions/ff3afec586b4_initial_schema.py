@@ -58,7 +58,9 @@ def upgrade() -> None:
     sa.Column('matricula', sa.String(length=50), nullable=True),
     sa.Column('data_estudo', sa.String(length=20), nullable=True),
     sa.Column('owner_id', sa.UUID(), nullable=False),
-    sa.Column('atualizado_em', sa.DateTime(), nullable=True),
+    sa.Column('criado_em', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.Column('atualizado_em', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+    sa.Column('deletado_em', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('redes',

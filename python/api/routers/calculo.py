@@ -4,8 +4,8 @@ from __future__ import annotations
 import logging
 import math
 from typing import Optional
-
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File
+from services.excel_import import extract_excel_to_input
 
 from api.schemas import (
     CalculoInput,
@@ -52,6 +52,21 @@ def calculate_qdt(inp: QDTInput) -> QDTOutput:
         v_bt_node2=res.v_bt_node2,
         drop_total_pct=res.drop_total_pct,
     )
+
+
+@router.post("/importar-excel", response_model=CalculoInput, tags=["Importação"])
+async def importar_excel(file: UploadFile = File(...)) -> CalculoInput:
+    """Import legacy Excel data to pre-fill the frontend form."""
+    if not file.filename.lower().endswith((".xlsm", ".xlsx")):
+        raise HTTPException(status_code=400, detail="Apenas arquivos .xlsm ou .xlsx são permitidos")
+    
+    try:
+        content = await file.read()
+        extracted_data = extract_excel_to_input(content)
+        return extracted_data
+    except Exception as e:
+        logger.exception("Erro ao importar planilha: %s", e)
+        raise HTTPException(status_code=500, detail=f"Erro ao processar planilha: {str(e)}")
 
 
 @router.post("", response_model=CalculoOutput)
@@ -166,6 +181,8 @@ def calcular(inp: CalculoInput) -> CalculoOutput:
             texto_total=result.texto_total,
             vetores=vetores,
             poste_ecc_dan=result.poste_ecc,
+            status_poste=result.status_poste,
+            resistencia_nominal=result.resistencia_nominal,
         )
     except (ValueError, ZeroDivisionError, ArithmeticError) as domain_err:
         logger.warning("Entrada inválida em /calcular: %s", domain_err)

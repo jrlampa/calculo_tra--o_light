@@ -121,17 +121,26 @@ class ProjetoService:
     
     async def _validate_projeto_data(self, projeto_in: ProjetoCreate) -> None:
         """Validate projeto business rules."""
-        # Validate NS format (if specific format required)
-        if not projeto_in.ns.replace("-", "").replace("/", "").isalnum():
+        # Validate NS format: allow letters, digits, '-', '/', and empty/default
+        ns_clean = projeto_in.ns.replace("-", "").replace("/", "").strip()
+        if ns_clean and not ns_clean.isalnum():
             raise ValidationError("NS deve conter apenas letras, números, '-' e '/'")
-        
-        # Validate matricula format (if specific format required)
-        if len(projeto_in.matricula) < 4:
-            raise ValidationError("Matrícula deve ter pelo menos 4 caracteres")
-        
+
+        # Validate matricula: minimum 1 character (relaxed for guest mode defaults)
+        if len(projeto_in.matricula) < 1:
+            raise ValidationError("Matrícula não pode ser vazia")
+
         # Validate study date is not in future
-        if projeto_in.data_estudo and projeto_in.data_estudo > datetime.utcnow():
-            raise ValidationError("Data de estudo não pode estar no futuro")
+        if projeto_in.data_estudo:
+            try:
+                # Handle string format (consistent with Pydantic model change)
+                dt = datetime.strptime(projeto_in.data_estudo, "%d/%m/%Y")
+                if dt > datetime.utcnow():
+                    raise ValidationError("Data de estudo não pode estar no futuro")
+            except (ValueError, TypeError):
+                # If format is invalid or it's already a datetime (fallback)
+                pass
+
     
     async def _check_duplicate_ns(self, ns: str, user_id: UUID) -> bool:
         """Check if NS already exists for user."""

@@ -1,4 +1,5 @@
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
+const GUEST_HEADERS = { ...JSON_HEADERS, 'X-Guest-Access': 'true' }
 
 function toFloat(value) {
   if (value === '' || value === null || value === undefined) return null
@@ -28,6 +29,10 @@ async function requestJson(url, options = {}, fallbackMessage) {
   const response = await fetch(url, {
     credentials: 'include',
     ...options,
+    headers: {
+      ...options.headers,
+      ...(window.localStorage.getItem('guest_mode') === 'true' ? GUEST_HEADERS : {})
+    }
   })
 
   if (!response.ok) {

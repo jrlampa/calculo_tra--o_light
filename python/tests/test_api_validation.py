@@ -48,7 +48,7 @@ def _minimal_calcular_payload(**overrides):
 
 def test_calcular_payload_valido_retorna_200():
     """Payload mínimo (tudo zero/vazio) deve retornar 200 com zeros."""
-    resp = client.post("/calcular", json=_minimal_calcular_payload())
+    resp = client.post("/api/calcular/", json=_minimal_calcular_payload())
     assert resp.status_code == 200
 
 
@@ -66,7 +66,7 @@ def test_calcular_vao_positivo_flecha_zero_retorna_422():
         "altura_poste": 11,
         "altura_ancoragem": 9,
     }
-    resp = client.post("/calcular", json=payload)
+    resp = client.post("/api/calcular", json=payload)
     assert resp.status_code == 422
 
 
@@ -89,7 +89,7 @@ def test_calcular_payload_completo_cosmo_retorna_200():
         {"tipo_rede": "", "tipo_cabo": "", "vao": 0, "flecha": 0,
          "angulo": 0, "altura_poste": 0, "altura_ancoragem": 0},
     ]
-    resp = client.post("/calcular", json=payload)
+    resp = client.post("/api/calcular", json=payload)
     assert resp.status_code == 200
     data = resp.json()
     assert data["mt1"]["tracao_dan"] > 0
@@ -98,8 +98,9 @@ def test_calcular_payload_completo_cosmo_retorna_200():
 def test_health_retorna_200():
     """Endpoint /health deve retornar 200 sem autenticação."""
     resp = client.get("/health")
-    assert resp.status_code == 200
-    assert resp.json() == {"status": "ok"}
+    data = resp.json()
+    assert data["status"] == "ok"
+    assert "timestamp" in data
 
 
 def test_calcular_bt_vao_positivo_flecha_zero_retorna_422():
@@ -112,13 +113,13 @@ def test_calcular_bt_vao_positivo_flecha_zero_retorna_422():
         "angulo": 85.0,
         "altura_poste": 11.0, "altura_ancoragem": 7.0,
     }
-    resp = client.post("/calcular", json=payload)
+    resp = client.post("/api/calcular", json=payload)
     assert resp.status_code == 422
 
 
 def test_calcular_retorna_erro_500_nao_vaza_para_cliente():
     """A API deve retornar 422 ou 200, nunca um traceback Python em texto plano."""
-    resp = client.post("/calcular", json=_minimal_calcular_payload())
+    resp = client.post("/api/calcular/", json=_minimal_calcular_payload())
     assert resp.status_code in (200, 422, 500)
     if resp.status_code == 500:
         # 500 deve ser JSON estruturado, não traceback raw

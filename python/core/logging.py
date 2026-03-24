@@ -11,8 +11,11 @@ def setup_logging():
     
     # Standard Python logging configuration
     logging.basicConfig(
-        format="%(message)s",
-        stream=sys.stdout,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler("app.log")
+        ],
         level=getattr(logging, settings.log_level.upper()),
     )
 

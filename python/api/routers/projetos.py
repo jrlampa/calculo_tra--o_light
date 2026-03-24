@@ -31,8 +31,8 @@ router = APIRouter(tags=["Projetos"])
 
 async def get_projeto_service() -> ProjetoService:
     """Dependency injection for ProjetoService."""
-    supabase = get_supabase_client()
-    projeto_repository = ProjetoRepository(supabase)
+    from db.pool import db_pool
+    projeto_repository = ProjetoRepository(db_pool)
     return ProjetoService(projeto_repository)
 
 
@@ -65,21 +65,23 @@ async def create_projeto(
     projeto_service: ProjetoService = Depends(get_projeto_service),
 ) -> ProjetoOut:
     """Cria um novo projeto. Retorna o projeto com id gerado."""
+    from models.projeto import ProjetoCreate
+    from uuid import UUID
     try:
-        # Convert input to service model
-        projeto_create = {
-            "orgao": inp.orgao,
-            "ns": inp.ns,
-            "nome": inp.nome,
-            "endereco": inp.endereco,
-            "estudado_por": inp.estudado_por,
-            "matricula": inp.matricula,
-            "data_estudo": inp.data_estudo,
-            "owner_id": user.user_id
-        }
-        
-        projeto = await projeto_service.create_projeto(projeto_create, user.user_id)
-        return ProjetoOut(**projeto.dict())
+        # Instanciar ProjetoCreate com defaults seguros para Guest Mode
+        projeto_in = ProjetoCreate(
+            orgao=inp.orgao or "CONVIDADO",
+            ns=inp.ns or "S/N",
+            nome=inp.nome or "Projeto Convidado",
+            endereco=inp.endereco or "",
+            estudado_por=inp.estudado_por or "Convidado",
+            matricula=inp.matricula or "0000",
+            data_estudo=inp.data_estudo,
+            owner_id=UUID(str(user.user_id)),
+        )
+
+        projeto = await projeto_service.create_projeto(projeto_in, UUID(str(user.user_id)))
+        return ProjetoOut(**projeto.model_dump(mode='json'))
     except (NotFoundError, PermissionError, ValidationError) as e:
         raise HTTPException(status_code=400, detail=e.message)
     except Exception as e:

@@ -12,7 +12,6 @@ docs/
 
 # Dependencies
 node_modules/
-python/
 venv/
 env/
 .venv/

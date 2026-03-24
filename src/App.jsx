@@ -1,5 +1,5 @@
 // App.jsx — Aplicação principal de Cálculo de Tração de Rede Elétrica (Otimizado)
-import React from 'react'
+import React, { useRef } from 'react'
 import { useAppOptimizedState } from './hooks/useAppOptimizedState.js'
 import Header from './components/header/Header.jsx'
 import FlowStepper from './components/fluxo/FlowStepper.jsx'
@@ -20,6 +20,7 @@ preloadAllComponents()
 
 export default function App() {
   const appState = useAppOptimizedState()
+  const fileInputRef = useRef(null)
 
   // Se estiver na etapa de projeto
   if (appState.etapa === 'projeto') {
@@ -28,6 +29,7 @@ export default function App() {
         dados={appState.projetoState.cabecalho}
         onChange={appState.projetoState.handlers.handleHeader}
         onConfirm={appState.projetoState.handlers.handleConfirmProjeto}
+        onGuestConfirm={appState.projetoState.handlers.handleGuestConfirm}
         loading={appState.projetoState.projetoState.loading}
         error={appState.projetoState.projetoState.error}
       />
@@ -144,9 +146,29 @@ export default function App() {
           </div>
 
           <div className="calc-side-column">
-            <div className="self-end mb-1">
-              <button className="btn-apaga" onClick={appState.handlers.handleApaga}>
-                APAGA
+            <div className="flex flex-col gap-2 mb-2">
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                accept=".xlsm,.xlsx"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    appState.handlers.handleImportarExcel(e.target.files[0])
+                    e.target.value = '' // Reset para permitir re-importar o mesmo arquivo
+                  }
+                }}
+              />
+              <button 
+                className="btn-importar w-full py-2 px-4 rounded font-bold shadow-md transition-all hover:brightness-110 active:scale-95 flex items-center justify-center gap-2"
+                style={{ backgroundColor: '#2e7d32', color: 'white' }}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                📥 IMPORTAR EXCEL
+              </button>
+              
+              <button className="btn-apaga w-full py-2 px-4 rounded font-bold shadow-md" onClick={appState.handlers.handleApaga}>
+                🗑️ APAGA
               </button>
             </div>
 

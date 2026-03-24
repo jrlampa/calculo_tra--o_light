@@ -134,7 +134,9 @@ def audit_file(file_path):
         parity_status = "OK" if divergence <= TOL else "FAILED"
         
         human_errors = []
-        if excel_tracao > resistencia_nominal > 0:
+        # 🚩 HUMAN ERROR DETECTION: Structural Overload
+        # Rule: Traction > Resistance * 1.05 (LIGHT business rule: 5% tolerance)
+        if resistencia_nominal > 0 and excel_tracao > resistencia_nominal * 1.05:
             human_errors.append(f"SOBRECARGA: Esforco({excel_tracao:.2f}) > Resistencia({resistencia_nominal})")
             
         for i, inp in enumerate(mt1_inputs):

@@ -1,17 +1,17 @@
 # Stage 1: Build
-FROM python:3.11-slim as builder
+FROM python:3.11 as builder
 
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-COPY python/requirements.txt .
+COPY python/requirements-docker.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --user --no-cache-dir -r requirements.txt
+    pip install --user --no-cache-dir -r requirements-docker.txt
 
 # Stage 2: Runtime
-FROM python:3.11-slim
+FROM python:3.11
 
 WORKDIR /app/python
 

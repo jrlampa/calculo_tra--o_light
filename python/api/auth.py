@@ -384,9 +384,19 @@ def get_current_user(request: Request) -> CurrentUser:
 
 
 def require_mutation_identity(
+    request: Request,
     user: Annotated[CurrentUser, Depends(get_current_user)],
 ) -> CurrentUser:
-    """Require JWT identity for write operations when configured."""
+    """Require JWT identity for write operations when configured.
+    Allow bypass if guest_mode is enabled (local dev/audit).
+    """
+    from core.config import get_settings
+    
+    # Allow bypass if guest_mode is on and header matches
+    guest_header = request.headers.get("X-Guest-Access", "").lower() == "true"
+    if get_settings().guest_mode and guest_header:
+        return user
+        
     if _should_require_jwt_for_mutations() and user.auth_source != "jwt":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

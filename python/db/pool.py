@@ -44,20 +44,49 @@ class DatabasePool:
             logger.error(f"Failed to initialize database pool: {e}")
             raise
     
-    async def execute(self, query: str, *args, timeout: Optional[float] = None):
-        """Execute a query and return results."""
+    async def fetch_all(self, query: str, *args, timeout: Optional[float] = None):
+        """Execute a query and return all results (fetch)."""
         if self._pool is None:
             raise RuntimeError("Database pool not initialized")
         
         async with self._pool.acquire() as conn:
             try:
                 if args:
-                    result = await conn.fetch(query, *args, timeout=timeout)
+                    return await conn.fetch(query, *args, timeout=timeout)
                 else:
-                    result = await conn.fetch(query, timeout=timeout)
-                return result
+                    return await conn.fetch(query, timeout=timeout)
             except Exception as e:
-                logger.error(f"Query execution failed: {query[:100]}... - {e}")
+                logger.error(f"Fetch all failed: {query[:100]}... - {e}")
+                raise
+
+    async def fetch_one(self, query: str, *args, timeout: Optional[float] = None):
+        """Execute a query and return a single record (fetchrow)."""
+        if self._pool is None:
+            raise RuntimeError("Database pool not initialized")
+        
+        async with self._pool.acquire() as conn:
+            try:
+                if args:
+                    return await conn.fetchrow(query, *args, timeout=timeout)
+                else:
+                    return await conn.fetchrow(query, timeout=timeout)
+            except Exception as e:
+                logger.error(f"Fetch one failed: {query[:100]}... - {e}")
+                raise
+
+    async def execute(self, query: str, *args, timeout: Optional[float] = None):
+        """Execute a command (non-query or returning)."""
+        if self._pool is None:
+            raise RuntimeError("Database pool not initialized")
+        
+        async with self._pool.acquire() as conn:
+            try:
+                if args:
+                    return await conn.execute(query, *args, timeout=timeout)
+                else:
+                    return await conn.execute(query, timeout=timeout)
+            except Exception as e:
+                logger.error(f"Execute failed: {query[:100]}... - {e}")
                 raise
     
     async def execute_many(self, query: str, args_list: list, timeout: Optional[float] = None):
