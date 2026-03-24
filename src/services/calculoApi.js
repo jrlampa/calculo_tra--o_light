@@ -132,9 +132,10 @@ function buildNivelPayload(nivel, travessias) {
       const flecha = travessia.flecha ?? 0
 
       if (vao > 0 && flecha <= 0) {
-        throw new Error(
-          `Nível ${nivel}, posição ${index + 1}: flecha deve ser maior que zero quando vão é ${vao} m`
+        console.warn(
+          `[buildNivelPayload] Nível ${nivel}, posição ${index + 1}: flecha deve ser maior que zero quando vão é ${vao} m`
         )
+        // No longer throwing to avoid breaking the reactive chain during state transitions
       }
 
       return {

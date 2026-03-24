@@ -21,31 +21,41 @@ export const useAppOptimizedState = () => {
     })
   }, [])
 
-  // Hooks existentes
+  // Proxy para quebrar dependência circular: 
+  // pontoState -> resetPersistencia -> usePersistenciaCalculo -> resultado -> useCalculo -> fullFormState -> pontoState
+  const resetPersistRef = useRef(null)
+  const resetPersistenciaProxy = useCallback(() => resetPersistRef.current?.(), [])
+
+  // 1. Estado do Ponto (Agora no topo para fornecer pontoState.poste ao cálculo)
+  const pontoState = usePontoState({
+    projetoAtual: projetoState.projetoAtual,
+    cabecalho: projetoState.cabecalho,
+    resetPersistencia: resetPersistenciaProxy
+  })
+
+  // 2. Estado completo para o cálculo (Unificado)
+  const fullFormState = useMemo(() => ({
+    cabecalho: projetoState.cabecalho,
+    poste: pontoState.poste,
+    ...formState.formState
+  }), [projetoState.cabecalho, pontoState.poste, formState.formState])
+
+  // 3. Motor de Cálculo
   const { resultado, loading, error, lastPayload } = useCalculo(
-    formState.formState,
+    fullFormState,
     600,
     projetoState.etapa === 'calculo'
   )
   
+  // 4. Persistência (Depende de resultado e lastPayload)
   const { persistencia, resetPersistencia, flushPersistQueue } = usePersistenciaCalculo({
-    pontoId: null, // Será atualizado quando o ponto for criado
+    pontoId: pontoState.pontoAtual?.id,
     lastPayload,
     resultado,
   })
 
-  // Estado do ponto com resetPersistencia injetado
-  const pontoState = usePontoState({
-    projetoAtual: projetoState.projetoAtual,
-    cabecalho: projetoState.cabecalho,
-    resetPersistencia
-  })
-
-  // Atualizar pontoId na persistência quando o ponto mudar
-  useEffect(() => {
-    // A persistência será atualizada automaticamente pelo hook usePersistenciaCalculo
-    // através do pontoId que mudará no próximo render
-  }, [pontoState.pontoAtual?.id])
+  // Vincular a implementação real ao proxy
+  resetPersistRef.current = resetPersistencia
 
   // Undo stack hook
   const { undoStack, undo, push: pushUndo, canUndo } = useUndoStack(

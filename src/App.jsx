@@ -20,6 +20,7 @@ preloadAllComponents()
 
 export default function App() {
   const appState = useAppOptimizedState()
+  console.log('[App] Rendered. etapa:', appState.etapa, 'total:', appState.resultado?.texto_total)
   const fileInputRef = useRef(null)
 
   // Se estiver na etapa de projeto
