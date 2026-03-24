@@ -503,6 +503,8 @@ def calcular_polo(
         # Rule: Overload if Traction > Nominal * 1.05
         if out.total_tracao > out.resistencia_nominal * 1.05:
             out.status_poste = "SOBRECARGA"
+        elif out.total_tracao > out.resistencia_nominal:
+            out.status_poste = "TOLERANCIA"
         else:
             out.status_poste = "OK"
     else:
@@ -515,6 +517,8 @@ def calcular_polo(
     out.texto_total = f"TRAÇÃO TOTAL: {_txt(out.total_tracao)} daN {_txt(out.total_angulo)}°"
     if out.status_poste == "SOBRECARGA":
         out.texto_total += " [SOBRECARGA]"
+    elif out.status_poste == "TOLERANCIA":
+        out.texto_total += " [TOLERÂNCIA]"
     out.texto_mt1  = (
         f"TRAÇÃO MT 1° NÍVEL (100 mm do topo): {_txt(mt1_f33)} daN {_txt(mt1_ang)}°"
         if mt1_t[0].active else

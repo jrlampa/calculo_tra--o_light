@@ -15,7 +15,6 @@ export default function useCalculo(formState, debounceMs = 600, enabled = true) 
   const abortRef = useRef(null)
 
   useEffect(() => {
-    console.log('[useCalculo] Hook effect triggered. enabled:', enabled, 'hasFormState:', !!formState)
     if (!enabled) {
       if (timerRef.current) clearTimeout(timerRef.current)
       if (abortRef.current) abortRef.current.abort()
@@ -29,7 +28,6 @@ export default function useCalculo(formState, debounceMs = 600, enabled = true) 
     if (timerRef.current) clearTimeout(timerRef.current)
 
     timerRef.current = setTimeout(async () => {
-      console.log('[useCalculo] runCalculation execution started (debounced)')
       if (abortRef.current) abortRef.current.abort()
       const controller = new AbortController()
       abortRef.current = controller
@@ -39,13 +37,11 @@ export default function useCalculo(formState, debounceMs = 600, enabled = true) 
         try {
           payload = buildCalculoRequest(formState)
         } catch (vErr) {
-          console.error('[useCalculo] Validation Error in buildCalculoRequest:', vErr.message)
           setError(vErr.message)
           setLoading(false)
           return
         }
 
-        console.log('[useCalculo] Executing fetch request to /api/calcular. Payload vao-t1:', payload?.mt1?.[0]?.vao)
         
         setLoading(true)
         setError(null)
@@ -63,7 +59,6 @@ export default function useCalculo(formState, debounceMs = 600, enabled = true) 
         }
 
         const data = await response.json()
-        console.log('[useCalculo] SUCCESS: Received result from API. total_tracao:', data?.total_tracao_dan)
         setResultado(data)
         setLastPayload(payload)
         
@@ -73,7 +68,6 @@ export default function useCalculo(formState, debounceMs = 600, enabled = true) 
         })
       } catch (err) {
         if (err.name !== 'AbortError') {
-          console.error('[useCalculo] FETCH ERROR:', err.message)
           setError(err.message)
         }
       } finally {

@@ -65,8 +65,8 @@ def audit_file(file_path):
             if "ALTURA" in label and "ANCORAGEM" in label and not mapping["H_ANC"]: mapping["H_ANC"] = (r, 3)
             
             # Robust TOTAL search: Avoid 'VENTO' row
-            if "TOTAL" in label and "daN" in label and "VENTO" not in label:
-                if r > 100 or not mapping.get("TOTAL_EXCEL"): mapping["TOTAL_EXCEL"] = (r, 3)
+            if "TOTAL" in label and "daN" in label and "VENTO" not in label and (r > 100 or not mapping.get("TOTAL_EXCEL")):
+                mapping["TOTAL_EXCEL"] = (r, 3)
             
             if "REDE" == label.strip():
                 prev_label = str(sheet.cell(r-1, 2).value or "").upper()

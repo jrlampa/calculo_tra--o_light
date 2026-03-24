@@ -20,7 +20,6 @@ preloadAllComponents()
 
 export default function App() {
   const appState = useAppOptimizedState()
-  console.log('[App] Rendered. etapa:', appState.etapa, 'total:', appState.resultado?.texto_total)
   const fileInputRef = useRef(null)
 
   // Se estiver na etapa de projeto
@@ -54,7 +53,10 @@ export default function App() {
             ) : null}
 
             <div className="flex items-center gap-3 mb-2 mt-1">
-              <div className="tracao-total-box flex-1">
+              <div className={`tracao-total-box flex-1 ${
+                appState.resultado?.status_poste === 'OK' ? 'tracao-total-box--ok' : 
+                appState.resultado?.status_poste === 'TOLERANCIA' ? 'tracao-total-box--tolerancia' : ''
+              }`}>
                 {appState.loading ? 'Calculando…' : (appState.resultado?.texto_total || 'TRAÇÃO TOTAL: 0 daN °')}
               </div>
             </div>

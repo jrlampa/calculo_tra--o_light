@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useEffect } from 'react'
+import { useMemo, useCallback, useEffect, useRef } from 'react'
 import useCalculo from './useCalculo.js'
 import usePersistenciaCalculo from './usePersistenciaCalculo.js'
 import useUndoStack from './useUndoStack.js'

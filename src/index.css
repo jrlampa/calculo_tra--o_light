@@ -153,7 +153,7 @@
 
 /* ─── Caixa TRAÇÃO TOTAL ────────────────────────────── */
 .tracao-total-box {
-  border: 2px solid #C00000;
+  border: 2px solid #C00000; /* Default: Red (Overload) */
   color: #C00000;
   font-weight: bold;
   font-size: 14px;
@@ -161,6 +161,17 @@
   padding: 3px 12px;
   white-space: nowrap;
   background: #fff;
+  transition: all 0.2s ease;
+}
+
+.tracao-total-box--ok {
+  border-color: #538135; /* Green */
+  color: #538135;
+}
+
+.tracao-total-box--tolerancia {
+  border-color: #E07820; /* Orange/Yellow */
+  color: #E07820;
 }
 
 /* ─── Botão APAGA ───────────────────────────────────── */
