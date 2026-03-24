@@ -1,13 +1,15 @@
 # RAG_MEMORY - Memória de Trabalho do Agente
 
-_Atualizado: 2026-03-22 | Ciclo: Enterprise Phase 4 Complete_
+## Status do Ciclo
+
+_Atualizado: 2026-03-24 | Ciclo: Fullstack Import & Tolerance Check_
 
 ---
 
 ## 🚀 Stack Tecnológica (Enterprise Grade)
 
 | Camada | Tecnologia |
-|---|---|
+| --- | --- |
 | **Frontend** | React (Vite), Tailwind CSS, Vitest, Playwright (E2E) |
 | **Backend** | FastAPI (Python), Pydantic v2, structlog, asyncpg |
 | **Banco** | PostgreSQL (asyncpg), Alembic (migrations), Redis (cache/rate-limit) |
@@ -28,11 +30,11 @@ _Atualizado: 2026-03-22 | Ciclo: Enterprise Phase 4 Complete_
 ## 🗺️ Mapa de Rotas da API Enterprise
 
 | Rota | Método | Auth | Descrição |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `/health` | GET | Público | Status básico da API |
 | `/health/deep` | GET | Público | Status detalhado (DB, Redis, Ollama) |
 | `/metrics` | GET | Público | Prometheus metrics |
-| `/api/calcular` | POST | Guest/JWT | Core engine de tração  |
+| `/api/calcular` | POST | Guest/JWT | Core engine de tração |
 | `/api/calcular/qdt` | POST | Guest/JWT | Cálculo de queda de tensão |
 | `/api/cabos` | GET | Público | Lookup de cabos (tabela local) |
 | `/api/postes` | GET | Público | Lookup de postes (tabela local) |
@@ -43,6 +45,7 @@ _Atualizado: 2026-03-22 | Ciclo: Enterprise Phase 4 Complete_
 | `/api/projetos` | GET/POST | JWT | CRUD projetos |
 | `/api/projetos/{id}/pontos` | POST | JWT | Adicionar ponto ao projeto |
 | `/api/pontos/{id}/calculo` | POST | JWT | Salvar snapshot do cálculo |
+| `/api/calcular/importar-excel` | POST | JWT | Extração automática de dados legacy |
 | `/api/admin/*` | * | Admin | Gerenciamento administrativo |
 | `/api/monitoring/*` | GET | Auth | Métricas e alertas |
 | `/api/cache/*` | * | Auth | Gestão de cache Redis |
@@ -53,14 +56,18 @@ _Atualizado: 2026-03-22 | Ciclo: Enterprise Phase 4 Complete_
 ## 🔑 Padrões Críticos de Implementação
 
 ### Guest Mode (DX / Bypass JWT)
+
 ```python
 # Backend: api/auth.py
 # Header X-Guest-Access: true → bypassa JWT se import.meta.env.DEV === true
 ```
+
 ```javascript
 // Frontend: src/hooks/useProjetoState.js
 window.localStorage.setItem('guest_mode', 'true')  // chave CORRETA
+```
 
+```javascript
 // E2E Tests: e2e/*.spec.js
 await page.addInitScript(() => {
   window.localStorage.setItem('guest_mode', 'true')  // NÃO usar 'guest_mode_confirmed'
@@ -68,6 +75,7 @@ await page.addInitScript(() => {
 ```
 
 ### Dependency Injection (FastAPI)
+
 ```python
 # CORRETO: sempre passar o callable como argumento para Depends()
 async def meu_endpoint(supabase: object = Depends(get_supabase_dependency)):
@@ -79,6 +87,7 @@ async def meu_endpoint(supabase: object = Depends()):  # BUG!
 ```
 
 ### Smoke Tests (Playwright API)
+
 ```javascript
 // Supabase indisponível → 503 → test.skip (correto, não falha)
 // Supabase OK → 200 → assertions normais
@@ -87,6 +96,7 @@ async def meu_endpoint(supabase: object = Depends()):  # BUG!
 ```
 
 ### Rota do Core Engine (Validação Definitiva)
+
 ```bash
 # Verificado manualmente em 2026-03-22:
 curl -X POST http://127.0.0.1:8000/api/calcular \
@@ -129,16 +139,23 @@ curl -X POST http://127.0.0.1:8000/api/calcular \
 - Somente `/api/normas` e `/api/projetos` requerem Supabase ativo.
 
 ### Cálculo Vetorial
+
 - **Coordenadas de Teste**: `23K 788547 7634925 ↔ 100m`; `-22.15018, -42.92185 ↔ 500m & 1km`.
 - **`modelo_poste`**: Campo obrigatório no payload `/api/calcular` para lookup de excentricidade.
 - **`flecha > 0` quando `vao > 0`**: Validação de domínio no backend, reverte 422.
+- **Regra de 5% (Tolerância LIGHT)**: O poste só é considerado em `SOBRECARGA` se `Cálculo > Nominal * 1.05`. (Conhecimento Tribal verificado em 2026-03-24).
+
+### Excel Legacy Extraction
+
+- **Bypass de File Lock**: Para ler arquivos abertos por usuários (Excel), sempre copiar para um diretório temporal (`tmp/`) antes de abrir com `openpyxl`.
+- **Ancoragem Dinâmica**: Nunca usar células fixas para buscar vãos/cabos. Buscar as keywords `TOTAL` e `REDE` para localizar as linhas de MT1, MT2 e BT, garantindo resiliência a variações de layout.
 
 ---
 
 ## 📜 Histórico de Ciclos
 
 | Ciclo | Descrição | Status |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Correção de fórmulas QDT e parity Excel | ✅ |
 | 2 | Refatoração BudgetService e Thin Frontend | ✅ |
 | 3 | Enterprise Elevation Phase 1 (Logging, Erros, Alembic) | ✅ |
@@ -146,7 +163,11 @@ curl -X POST http://127.0.0.1:8000/api/calcular \
 | 5 | Enterprise Elevation Phase 3 (Observabilidade, Prometheus, OpenAPI) | ✅ |
 | 6 | Enterprise Phase 4 (PWA, Audit Trail, Guest DX, E2E Sync) | ✅ |
 | 7 | Enterprise Final QA (Router DI fix, Smoke Tests, RAG Expansion) | ✅ |
+| 8 | Auditoria em Massa & Paridade Digital (MT1/MT2/BT) | ✅ |
+| 9 | Fullstack Legacy Import & 5% Tolerance Rule | ✅ |
 
 ---
 
-*Mantenha esta memória atualizada para garantir continuidade entre sessões.*
+## Conclusão do Ciclo
+
+_Atualizado: 2026-03-24 | Ciclo: Fullstack Import & Tolerance Check_
