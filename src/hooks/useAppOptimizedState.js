@@ -332,7 +332,7 @@ export const useAppOptimizedState = () => {
   ])
 
   // Memoizar estado completo
-  const appState = useMemo(() => ({
+  return useMemo(() => ({
     // Estados principais
     etapa: projetoState.etapa,
     loading,
@@ -394,6 +394,4 @@ export const useAppOptimizedState = () => {
     persistenciaFeedback,
     dadosParaComponentes
   ])
-
-  return appState
 }
