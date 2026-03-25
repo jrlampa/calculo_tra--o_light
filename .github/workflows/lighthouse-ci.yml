@@ -1,0 +1,185 @@
+name: Lighthouse CI
+
+on:
+  push:
+    branches: [ main, dev, develop ]
+  pull_request:
+    branches: [ main, dev ]
+  schedule:
+    # Run Lighthouse CI daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  lighthouse-ci:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+        env:
+          VITE_API_URL: http://localhost:8000
+
+      - name: Install Lighthouse CI
+        run: npm install -g @lhci/cli@latest @lighthouserc/cli
+
+      - name: Start test server
+        run: |
+          npx vite preview --port 5173 &
+          sleep 3
+        env:
+          VITE_API_URL: http://localhost:8000
+
+      - name: Run Lighthouse CI
+        run: lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+        continue-on-error: true
+
+      - name: Upload Lighthouse reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/
+          retention-days: 30
+
+      - name: Comment Lighthouse CI results on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reportPath = '.lighthouseci/lhr.json';
+            if (fs.existsSync(reportPath)) {
+              const report = JSON.parse(fs.readFileSync(reportPath, 'utf-8'));
+              const scores = report.categories;
+              
+              const comment = `
+              ## ⚡ Lighthouse Performance Report
+              
+              | Category | Score |
+              |----------|-------|
+              | Performance | ${(scores.performance.score * 100).toFixed(0)}/100 |
+              | Accessibility | ${(scores.accessibility.score * 100).toFixed(0)}/100 |
+              | Best Practices | ${(scores['best-practices'].score * 100).toFixed(0)}/100 |
+              | SEO | ${(scores.seo.score * 100).toFixed(0)}/100 |
+              | PWA | ${(scores.pwa ? (scores.pwa.score * 100).toFixed(0) : 'N/A')} /100 |
+              
+              [Full Report](./.lighthouseci/)
+              `;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+        continue-on-error: true
+
+  # Frontend Bundle Size Analysis
+  bundle-size:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Analyze bundle size
+        run: |
+          npm install -g bundlesize esbuild-bundle-analyzer
+          npx esbuild dist/index.js --analyze --outfile=/dev/null || true
+        continue-on-error: true
+
+      - name: Check bundle size limits
+        run: |
+          BUNDLE_SIZE=$(du -sh dist/ | cut -f1)
+          echo "Bundle size: $BUNDLE_SIZE"
+          
+          # Warn if bundle exceeds 500KB
+          SIZE_KB=$(du -s dist/ | awk '{print $1}')
+          if [ $SIZE_KB -gt 500 ]; then
+            echo "⚠️ WARNING: Bundle size ($BUNDLE_SIZE) exceeds 500KB threshold"
+            exit 1
+          fi
+        continue-on-error: true
+
+      - name: Upload bundle analysis
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: bundle-analysis
+          path: dist/
+
+  # Frontend Performance Metrics
+  performance-metrics:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and run performance tests
+        run: npm run test:performance
+        continue-on-error: true
+
+      - name: Generate performance report
+        run: |
+          npm run vitest -- --coverage --coverage.reporter=json
+        continue-on-error: true
+
+      - name: Upload performance metrics
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: performance-metrics
+          path: |
+            coverage/
+            test-results/
+          retention-days: 30
+
+      - name: Archive metrics for tracking
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-metrics-archive-${{ github.sha }}
+          path: |
+            coverage/
+            test-results/
+          retention-days: 90

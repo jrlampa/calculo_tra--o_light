@@ -1,4 +1,5 @@
 # Auditoria de Persistência — Cálculo Tração Light
+
 **Data**: 2026-03-24 22:41:05  
 **Status**: SEM CORREÇÕES (Análise apenas)
 
@@ -25,6 +26,7 @@
 ### ✅ Status: VÁLIDO E COMPLETO
 
 **Tabelas presentes (11 total)**:
+
 - ✓ `activity_logs` — 6 colunas (auditoria)  
 - ✓ `cabos` — 4 colunas (lookup)  
 - ✓ `niveis_calculo` — 5 colunas (MT1, MT2, BT, BTZ, RAL)  
@@ -38,16 +40,18 @@
 - ✓ `alembic_version` — tracking de migrações  
 
 **Índices (18 total)**:
+
 - ✓ Primary keys em todas as tabelas  
 - ✓ Unique constraints: `cabos.nome`, `redes.tipo`, `niveis_calculo(ponto_id, nivel)`, `pontos(projeto_id, ponto)`, `travessias(nivel_id, posicao)`  
 - ✓ Foreign key indexes: `activity_logs(projeto_id)`, `activity_logs(user_id)`, `niveis_calculo(ponto_id)`, `pontos(projeto_id)`, `resultados_calculo(ponto_id)`, `travessias(nivel_id)`  
 
 **Constraints (43 total)**:
+
 - ✓ CHECK constraints em cada tabela para NOT NULL  
 - ✓ 4 FOREIGN KEY relationships definidas  
 - ✓ 6 UNIQUE constraints  
 
-### ✅ Conclusão: Schema completamente estruturado e bem projetado.
+### ✅ Conclusão: Schema completamente estruturado e bem projetado
 
 ---
 
@@ -84,7 +88,8 @@
 Distribuição: 100% dos projetos estão ÓRFÃOS (sem filhos em pontos)
 ```
 
-### ⚠️ Conclusão: Hierarquia projeto → pontos não é persistida. Possíveis causas:
+### ⚠️ Conclusão: Hierarquia projeto → pontos não é persistida. Possíveis causas
+
 1. Dados persistidos apenas em Excel (não no BD)  
 2. API não salva pontos ao criar projetos  
 3. UI cria projetos mas não chama endpoint para pontos  
@@ -97,6 +102,7 @@ Distribuição: 100% dos projetos estão ÓRFÃOS (sem filhos em pontos)
 ### ✅ Status: OK (sem anomalias)
 
 **Foreign Key Relationships (4)**:
+
 1. `niveis_calculo.ponto_id` → `pontos.id`  
    - Status: ✓ Constraint ativa  
    - Órfãos: **0** (tabela vazia)  
@@ -114,11 +120,12 @@ Distribuição: 100% dos projetos estão ÓRFÃOS (sem filhos em pontos)
    - Órfãos: **0** (tabela vazia)  
 
 **Coverage Analysis**:
+
 - ✓ Projetos with pontos: **0 de 26** (0%)  
 - ✓ Pontos with niveis: **0 de 0** (N/A)  
 - ✓ Niveis with travessias: **0 de 0** (N/A)  
 
-### ✅ Conclusão: Referências válidas, mas cadeia vazia. Sem integridade referencial violada porque nada está conectado.
+### ✅ Conclusão: Referências válidas, mas cadeia vazia. Sem integridade referencial violada porque nada está conectado
 
 ---
 
@@ -127,6 +134,7 @@ Distribuição: 100% dos projetos estão ÓRFÃOS (sem filhos em pontos)
 ### ✅ Status: OK (dados presentes 100%)
 
 **Projetos ( COMPLETO)**:
+
 ```
 ✓ nome              100% (26/26)      — Sempre preenchido
 ✓ orgao             100% (26/26)      — Sempre preenchido
@@ -135,15 +143,18 @@ Distribuição: 100% dos projetos estão ÓRFÃOS (sem filhos em pontos)
 ```
 
 **Pontos ( VAZIO)**:
+
 - Nenhum registro para validar  
 
 **Niveis_Calculo ( VAZIO)**:
+
 - Nenhum registro para validar  
 
 **Travessias ( VAZIO)**:
+
 - Nenhum registro para validar  
 
-### ✅ Conclusão: Dados existentes não têm valores NULL em campos obrigatórios.
+### ✅ Conclusão: Dados existentes não têm valores NULL em campos obrigatórios
 
 ---
 
@@ -152,6 +163,7 @@ Distribuição: 100% dos projetos estão ÓRFÃOS (sem filhos em pontos)
 ### ✅ Status: OK (100% preenchidos)
 
 **Projetos**:
+
 ```
 ✓ criado_em (criação)
   - Cobertura: 100% (26/26)
@@ -165,9 +177,10 @@ Distribuição: 100% dos projetos estão ÓRFÃOS (sem filhos em pontos)
 ```
 
 **Pontos, Niveis_Calculo, Travessias**:
+
 - Sem timestamps porque tabelas estão vazias  
 
-### ✅ Conclusão: Timestamps são completamente rastreáveis em projetos. Sem discrepâncias criado_em ≠ atualizado_em.
+### ✅ Conclusão: Timestamps são completamente rastreáveis em projetos. Sem discrepâncias criado_em ≠ atualizado_em
 
 ---
 
@@ -176,11 +189,13 @@ Distribuição: 100% dos projetos estão ÓRFÃOS (sem filhos em pontos)
 ### ✅ Status: OK (sem anomalias)
 
 **Análise de Duplicatas**:
+
 - ✓ Nenhuma duplicação de `(projeto_id, ponto)` em pontos  
 - ✓ Nenhuma duplicação de `(ponto_id, nivel)` em niveis_calculo  
 - ✓ Nenhuma posição T inválida (fora de 1-4) em travessias  
 
 **Análise de Acúmulo de Testes**:
+
 ```
 ACHADO MENOR #2: Nomes de projeto sugerem testes:
   - "Test_Poste_22"
@@ -193,7 +208,7 @@ ACHADO MENOR #2: Nomes de projeto sugerem testes:
 → Recomendação: Limpar registros de teste antes de produção.
 ```
 
-### ✅ Conclusão: Sem integridade violada; apenas ruído de dados de teste.
+### ✅ Conclusão: Sem integridade violada; apenas ruído de dados de teste
 
 ---
 
@@ -202,11 +217,12 @@ ACHADO MENOR #2: Nomes de projeto sugerem testes:
 ### ✅ Status: OK (tracking ativo)
 
 **Alembic Migrations**:
+
 - ✓ Versão aplicada: `d55ff4ae541f`  
 - ✓ Tabela `alembic_version` presente e válida  
 - ✓ Schema atualizado conforme esperado  
 
-### ✅ Conclusão: Sistema de versionamento de BD funcional.
+### ✅ Conclusão: Sistema de versionamento de BD funcional
 
 ---
 
@@ -215,11 +231,13 @@ ACHADO MENOR #2: Nomes de projeto sugerem testes:
 ### ✅ Status: OK (índices presentes)
 
 **Cobertura de Índices**:
+
 - ✓ Todos os foreign keys têm índices  
 - ✓ Unique constraints têm índices implícitos  
 - ✓ Primary keys indexados  
 
 **Tamanho de Tabelas** (relativo):
+
 ```
 pg_size_pretty(pg_total_relation_size):
   projetos              ~50 KB
@@ -227,33 +245,39 @@ pg_size_pretty(pg_total_relation_size):
   (demais vazias)       ~5 KB cada
 ```
 
-### ✅ Conclusão: Índices bem projetados; sem problemas de performance em dados atuais.
+### ✅ Conclusão: Índices bem projetados; sem problemas de performance em dados atuais
 
 ---
 
 ## 🔴 ACHADOS CRÍTICOS SINTETIZADOS
 
 ### #1: Hierarquia de dados vazia abaixo de projetos
+
 ```
 projetos ──(26)──→ pontos ──(0)──→ niveis_calculo ──(0)──→ travessias ──(0)──×
                                                                resultados_calculo ──(0)──×
 ```
+
 **Severidade**: CRÍTICA  
 **Contexto**: A aplicação calcula tração (MT1, MT2, BT, etc.) mas nada é persistido. Dados vivem apenas em Excel + memória React.  
 **Impacto**: Sem integração BD-API-UI funcional para o fluxo de cálculo.  
 
 ### #2: Possível falta de salvamento de pontos
+
 ```
 CREATE PROJECT → [sem chamada para POST /pontos ou INSERT]
 ```
+
 **Severidade**: CRÍTICA  
 **Contexto**: Projetos são criados, mas sem endpoints para persistir pontos, níveis, travessias.  
 **Impacto**: Fluxo completo (projeto → cálculo → persistência) quebrado.  
 
 ### #3: Dados de teste não foram limpos
+
 ```
 ~8 projetos com nomes tipo "Test_*", "Final-Test-*", duplicados
 ```
+
 **Severidade**: MENOR  
 **Contexto**: Resíduos de testes de desenvolvimento.  
 **Impacto**: Poluição de dados; dificulta demonstração em produção.  
@@ -272,6 +296,7 @@ CREATE PROJECT → [sem chamada para POST /pontos ou INSERT]
    - Timestamps para auditoria  
 
 3. **Possível fluxo esperado**:
+
    ```
    Excel LIGHT.xlsm
      ↓
@@ -305,4 +330,3 @@ CREATE PROJECT → [sem chamada para POST /pontos ou INSERT]
 ## 🎯 CONCLUSÃO
 
 A **persistência está estruturalmente pronta** (schema excelente) mas **operacionalmente vazia** (sem dados em cadeia). Não há erros de integridade, apenas falta de população de dados. A auditoria completa está salva em `persistence_audit_report.json`.
-
