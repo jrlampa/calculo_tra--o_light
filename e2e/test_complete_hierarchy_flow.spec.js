@@ -1,415 +1,243 @@
 import { test, expect } from '@playwright/test';
+import { criarProjeto, criarPonto, criarTravessia, criarResultado, criarCalculoPayload } from './helpers/test_factories.js';
 
 const API_BASE_URL = process.env.API_URL || 'http://localhost:8000';
 const ADMIN_TOKEN = process.env.X_ADMIN_TOKEN || 'test-token-for-development';
+const GUEST_HEADER_NAME = process.env.E2E_GUEST_HEADER_NAME;
+const GUEST_HEADER_VALUE = process.env.E2E_GUEST_HEADER_VALUE;
+const LEVELS = ['MT1', 'MT2', 'BT', 'BTZ', 'RAL'];
 
-/**
- * E2E Test: Complete Hierarchy Flow
- * 
- * Tests the full persistence chain:
- * 1. Create Projeto (project)
- * 2. Create Ponto (point/pole) under that projeto
- * 3. Create Níveis (calculation levels MT1, MT2, BT, BTZ, RAL)
- * 4. Create Travessias (traversals T1-T4 for each nível)
- * 5. Save complete calculation result
- * 6. Verify all data persists in Supabase
- * 
- * This test validates that the data hierarchy is properly saved
- * and can be retrieved from the database.
- */
+function buildHeaders() {
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-Admin-Token': ADMIN_TOKEN,
+  };
 
-test.describe.serial('Complete Hierarchy Persistence Flow', () => {
-  let projetoId: string;
-  let pontoId: string;
-  let userId: string = '00000000-0000-0000-0000-000000000000'; // Test user
+  if (GUEST_HEADER_NAME && GUEST_HEADER_VALUE) {
+    headers[GUEST_HEADER_NAME] = GUEST_HEADER_VALUE;
+  }
 
-  // ──────────────────────────────────────────────────────────────
-  // STEP 1: Create Projeto (Project)
-  // ──────────────────────────────────────────────────────────────
+  return headers;
+}
 
-  test('POST /projetos — creates new projeto with metadata', async ({ request }) => {
-    const projetoPayload = {
-      orgao: 'TEST_ORGAO',
-      ns: 'NS-001',
-      nome: `Test_Projeto_${Date.now()}`,
-      endereco: 'Rua Teste, 123',
-      estudado_por: 'E2E Bot',
-      matricula: '9999',
-      data_estudo: new Date().toISOString().split('T')[0],
-    };
-
-    const response = await request.post(`${API_BASE_URL}/projetos`, {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Admin-Token': ADMIN_TOKEN,
-      },
-      data: projetoPayload,
-    });
-
-    expect(response.status()).toBe(201);
-    const data = await response.json();
-    
-    expect(data).toHaveProperty('id');
-    expect(data).toHaveProperty('nome', projetoPayload.nome);
-    expect(data).toHaveProperty('orgao', projetoPayload.orgao);
-    expect(data).toHaveProperty('endereco', projetoPayload.endereco);
-    expect(data).toHaveProperty('estudado_por', projetoPayload.estudado_por);
-    
-    projetoId = data.id;
+function buildTravessias(overrides = {}) {
+  return [1, 2, 3, 4].map((posicao) => {
+    const custom = overrides[posicao] || {};
+    return criarTravessia(posicao)
+      .withTipoRede(custom.tipo_rede ?? '')
+      .withTipoCabo(custom.tipo_cabo ?? '')
+      .withVao(custom.vao ?? 0)
+      .withFlecha(custom.flecha ?? 0)
+      .withAngulo(custom.angulo ?? 0)
+      .withQtdLigacoes(custom.qtd_ligacoes ?? 0)
+      .withQtdCabos(custom.qtd_cabos ?? 0)
+      .build();
   });
+}
 
-  // ──────────────────────────────────────────────────────────────
-  // STEP 2: Create Ponto (Point) under the Projeto
-  // ──────────────────────────────────────────────────────────────
+function buildProjetoPayload(runId, isBatch = false) {
+  const builder = criarProjeto()
+    .withOrgao(isBatch ? 'TEST_BATCH_ORG' : 'TEST_ORGAO')
+    .withNs(isBatch ? `NS-BATCH-${runId}` : `NS-${runId}`)
+    .withNome(isBatch ? `BatchProjeto${runId}` : `TestProjeto${runId}`)
+    .withEndereco(isBatch ? 'Rua Batch, 456' : 'Rua Teste, 123')
+    .withEstudadoPor(isBatch ? 'E2E Batch Bot' : 'E2E Bot')
+    .withMatricula(isBatch ? '8888' : '9999');
 
-  test('POST /projetos/{projeto_id}/pontos — creates ponto', async ({ request }) => {
-    const pontoPayload = {
-      ponto: `01_${Date.now().toString().slice(-4)}`, // e.g., "01_5678"
-      tipo_poste: 'DT',
-      modelo_poste: '11/600',
-    };
+  if (!isBatch) {
+    builder.withDataEstudo(new Date().toISOString().split('T')[0]);
+  }
 
-    const response = await request.post(
-      `${API_BASE_URL}/projetos/${projetoId}/pontos`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Token': ADMIN_TOKEN,
-        },
-        data: pontoPayload,
-      }
-    );
+  return builder.build();
+}
 
-    expect(response.status()).toBe(201);
-    const data = await response.json();
-    
-    expect(data).toHaveProperty('id');
-    expect(data).toHaveProperty('projeto_id', projetoId);
-    expect(data).toHaveProperty('ponto', pontoPayload.ponto);
-    expect(data).toHaveProperty('tipo_poste', pontoPayload.tipo_poste);
-    expect(data).toHaveProperty('modelo_poste', pontoPayload.modelo_poste);
-    
-    pontoId = data.id;
-  });
+function buildPontoPayload(runId, prefixo = 'P') {
+  return criarPonto()
+    .withRunId(runId, prefixo)
+    .withTipoPoste('DT')
+    .withModeloPoste('11/600')
+    .build();
+}
 
-  // ──────────────────────────────────────────────────────────────
-  // STEP 3 & 4 & 5: Save complete calculation with niveis & travessias
-  // ──────────────────────────────────────────────────────────────
+function buildResultado(payload) {
+  return criarResultado()
+    .withMt1Tracao(payload.mt1_tracao)
+    .withMt1Angulo(payload.mt1_angulo)
+    .withTotalTracao(payload.total_tracao)
+    .withTotalAngulo(payload.total_angulo)
+    .withPosteEcc(payload.poste_ecc)
+    .withTextoMt1(payload.texto_mt1)
+    .withTextoTotal(payload.texto_total)
+    .build();
+}
 
-  test('POST /pontos/{ponto_id}/calculo — saves niveis + travessias + resultado', async ({ request }) => {
-    const calculoPayload = {
-      ponto_id: pontoId,
-      niveis: [
-        {
-          nivel: 'MT1',
-          altura_poste: 11.0,
-          altura_ancoragem: 9.2,
-          travessias: [
-            {
-              posicao: 1,
-              tipo_rede: 'Convencional',
-              tipo_cabo: '397MCM-CA, Nu',
-              vao: 33.0,
-              flecha: 0.5,
-              angulo: 0.0,
-              qtd_ligacoes: 0.0,
-              qtd_cabos: 0.0,
-            },
-            {
-              posicao: 2,
-              tipo_rede: 'Convencional',
-              tipo_cabo: '397MCM-CA, Nu',
-              vao: 33.0,
-              flecha: 0.5,
-              angulo: 30.0,
-              qtd_ligacoes: 0.0,
-              qtd_cabos: 0.0,
-            },
-            {
-              posicao: 3,
-              tipo_rede: 'Convencional',
-              tipo_cabo: '397MCM-CA, Nu',
-              vao: 33.0,
-              flecha: 0.5,
-              angulo: -30.0,
-              qtd_ligacoes: 0.0,
-              qtd_cabos: 0.0,
-            },
-            {
-              posicao: 4,
-              tipo_rede: 'Convencional',
-              tipo_cabo: '397MCM-CA, Nu',
-              vao: 33.0,
-              flecha: 0.5,
-              angulo: 45.0,
-              qtd_ligacoes: 0.0,
-              qtd_cabos: 0.0,
-            },
-          ],
-        },
-        {
-          nivel: 'MT2',
-          altura_poste: 10.5,
-          altura_ancoragem: 8.7,
-          travessias: [
-            { posicao: 1, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 2, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 3, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 4, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-          ],
-        },
-        {
-          nivel: 'BT',
-          altura_poste: 9.0,
-          altura_ancoragem: 7.5,
-          travessias: [
-            { posicao: 1, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 2, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 3, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 4, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-          ],
-        },
-        {
-          nivel: 'BTZ',
-          altura_poste: 1.5,
-          altura_ancoragem: 1.0,
-          travessias: [
-            { posicao: 1, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 2, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 3, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 4, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-          ],
-        },
-        {
-          nivel: 'RAL',
-          altura_poste: 8.0,
-          altura_ancoragem: 6.5,
-          travessias: [
-            { posicao: 1, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 2, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 3, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 4, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-          ],
-        },
-      ],
-      resultado: {
+function buildSnapshotPayload(pontoId) {
+  return criarCalculoPayload()
+    .forPonto(pontoId)
+    .withNivelMT1(
+      buildTravessias({
+        1: { tipo_rede: 'Convencional', tipo_cabo: '397MCM-CA, Nu', vao: 33.0, flecha: 0.5, angulo: 0.0 },
+        2: { tipo_rede: 'Convencional', tipo_cabo: '397MCM-CA, Nu', vao: 33.0, flecha: 0.5, angulo: 30.0 },
+        3: { tipo_rede: 'Convencional', tipo_cabo: '397MCM-CA, Nu', vao: 33.0, flecha: 0.5, angulo: -30.0 },
+        4: { tipo_rede: 'Convencional', tipo_cabo: '397MCM-CA, Nu', vao: 33.0, flecha: 0.5, angulo: 45.0 },
+      })
+    )
+    .withNivelMT2(buildTravessias())
+    .withNivelBT(buildTravessias())
+    .withNivelBTZ(buildTravessias())
+    .withNivelRAL(buildTravessias())
+    .withResultado(
+      buildResultado({
         mt1_tracao: 450.5,
         mt1_angulo: 12.3,
-        mt2_tracao: 0.0,
-        mt2_angulo: 0.0,
-        bt_tracao: 0.0,
-        bt_angulo: 0.0,
-        btz_tracao: 0.0,
-        btz_angulo: 0.0,
-        ral_tracao: 0.0,
-        ral_angulo: 0.0,
         total_tracao: 450.5,
         total_angulo: 12.3,
         poste_ecc: 120.0,
         texto_mt1: 'MT1: 450.5 daN @ 12.3°',
-        texto_mt2: '',
-        texto_bt: '',
-        texto_btz: '',
-        texto_ral: '',
         texto_total: 'Total final: 450.5 daN @ 12.3°',
-      },
-    };
+      })
+    )
+    .build();
+}
 
-    const response = await request.post(
-      `${API_BASE_URL}/pontos/${pontoId}/calculo`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Token': ADMIN_TOKEN,
-        },
-        data: calculoPayload,
-      }
-    );
+function buildBatchPayload(runId) {
+  return {
+    projeto_dados: buildProjetoPayload(runId, true),
+    ponto_dados: buildPontoPayload(runId, 'B'),
+    niveis: criarCalculoPayload()
+      .forPonto(0)
+      .withNivelMT1(
+        buildTravessias({
+          1: { tipo_rede: 'Convencional', tipo_cabo: '397MCM', vao: 40, flecha: 0.6 },
+          2: { tipo_rede: 'Convencional', tipo_cabo: '397MCM', vao: 40, flecha: 0.6 },
+          3: { tipo_rede: 'Convencional', tipo_cabo: '397MCM', vao: 40, flecha: 0.6 },
+          4: { tipo_rede: 'Convencional', tipo_cabo: '397MCM', vao: 40, flecha: 0.6 },
+        })
+      )
+      .withNivelMT2(buildTravessias())
+      .withNivelBT(buildTravessias())
+      .withNivelBTZ(buildTravessias())
+      .withNivelRAL(buildTravessias())
+      .build()
+      .niveis,
+    resultado: buildResultado({
+      mt1_tracao: 480.0,
+      mt1_angulo: 15.0,
+      total_tracao: 480.0,
+      total_angulo: 15.0,
+      poste_ecc: 130.0,
+      texto_mt1: 'MT1: 480.0 daN @ 15.0°',
+      texto_total: 'Total: 480.0 daN @ 15.0°',
+    }),
+  };
+}
 
+async function apiPost(request, path, data) {
+  return request.post(`${API_BASE_URL}${path}`, { headers: buildHeaders(), data });
+}
+
+async function apiGet(request, path) {
+  return request.get(`${API_BASE_URL}${path}`, { headers: buildHeaders() });
+}
+
+function expectSnapshotSemantics(snapshot, expectedPontoId, expectedTotalTracao, expectedTotalAngulo) {
+  expect(snapshot).toHaveProperty('ponto_id', expectedPontoId);
+  expect(Array.isArray(snapshot.niveis)).toBe(true);
+  expect(snapshot.niveis).toHaveLength(5);
+  expect(snapshot.niveis.map((nivel) => nivel.nivel)).toEqual(LEVELS);
+
+  snapshot.niveis.forEach((nivel) => {
+    expect(Array.isArray(nivel.travessias)).toBe(true);
+    expect(nivel.travessias).toHaveLength(4);
+    expect(nivel.travessias.map((travessia) => travessia.posicao)).toEqual([1, 2, 3, 4]);
+  });
+
+  expect(snapshot.resultado.total_tracao).toBe(expectedTotalTracao);
+  expect(snapshot.resultado.total_angulo).toBe(expectedTotalAngulo);
+
+  const numeros = String(snapshot.resultado.texto_total).replace(',', '.').match(/-?\d+(?:\.\d+)?/g) || [];
+  expect(numeros.length).toBeGreaterThanOrEqual(2);
+  expect(Number(numeros[0])).toBeCloseTo(snapshot.resultado.total_tracao, 1);
+  expect(Number(numeros[1])).toBeCloseTo(snapshot.resultado.total_angulo, 1);
+}
+
+test.describe.serial('Complete Hierarchy Persistence Flow', () => {
+  const RUN_ID = `${Date.now()}`.slice(-6);
+  let projetoId;
+  let pontoId;
+
+  test('POST /projetos — creates new projeto with metadata', async ({ request }) => {
+    const projetoPayload = buildProjetoPayload(RUN_ID);
+    const response = await apiPost(request, '/projetos', projetoPayload);
+
+    expect(response.status()).toBe(201);
+    const data = await response.json();
+    expect(data).toHaveProperty('id');
+    expect(data).toHaveProperty('nome', projetoPayload.nome);
+    projetoId = data.id;
+  });
+
+  test('POST /projetos/{projeto_id}/pontos — creates ponto', async ({ request }) => {
+    const pontoPayload = buildPontoPayload(RUN_ID, 'P');
+    const response = await apiPost(request, `/projetos/${projetoId}/pontos`, pontoPayload);
+
+    expect(response.status()).toBe(201);
+    const data = await response.json();
+    expect(data).toHaveProperty('id');
+    expect(data).toHaveProperty('ponto', pontoPayload.ponto);
+    pontoId = data.id;
+  });
+
+  test('GET /pontos/{ponto_id}/snapshot — returns 404 when snapshot is absent', async ({ request }) => {
+    const noSnapshotPoint = await apiPost(request, `/projetos/${projetoId}/pontos`, buildPontoPayload(`${RUN_ID}9`, 'N'));
+    expect(noSnapshotPoint.status()).toBe(201);
+    const noSnapshotData = await noSnapshotPoint.json();
+
+    const snapshotResponse = await apiGet(request, `/pontos/${noSnapshotData.id}/snapshot`);
+    expect(snapshotResponse.status()).toBe(404);
+  });
+
+  test('POST /pontos/{ponto_id}/calculo — returns 422 when ponto_id diverges from URL', async ({ request }) => {
+    const payload = buildSnapshotPayload(pontoId);
+    const response = await apiPost(request, `/pontos/${pontoId}/calculo`, {
+      ...payload,
+      ponto_id: pontoId + 1,
+    });
+    expect(response.status()).toBe(422);
+  });
+
+  test('POST /pontos/{ponto_id}/calculo — saves niveis + travessias + resultado', async ({ request }) => {
+    const response = await apiPost(request, `/pontos/${pontoId}/calculo`, buildSnapshotPayload(pontoId));
     expect(response.status()).toBe(200);
     const data = await response.json();
-    
     expect(data).toHaveProperty('saved', true);
     expect(data).toHaveProperty('ponto_id', pontoId);
   });
 
-  // ──────────────────────────────────────────────────────────────
-  // STEP 6: Verify persistence — GET project and check hierarchy
-  // ──────────────────────────────────────────────────────────────
-
-  test('GET /projetos/{projeto_id} — verifies ponto was persisted', async ({ request }) => {
-    const response = await request.get(`${API_BASE_URL}/projetos/${projetoId}`, {
-      headers: {
-        'X-Admin-Token': ADMIN_TOKEN,
-      },
-    });
-
+  test('GET /pontos/{ponto_id}/snapshot — verifies semantic hierarchy and totals', async ({ request }) => {
+    const response = await apiGet(request, `/pontos/${pontoId}/snapshot`);
     expect(response.status()).toBe(200);
-    const data = await response.json();
-    
-    expect(data).toHaveProperty('id', projetoId);
-    // The response should indicate the projeto now has pontos
-    // (implementation detail may vary)
-  });
+    const snapshot = await response.json();
 
-  test('GET /projetos/{projeto_id}/pontos — verifies ponto exists', async ({ request }) => {
-    const response = await request.get(
-      `${API_BASE_URL}/projetos/${projetoId}/pontos`,
-      {
-        headers: {
-          'X-Admin-Token': ADMIN_TOKEN,
-        },
-      }
-    );
-
-    // Assuming an endpoint exists to list pontos for a projeto
-    if (response.status() === 200) {
-      const data = await response.json();
-      expect(Array.isArray(data)).toBe(true);
-      // At least one ponto should exist
-      const foundPonto = data.find((p: any) => p.id === pontoId);
-      expect(foundPonto).toBeDefined();
-    }
-  });
-
-  test('Verify hierarchy in Supabase — query niveis_calculo for ponto', async ({ request }) => {
-    // This test assumes there's an admin endpoint to query the DB directly
-    // or that the /pontos/{ponto_id} endpoint returns associated niveis
-    const response = await request.get(`${API_BASE_URL}/pontos/${pontoId}`, {
-      headers: {
-        'X-Admin-Token': ADMIN_TOKEN,
-      },
-    });
-
-    // If such an endpoint exists, verify niveis are returned
-    if (response.status() === 200) {
-      const data = await response.json();
-      expect(data).toHaveProperty('id', pontoId);
-      // Check if niveis are included (implementation-dependent)
-      if ('niveis' in data) {
-        expect(Array.isArray(data.niveis)).toBe(true);
-        expect(data.niveis.length).toBeGreaterThan(0);
-      }
-    }
+    expectSnapshotSemantics(snapshot, pontoId, 450.5, 12.3);
+    expect(snapshot.niveis[0].travessias[1]).toMatchObject({ posicao: 2, tipo_cabo: '397MCM-CA, Nu', angulo: 30.0 });
   });
 });
 
-/**
- * Test Group: Batch Persistence (Alternative method)
- * 
- * Tests atomic insert of Projeto + Ponto + Calculation in one API call
- */
 test.describe.serial('Batch Persistence Flow', () => {
-  const RUN_ID = `batch_${Date.now()}`;
+  const RUN_ID = `${Date.now()}`.slice(-6);
 
   test('POST /projetos/batch-save — atomic insert projeto + ponto + calculo', async ({ request }) => {
-    const batchPayload = {
-      projeto_dados: {
-        orgao: 'TEST_BATCH_ORG',
-        ns: `NS-BATCH-${RUN_ID}`,
-        nome: `Batch_Projeto_${RUN_ID}`,
-        endereco: 'Rua Batch, 456',
-        estudado_por: 'E2E Batch Bot',
-        matricula: '8888',
-      },
-      ponto_dados: {
-        ponto: `02_BATCH`,
-        tipo_poste: 'DT',
-        modelo_poste: '11/600',
-      },
-      niveis: [
-        {
-          nivel: 'MT1',
-          altura_poste: 11.0,
-          altura_ancoragem: 9.2,
-          travessias: [
-            { posicao: 1, tipo_rede: 'Convencional', tipo_cabo: '397MCM', vao: 40, flecha: 0.6, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 2, tipo_rede: 'Convencional', tipo_cabo: '397MCM', vao: 40, flecha: 0.6, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 3, tipo_rede: 'Convencional', tipo_cabo: '397MCM', vao: 40, flecha: 0.6, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 4, tipo_rede: 'Convencional', tipo_cabo: '397MCM', vao: 40, flecha: 0.6, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-          ],
-        },
-        {
-          nivel: 'MT2',
-          altura_poste: 10.5,
-          altura_ancoragem: 8.7,
-          travessias: [
-            { posicao: 1, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 2, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 3, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 4, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-          ],
-        },
-        {
-          nivel: 'BT',
-          altura_poste: 9.0,
-          altura_ancoragem: 7.5,
-          travessias: [
-            { posicao: 1, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 2, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 3, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 4, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-          ],
-        },
-        {
-          nivel: 'BTZ',
-          altura_poste: 1.5,
-          altura_ancoragem: 1.0,
-          travessias: [
-            { posicao: 1, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 2, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 3, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 4, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-          ],
-        },
-        {
-          nivel: 'RAL',
-          altura_poste: 8.0,
-          altura_ancoragem: 6.5,
-          travessias: [
-            { posicao: 1, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 2, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 3, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-            { posicao: 4, tipo_rede: '', tipo_cabo: '', vao: 0, flecha: 0, angulo: 0, qtd_ligacoes: 0, qtd_cabos: 0 },
-          ],
-        },
-      ],
-      resultado: {
-        mt1_tracao: 480.0,
-        mt1_angulo: 15.0,
-        mt2_tracao: 0.0,
-        mt2_angulo: 0.0,
-        bt_tracao: 0.0,
-        bt_angulo: 0.0,
-        btz_tracao: 0.0,
-        btz_angulo: 0.0,
-        ral_tracao: 0.0,
-        ral_angulo: 0.0,
-        total_tracao: 480.0,
-        total_angulo: 15.0,
-        poste_ecc: 130.0,
-        texto_mt1: 'MT1: 480.0 daN @ 15.0°',
-        texto_mt2: '',
-        texto_bt: '',
-        texto_btz: '',
-        texto_ral: '',
-        texto_total: 'Total: 480.0 daN @ 15.0°',
-      },
-    };
-
-    const response = await request.post(`${API_BASE_URL}/projetos/batch-save`, {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Admin-Token': ADMIN_TOKEN,
-      },
-      data: batchPayload,
-    });
-
+    const response = await apiPost(request, '/projetos/batch-save', buildBatchPayload(RUN_ID));
     expect(response.status()).toBe(200);
+
     const data = await response.json();
-    
     expect(data).toHaveProperty('projeto_id');
     expect(data).toHaveProperty('ponto_id');
-    expect(data).toHaveProperty('saved', true);
+
+    const snapshotResponse = await apiGet(request, `/pontos/${data.ponto_id}/snapshot`);
+    expect(snapshotResponse.status()).toBe(200);
+    const snapshot = await snapshotResponse.json();
+    expectSnapshotSemantics(snapshot, data.ponto_id, 480.0, 15.0);
   });
 });

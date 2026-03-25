@@ -227,7 +227,8 @@ Mensagens e CTA esperados:
 Comportamento de foco:
 
 - Ao abrir o toast de undo, foco vai para o botao "Desfazer".
-- Se usuario aciona "Desfazer", foco retorna para o ultimo campo tecnico ativo; se nao existir, vai para o primeiro campo tecnico editavel.
+- Se usuario aciona "Desfazer", foco retorna para o ultimo campo tecnico ativo.
+- Se nao existir campo ativo anterior, foco vai para o primeiro campo tecnico editavel.
 - Se timeout expira e a limpeza e confirmada, foco vai para o primeiro campo tecnico editavel do ponto atual.
 
 Criterios de aceite testaveis:
@@ -430,14 +431,18 @@ A arquitetura UX/UI do fluxo operacional esta consolidada para uso em campo com 
 - operacao mobile segura.
 - reducao de retrabalho.
 
-A implementacao atual cobre stepper, status duplo e action bar. O requisito de undo precisa do ultimo passo de wiring funcional no APAGA para fechamento completo de produto.
+A implementacao atual cobre stepper, status duplo e action bar.
+O requisito de undo precisa do ultimo passo de wiring funcional no APAGA
+para fechamento completo de produto.
 
 ## 10. Governanca normativa operacional e fluxo de liberacao
 
 ### Regras operacionais obrigatorias
 
 - Paridade LIGHT e criterio mandatorio de liberacao para fluxos de calculo e persistencia.
-- Rastreabilidade minima por operacao e obrigatoria: identificadores de projeto/ponto, estado de calculo, estado de persistencia, timestamp e resultado.
+- Rastreabilidade minima por operacao e obrigatoria:
+  identificadores de projeto/ponto, estado de calculo,
+  estado de persistencia, timestamp e resultado.
 - Qualquer divergencia em dominio critico deve gerar bloqueio de liberacao ate analise e parecer tecnico formal.
 - Excecoes de regra so podem ser aplicadas com registro de decisao, risco residual e aprovacao explicita.
 
@@ -474,3 +479,756 @@ A implementacao atual cobre stepper, status duplo e action bar. O requisito de u
 - Ciclo minimo de execucao sem divergencia critica dentro da janela definida.
 - Rastreabilidade completa dos pontos avaliados e parecer tecnico arquivado.
 - Aprovacao formal do responsavel tecnico para transicao ao fluxo padrao.
+
+## 12. Especificacao UX/UI - Snapshot Persistido e Auditoria Operacional (P2)
+
+Data de referencia: 2026-03-24.
+
+Escopo: leitura operacional do snapshot persistido por ponto,
+conferencia de consistencia e apoio a decisao de reenvio
+sem alterar o fluxo principal atual.
+
+### 1. Objetivo e contexto
+
+Objetivo do usuario:
+
+- Confirmar rapidamente se o que foi salvo corresponde ao calculo esperado do ponto.
+- Identificar divergencia entre estado em tela e estado persistido sem inspecao manual de payload bruto.
+- Tomar decisao segura entre seguir para proximo ponto, reenviar ou reconfirmar dados.
+
+Objetivo de negocio:
+
+- Reduzir falso positivo de "salvo" em operacao de campo.
+- Aumentar confiabilidade auditavel da persistencia por ponto.
+- Diminuir retrabalho de suporte em incidentes de inconsistencias operacionais.
+
+Criterios de sucesso:
+
+- Taxa de conferencia bem-sucedida do snapshot >= 95% apos persistencia.
+- Tempo medio de verificacao do estado persistido <= 20 s por ponto.
+- Reducao de incidentes de "salvo inconsistente" em pelo menos 30% no ciclo de validacao.
+
+Restricoes:
+
+- Sem alterar a regra de calculo de dominio.
+- Sem introduzir dependencias pagas para observabilidade.
+- Rastreabilidade minima obrigatoria por projeto e ponto.
+
+### 2. Decisoes UX/UI com justificativa
+
+#### 2.1 Painel de conferência em duas camadas
+
+Decisao:
+
+- Exibir painel de conferencia com duas camadas de leitura: resumo semaforico e detalhamento tecnico recolhivel por nivel.
+
+Justificativa:
+
+- Nielsen: Visibility of System Status e Flexibility and Efficiency of Use.
+- Gestalt: principio de hierarquia visual para reduzir carga cognitiva em leitura tecnica densa.
+
+Impacto esperado:
+
+- Operador valida rapidamente no resumo e aprofunda somente quando necessario.
+
+#### 2.2 Regra de consistencia explicita por total
+
+Decisao:
+
+- Sempre exibir comparacao entre total_tracao, total_angulo e texto_total em bloco unico de consistencia.
+
+Justificativa:
+
+- Nielsen: Error Prevention.
+- Consolidar os 3 sinais evita interpretacoes parciais do resultado final.
+
+Impacto esperado:
+
+- Menor chance de seguir fluxo com dado semantico incoerente.
+
+#### 2.3 Estados orientados a acao
+
+Decisao:
+
+- Definir estados visuais exclusivos para: carregando snapshot,
+  snapshot ausente, snapshot inconsistente, snapshot consistente,
+  erro de permissao e erro transitorio.
+
+Justificativa:
+
+- Nielsen: Help users recognize, diagnose and recover from errors.
+
+Impacto esperado:
+
+- Menor ambiguidade de proxima acao (seguir, reenviar, reconfirmar projeto).
+
+### 3. Especificacao de implementacao
+
+#### 3.1 Escopo de componentes
+
+Componentes alvo:
+
+- SnapshotStatusCard.
+- SnapshotConsistencyBlock.
+- SnapshotLevelsAccordion.
+- SnapshotActionsBar.
+
+Dados minimos por componente:
+
+- SnapshotStatusCard: ponto_id, status, timestamp_ultima_leitura.
+- SnapshotConsistencyBlock: total_tracao, total_angulo, texto_total, flag_consistencia.
+- SnapshotLevelsAccordion: niveis (MT1, MT2, BT, BTZ, RAL), travessias e posicoes T1-T4.
+- SnapshotActionsBar: acoes Seguir, Reenviar, Reconfirmar.
+
+#### 3.2 Modelo de interacao
+
+Fluxo principal:
+
+1. Persistencia concluida dispara leitura de snapshot.
+2. Sistema apresenta resumo de consistencia em ate 1 bloco acima da dobra.
+3. Usuario valida consistencia e escolhe acao.
+4. Em consistencia positiva, CTA primario segue para proximo ponto.
+
+Fluxos alternativos:
+
+- Snapshot ausente (404): mostrar estado vazio orientando reenviar persistencia.
+- Divergencia semantica: destacar campos divergentes e sugerir revisao.
+- Erro de permissao (403): orientar reconfirmacao de projeto sem retry automatico.
+- Erro transitorio: exibir retry manual e tentativa automatica com countdown.
+
+#### 3.3 Estados obrigatorios de UI
+
+- loading: skeleton com 2 blocos (resumo + lista de niveis).
+- empty: "Snapshot ainda nao disponivel" com CTA Reenviar.
+- success_consistent: selo "Persistencia consistente" e CTA Proximo Ponto.
+- success_inconsistent: selo "Inconsistencia detectada" com lista de divergencias.
+- error_permission: mensagem objetiva e CTA Reconfirmar projeto.
+- error_transient: mensagem com countdown e CTA Tentar novamente.
+
+#### 3.4 Criterios de aceite por fluxo
+
+1. Ao salvar calculo, leitura de snapshot deve ocorrer sem recarregar pagina.
+2. Quando status for consistente, CTA Proximo Ponto deve ficar habilitado.
+3. Em snapshot ausente, CTA Proximo Ponto deve ficar bloqueado ate nova tentativa.
+4. Em erro de permissao, nao pode existir retry automatico.
+5. Em inconsistencia, os campos divergentes devem ficar destacados com legenda textual.
+
+#### 3.5 Instrumentacao UX minima
+
+Eventos sugeridos:
+
+- snapshot_view_opened.
+- snapshot_loaded.
+- snapshot_missing.
+- snapshot_consistency_passed.
+- snapshot_consistency_failed.
+- snapshot_retry_clicked.
+- snapshot_reconfirm_clicked.
+
+Propriedades minimas:
+
+- projeto_id, ponto_id, persist_status, snapshot_status, divergence_count, elapsed_ms.
+
+### 4. Responsividade (Desktop, Tablet, Mobile)
+
+Desktop (>= 1024):
+
+- Grid 12 colunas.
+- Resumo de consistencia ocupa 4 colunas; niveis detalhados ocupam 8 colunas.
+- Actions bar lateral fixa sem cobrir o conteudo tecnico.
+
+Tablet (640-1023):
+
+- Grid 8 colunas com blocos empilhados em 2 zonas.
+- Resumo no topo e accordion de niveis abaixo.
+- Acoes em barra fixa inferior full-width.
+
+Mobile (< 640):
+
+- Coluna unica.
+- Resumo de consistencia sempre antes do detalhamento.
+- Accordion com hit-area minima de 44 px.
+- Barra de acoes fixa com safe-area e espaco inferior protegido.
+
+### 5. Acessibilidade (WCAG 2.1 AA)
+
+Requisitos:
+
+- Contraste minimo AA para texto, chips e selos de status.
+- Sinalizacao de estado por cor e texto (sem dependencia exclusiva de cor).
+- Ordem de foco previsivel: status -> consistencia -> niveis -> acoes.
+- Regioes dinamicas com aria-live: polite para carregamento e assertive para inconsistencias.
+- Accordion com semantica correta (aria-expanded, aria-controls, id unico).
+- Mensagens de erro vinculadas a acao de recuperacao correspondente.
+
+### 6. Entregaveis ativados
+
+Checklist de handoff aplicado:
+
+- Objetivo, escopo, interacao, estados e metricas documentados.
+- Responsividade Desktop/Tablet/Mobile explicitada.
+- A11y com criterios WCAG e navegacao assistiva definida.
+- Criterios de aceite orientados a implementacao e QA.
+
+Handoff de desenvolvimento:
+
+1. Implementar os 4 componentes no fluxo de persistencia existente sem alterar regras de calculo.
+2. Priorizar estados empty e inconsistente antes de refinamentos visuais.
+3. Cobrir E2E para: sucesso consistente, snapshot ausente, permissao negada e inconsistencia semantica.
+
+## 13. Especificacao UX/UI - Confiabilidade de Contrato e Confianca Operacional (P3)
+
+Data de referencia: 2026-03-24.
+
+Escopo: estabilizar a experiencia de confianca no fluxo Projeto -> Ponto -> Persistido
+com contrato de rota, autenticacao e leitura de snapshot previsiveis,
+sem alterar interface visual.
+
+### 1. Objetivo e contexto
+
+Objetivo do usuario:
+
+- Confiar que o status "salvo" representa persistencia real e auditavel.
+- Receber erros com semantica consistente para decidir proxima acao.
+- Evitar bloqueio operacional por falha estrutural de rota/autenticacao.
+
+Objetivo de negocio:
+
+- Eliminar falso negativo de qualidade por erro de contrato E2E/API.
+- Reduzir incidentes de suporte ligados a 404/401/403 ambiguos.
+- Habilitar gate de release baseado em evidencia objetiva de fluxo critico.
+
+Criterios de sucesso:
+
+- Taxa de 404 em rotas criticas de persistencia <= 1% por janela operacional.
+- Taxa de consistencia semantica de erro (401/403/5xx corretos) >= 99%.
+- Snapshot disponivel em ate 10 s apos persistencia bem-sucedida em >= 98% dos casos.
+
+Restricoes:
+
+- Sem alteracao de layout, componentes visuais ou jornada principal.
+- Sem alterar regras de calculo de dominio.
+- Paridade LIGHT e rastreabilidade seguem como condicao de liberacao.
+
+### 2. Decisoes UX/UI com justificativa
+
+#### 2.1 Confianca por contrato, nao por mensagem isolada
+
+Decisao:
+
+- Tratar "salvo" como estado confiavel apenas quando o contrato de persistencia
+  e leitura de snapshot estiver validado no mesmo ciclo operacional.
+
+Justificativa:
+
+- Nielsen: Visibility of System Status e Error Prevention.
+- Evita sinalizacao de sucesso sem lastro persistido.
+
+Impacto esperado:
+
+- Reducao de retrabalho e aumento de confianca no status operacional.
+
+#### 2.2 Semantica de erro unica por classe
+
+Decisao:
+
+- Padronizar mapeamento de erro por classe:
+  401 autenticacao, 403 permissao, 404 contrato/ausencia, 5xx transitorio.
+
+Justificativa:
+
+- Nielsen: Match between system and the real world.
+- Estado previsivel reduz carga cognitiva e erro de decisao em campo.
+
+Impacto esperado:
+
+- Menor ambiguidade entre "reconfirmar", "reenviar" e "aguardar".
+
+#### 2.3 Gate de liberacao orientado a experiencia critica
+
+Decisao:
+
+- Bloquear sign-off de release se qualquer passo do fluxo critico
+  Projeto -> Ponto -> Persistido -> Snapshot falhar no ambiente de validacao.
+
+Justificativa:
+
+- Nielsen: Help users recognize, diagnose and recover from errors.
+- Governanca operacional exige evidencia ponta a ponta.
+
+Impacto esperado:
+
+- Menor risco de liberar sistema com confianca operacional degradada.
+
+### 3. Especificacao de implementacao
+
+#### 3.1 Escopo funcional
+
+Itens de contrato obrigatorios:
+
+- Rotas criticas de persistencia usam prefixo unico e consistente.
+- Fluxo de escrita usa politica de autenticacao unica e documentada.
+- Leitura de snapshot possui contrato formal com 200/404/403.
+- Teste E2E critico valida jornada completa sem mocks de sucesso.
+
+#### 3.2 Modelo de interacao (sem mudanca visual)
+
+Fluxo principal esperado:
+
+1. Usuario confirma Projeto e Ponto.
+2. Persistencia salva calculo com feedback de estado existente.
+3. Sistema valida snapshot persistido no mesmo fluxo.
+4. Avanco para Proximo Ponto ocorre somente com confianca operacional valida.
+
+Fluxos alternativos:
+
+- 401: orientar autenticacao valida antes de nova tentativa.
+- 403: orientar reconfirmacao de contexto/projeto.
+- 404: tratar como erro de contrato ou snapshot ausente e bloquear avance.
+- 5xx: permitir retry conforme estrategia de resiliencia vigente.
+
+#### 3.3 Estados obrigatorios de confianca
+
+- contract_ok: rota + auth + snapshot coerentes no ciclo.
+- contract_route_error: falha estrutural de rota (404 indevido em mutacao).
+- contract_auth_error: falha de autenticacao/permissao inconsistente.
+- contract_snapshot_missing: persistiu sem snapshot legivel.
+- contract_transient_error: indisponibilidade transitoria de infraestrutura.
+
+#### 3.4 Criterios de aceite testaveis
+
+1. E2E de hierarquia/persistencia executa sem 404 estrutural.
+2. Erros de auth seguem semantica unica por classe em todos os endpoints criticos.
+3. Snapshot retorna 200 quando presente e 404 apenas quando realmente ausente.
+4. Gate de release reprova automaticamente se qualquer criterio acima falhar.
+5. Evidencia de execucao fica registrada para auditoria tecnica.
+
+#### 3.5 Instrumentacao minima de confianca operacional
+
+Eventos minimos:
+
+- contract_validation_started.
+- contract_route_failed.
+- contract_auth_failed.
+- contract_snapshot_missing.
+- contract_validation_passed.
+- release_gate_blocked.
+
+Propriedades minimas:
+
+- operation_id, projeto_id, ponto_id, endpoint, http_status,
+  error_class, auth_source, elapsed_ms, retry_count.
+
+### 4. Responsividade (Desktop, Tablet, Mobile)
+
+Desktop:
+
+- Sem alteracao estrutural de layout.
+- Estados de confianca devem atualizar sem deslocar blocos tecnicos.
+
+Tablet:
+
+- Sem alteracao de grid atual.
+- Feedback de contrato deve manter legibilidade sem sobrepor CTA principal.
+
+Mobile:
+
+- Sem alterar action bar existente.
+- Estados de confianca devem preservar area segura e foco navegavel.
+
+### 5. Acessibilidade (WCAG 2.1 AA)
+
+Requisitos:
+
+- Todos os estados de confianca com texto explicito, nao apenas cor.
+- Mensagens criticas anunciadas por tecnologia assistiva.
+- Ordem de foco preservada no fluxo existente apos erro de contrato/auth.
+- CTA de recuperacao deve ter rotulo claro e alvo minimo de 44 px.
+
+### 6. Entregaveis ativados
+
+Checklist de handoff aplicado:
+
+- Objetivo, escopo e restricoes definidos para fase sem mudanca visual.
+- Estados obrigatorios de contrato especificados com criterios de bloqueio.
+- Responsividade e WCAG mantidos no padrao atual.
+- Metricas e eventos de confianca operacional definidos para gate.
+
+Handoff de desenvolvimento:
+
+1. Normalizar contrato de rota em E2E/API para o fluxo critico.
+2. Padronizar politica de autenticacao de escrita para ambiente de teste e release.
+3. Garantir leitura de snapshot com contrato 200/404/403 e cobertura automatizada.
+4. Habilitar gate de release condicionado aos criterios de aceite da secao 3.4.
+
+## 14. Especificacao UX/UI - Governanca de Execucao e Convergencia (P4)
+
+Data de referencia: 2026-03-24.
+
+Escopo: operacionalizar a governanca de execucao multiagente
+para transformar diagnostico em entregas validaveis,
+sem alterar interface e sem alterar regra de calculo.
+
+### 1. Objetivo e contexto
+
+Objetivo do usuario:
+
+- Ter previsibilidade sobre o que sera entregue no fluxo critico.
+- Entender claramente status, risco e proximo passo por disciplina.
+- Evitar liberacao com evidencia incompleta de confianca operacional.
+
+Objetivo de negocio:
+
+- Reduzir tempo de decisao de Go/No-Go com evidencias convergentes.
+- Diminuir retrabalho entre times por dependencia mal definida.
+- Aumentar confiabilidade do gate de release em fluxos criticos.
+
+Criterios de sucesso:
+
+- 100% das tasks criticas com owner, dependencia e aceite testavel.
+- Checkpoint de convergencia em 48 h com status objetivo por agente.
+- Decisao parcial Go/No-Go emitida em ate 7 dias com base em evidencias.
+
+Restricoes:
+
+- Sem alteracao visual de tela, layout ou jornada principal.
+- Sem reduzir requisitos de paridade LIGHT e rastreabilidade minima.
+- Sem flexibilizar criterio de bloqueio para erros criticos.
+
+### 2. Decisoes UX/UI com justificativa
+
+#### 2.1 Transparencia de execucao por disciplina
+
+Decisao:
+
+- Estruturar handoff por agente com bloco fixo:
+  objetivo, entregavel, criterio de aceite, risco e prazo.
+
+Justificativa:
+
+- Nielsen: Visibility of System Status.
+- Gestalt: principio de organizacao por proximidade e similaridade.
+
+Impacto esperado:
+
+- Menor ambiguidade de ownership e menor latencia de decisao.
+
+#### 2.2 Gate orientado por evidencia, nao por opiniao
+
+Decisao:
+
+- Decisao de convergencia depende de evidencias observaveis
+  e criterios testaveis previamente definidos.
+
+Justificativa:
+
+- Nielsen: Consistency and Standards.
+- Reduz vies de confirmacao na liberacao de fluxo critico.
+
+Impacto esperado:
+
+- Maior consistencia entre parecer tecnico e decisao executiva.
+
+#### 2.3 Ciclo curto de convergencia operacional
+
+Decisao:
+
+- Definir checkpoints fixos em 48 h, D+5 e D+7
+  com criterio de avancar, manter ou bloquear.
+
+Justificativa:
+
+- Nielsen: Flexibility and Efficiency of Use.
+- Ciclo curto reduz acumulacao de risco e retrabalho tardio.
+
+Impacto esperado:
+
+- Melhor velocidade com controle de risco em dominio critico.
+
+### 3. Especificacao de implementacao
+
+#### 3.1 Estrutura de handoff obrigatoria
+
+Cada agente deve entregar:
+
+- objetivo tecnico da task.
+- escopo exato (in/out).
+- artefatos de evidencia exigidos.
+- criterio de aceite testavel.
+- risco residual e mitigacao.
+- prazo e dependencia.
+
+Agentes e foco:
+
+- SDLC: backlog executavel Sprint 1 e DoD.
+- DBA: contrato snapshot e consistencia.
+- Security/Performance: hardening auth e gate pre-release.
+- Product Designer e UX Research: KPIs de confianca e validacao assistida.
+- Engenharia Normativa: checklist tecnico de Go/No-Go.
+
+#### 3.2 Modelo de checkpoint de convergencia
+
+Checkpoint 48 h:
+
+1. Confirmar inicio das tasks Must have.
+2. Validar bloqueadores tecnicos ativos.
+3. Revisar risco residual por agente.
+
+Checkpoint D+5:
+
+1. Consolidar evidencias parciais por criterio de aceite.
+2. Confirmar estabilidade de rota/auth/snapshot.
+3. Atualizar decisao parcial de risco.
+
+Checkpoint D+7:
+
+1. Emitir decisao parcial Go/No-Go.
+2. Registrar pendencias e plano de rollback.
+3. Definir proxima janela de uso assistido.
+
+#### 3.3 Estados operacionais de governanca
+
+- in_progress: task iniciada com owner e prazo.
+- blocked: dependencia critica nao resolvida.
+- evidence_pending: implementado sem prova objetiva.
+- converged: task concluida com aceite validado.
+- release_blocked: criterio critico nao atendido.
+
+#### 3.4 Criterios de aceite testaveis
+
+1. Cada task critica possui dono e prazo explicitos.
+2. Cada task possui pelo menos um teste objetivo de validacao.
+3. Cada checkpoint possui ata curta com decisao e risco residual.
+4. Release permanece bloqueado quando houver `release_blocked` ativo.
+5. Decisao Go/No-Go referencia evidencias e nao apenas parecer textual.
+
+#### 3.5 Metricas de governanca
+
+Eventos minimos:
+
+- delegation_created.
+- task_status_changed.
+- evidence_attached.
+- checkpoint_closed.
+- release_decision_recorded.
+
+Propriedades minimas:
+
+- agent, task_id, status, blocker_type, evidence_count,
+  acceptance_passed, decision, timestamp.
+
+### 4. Responsividade (Desktop, Tablet, Mobile)
+
+Desktop:
+
+- Sem alteracao de layout atual.
+- Estados de governanca devem ser legiveis em painels tecnicos existentes.
+
+Tablet:
+
+- Sem alteracao de hierarquia visual.
+- Priorizar leitura de status e bloqueadores em area de contexto.
+
+Mobile:
+
+- Sem alterar action bar atual.
+- Garantir que mensagens de bloqueio nao ocultem CTA principal.
+
+### 5. Acessibilidade (WCAG 2.1 AA)
+
+Requisitos:
+
+- Estados de governanca com texto explicito e semanticamente claros.
+- Leitor de tela deve anunciar mudanca de estado critico.
+- Foco visivel em controles de acao e recuperacao.
+- Mensagens de bloqueio com linguagem objetiva e acao recomendada.
+
+### 6. Entregaveis ativados
+
+Checklist de handoff aplicado:
+
+- Objetivo, escopo e criterios de sucesso definidos para execucao P4.
+- Modelo de checkpoint e estados operacionais documentados.
+- Responsividade e acessibilidade mantidas sem mudanca visual.
+- Metricas de governanca prontas para monitorar convergencia.
+
+Handoff de desenvolvimento:
+
+1. Publicar template unico de delegacao por agente.
+2. Registrar checkpoints 48 h, D+5 e D+7 com evidencias anexadas.
+3. Integrar status `release_blocked` ao gate de decisao operacional.
+4. Manter decisao Go/No-Go vinculada aos criterios da secao 3.4.
+
+## 15. Especificacao UX/UI - Operacao de Checkpoint e Decisao (P5)
+
+Data de referencia: 2026-03-24.
+
+Escopo: transformar checkpoints D+2, D+5 e D+7
+em ciclo operacional padronizado de decisao,
+sem alterar interface de produto.
+
+### 1. Objetivo e contexto
+
+Objetivo do usuario:
+
+- Ler rapidamente o status real de execucao por agente.
+- Entender se deve avancar, bloquear ou exigir mitigacao.
+- Tomar decisao com base em evidencias verificaveis.
+
+Objetivo de negocio:
+
+- Reduzir latencia de decisao no comite PM/Tech Lead.
+- Evitar liberacao com risco critico mascarado por opiniao.
+- Garantir previsibilidade de entrega dos Must have.
+
+Criterios de sucesso:
+
+- D+2 publicado com bloqueadores claros por trilha.
+- D+5 publicado com status objetivo de Must have.
+- D+7 publicado com decisao parcial Go/No-Go justificada.
+
+Restricoes:
+
+- Sem mudanca visual do fluxo de calculo.
+- Sem flexibilizar gate de paridade LIGHT.
+- Sem remover criterio de rastreabilidade minima auditavel.
+
+### 2. Decisoes UX/UI com justificativa
+
+#### 2.1 Sintese antes de detalhe
+
+Decisao:
+
+- Iniciar cada checkpoint por resumo executivo curto
+  com decisao atual e condicao de saida.
+
+Justificativa:
+
+- Nielsen: Aesthetic and Minimalist Design.
+- Reduz carga cognitiva no momento de decisao.
+
+Impacto esperado:
+
+- Reunioes mais objetivas e com menos retrabalho.
+
+#### 2.2 Evidencia vinculada a criterio
+
+Decisao:
+
+- Cada status deve referenciar criterio objetivo
+  e evidencia esperada no mesmo bloco.
+
+Justificativa:
+
+- Nielsen: Recognition rather than Recall.
+- Evita discussoes sem base observavel.
+
+Impacto esperado:
+
+- Melhor rastreabilidade entre execucao e decisao.
+
+#### 2.3 Risco residual como gate explicito
+
+Decisao:
+
+- Toda decisao parcial deve trazer risco residual
+  com owner e mitigacao ativa.
+
+Justificativa:
+
+- Nielsen: Help users recognize and recover from errors.
+
+Impacto esperado:
+
+- Menos surpresas no momento de liberar escopo critico.
+
+### 3. Especificacao de implementacao
+
+#### 3.1 Estrutura obrigatoria por checkpoint
+
+Cada checkpoint deve conter:
+
+- resumo executivo.
+- status por agente.
+- bloqueadores.
+- must have e aceite.
+- decisao parcial Go/No-Go.
+- risco residual e mitigacao.
+- proximas acoes com prazo relativo.
+
+#### 3.2 Semantica operacional de status
+
+- concluido_para_plano: agente entregou plano validavel.
+- em_andamento_execucao: entrega tecnica ainda em implementacao.
+- bloqueado: dependencia critica impede avancar.
+- pronto_para_decisao: evidencia suficiente para deliberacao.
+
+#### 3.3 Criterios de aceite testaveis
+
+1. D+2 possui status de todos os agentes obrigatorios.
+2. D+5 possui lista de Must have com dono e evidencia esperada.
+3. D+7 possui regra explicita de Go parcial ou No-Go.
+4. Risco residual mapeia pelo menos 4 riscos com owner.
+5. Encerramento indica condicao objetiva de continuidade.
+
+#### 3.4 Regras de decisao parcial
+
+- Go parcial apenas com contrato, auth e snapshot sem falha critica.
+- No-Go quando qualquer criterio critico estiver em bloqueio.
+- Pendencia sem evidencia vira risco aberto com owner nomeado.
+
+#### 3.5 Instrumentacao minima
+
+Eventos minimos:
+
+- checkpoint_published.
+- checkpoint_decision_changed.
+- must_have_status_changed.
+- residual_risk_registered.
+
+Propriedades minimas:
+
+- checkpoint_phase, decision, critical_blockers,
+  must_have_open_count, residual_risk_count, timestamp.
+
+### 4. Responsividade (Desktop, Tablet, Mobile)
+
+Desktop:
+
+- Resumo no topo e secoes sequenciais abaixo.
+- Leitura prioriza status por agente antes de riscos.
+
+Tablet:
+
+- Mesma ordem informacional do desktop.
+- Blocos curtos para leitura em revisao de comite.
+
+Mobile:
+
+- Secoes compactas com titulos curtos e listas objetivas.
+- Sem sobreposicao de conteudo critico em mensagens de bloqueio.
+
+### 5. Acessibilidade (WCAG 2.1 AA)
+
+Requisitos:
+
+- Status e decisoes sempre em texto explicito.
+- Contraste AA em labels de estado e risco.
+- Ordem de leitura consistente por secao.
+- Mensagens de bloqueio com acao recomendada clara.
+
+### 6. Entregaveis ativados
+
+Checklist de handoff aplicado:
+
+- Objetivo, escopo e criterio de sucesso definidos.
+- Estados operacionais e regra de decisao padronizados.
+- Responsividade e WCAG preservados sem mudanca visual.
+- Metricas e eventos de checkpoint documentados.
+
+Handoff de desenvolvimento:
+
+1. Manter artefato unico de checkpoint com D+2, D+5 e D+7.
+2. Atualizar status por agente em cada janela de revisao.
+3. Registrar decisao parcial com risco residual e owner.
+4. Bloquear release quando criterio critico estiver aberto.
