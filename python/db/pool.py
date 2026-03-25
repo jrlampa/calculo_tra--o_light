@@ -9,7 +9,7 @@ from typing import Optional
 import asyncpg
 from asyncpg import create_pool
 
-from db import get_supabase_client
+from .supabase_client import get_supabase_client
 
 logger = logging.getLogger(__name__)
 

@@ -9,7 +9,7 @@ import structlog
 from .config import get_settings
 
 # Import metrics collector for integration
-from ..monitoring.metrics import metrics_collector
+from monitoring.metrics import metrics_collector
 
 
 class StructuredFormatter(logging.Formatter):

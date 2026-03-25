@@ -8,21 +8,27 @@ from uuid import uuid4
 from datetime import datetime
 
 # Importar os schemas e serviços necessários
-from api.schemas import ProjetoIn, PontoIn, NivelSalvarIn, TravessiaSalvarIn, ResultadoSalvarIn
+from api.schemas import PontoIn, NivelSalvarIn, TravessiaSalvarIn, ResultadoSalvarIn
+from models.projeto import ProjetoCreate
 from services.projeto_service import ProjetoService
 from repositories.projeto_repository import ProjetoRepository
-from db.supabase_client import get_supabase_client
+from db.pool import db_pool, initialize_db_pool
 
 
 class TestParityExcel:
     """Testes para validar a paridade entre Excel e Supabase."""
     
-    def setup_method(self):
-        """Configuração inicial para cada teste."""
+    @pytest.fixture(autouse=True)
+    async def setup_db(self):
+        """Configuração inicial assíncrona para cada teste."""
+        from db.supabase_client import get_supabase_client
         self.supabase_client = get_supabase_client()
         self.repository = ProjetoRepository(self.supabase_client)
         self.service = ProjetoService(self.repository)
         self.user_id = uuid4()
+        yield
+        # Close pool to avoid "Event loop is closed" in subsequent tests
+        await self.supabase_client.close()
     
     def carregar_dados_excel_referencia(self):
         """Carrega os dados de referência da planilha Excel."""
@@ -124,7 +130,10 @@ class TestParityExcel:
     
     async def criar_projeto_referencia(self, dados_excel):
         """Cria um projeto de referência baseado nos dados do Excel."""
-        projeto_in = ProjetoIn(**dados_excel["projeto"])
+        projeto_in = ProjetoCreate(
+            **dados_excel["projeto"],
+            owner_id=self.user_id
+        )
         projeto = await self.service.create_projeto(projeto_in, self.user_id)
         return projeto
     

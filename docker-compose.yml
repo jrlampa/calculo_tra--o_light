@@ -1,12 +1,37 @@
 services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=sisLIGHT100%
+      - POSTGRES_DB=calculo_tracao
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+
   api:
     build:
       context: .
       dockerfile: Dockerfile.api
+    depends_on:
+      - db
+      - redis
     ports:
       - "8000:8000"
     environment:
+      - DATABASE_URL=postgresql://postgres:sisLIGHT100%@db:5432/calculo_tracao
+      - REDIS_URL=redis://redis:6379/0
       - GUEST_MODE=true
+    volumes:
+      - ./python:/app/python
 
   web:
     build:
@@ -18,3 +43,9 @@ services:
       - VITE_API_PROXY_TARGET=http://api:8000
     ports:
       - "5173:5173"
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+
+volumes:
+  postgres_data:

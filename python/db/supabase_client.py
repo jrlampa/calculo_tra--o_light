@@ -162,6 +162,30 @@ class SupabaseClient:
             await self._pool.close()
             self._pool = None
 
+    async def fetch_all(self, query: str, *args, timeout: Optional[float] = None) -> List[asyncpg.Record]:
+        """Execute a query and return all results."""
+        pool = await self._get_pool()
+        if not pool:
+            return []
+        async with pool.acquire() as conn:
+            return await conn.fetch(query, *args, timeout=timeout)
+
+    async def fetch_one(self, query: str, *args, timeout: Optional[float] = None) -> Optional[asyncpg.Record]:
+        """Execute a query and return a single record."""
+        pool = await self._get_pool()
+        if not pool:
+            return None
+        async with pool.acquire() as conn:
+            return await conn.fetchrow(query, *args, timeout=timeout)
+
+    async def execute(self, query: str, *args, timeout: Optional[float] = None) -> str:
+        """Execute a command."""
+        pool = await self._get_pool()
+        if not pool:
+            return ""
+        async with pool.acquire() as conn:
+            return await conn.execute(query, *args, timeout=timeout)
+
     async def fetch_cabos(self) -> List[Dict[str, Any]]:
         """Fetch all cables from database."""
         if not self.enabled:
