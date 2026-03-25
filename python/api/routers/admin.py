@@ -1,4 +1,5 @@
 """Router para endpoints administrativos."""
+
 from __future__ import annotations
 
 import logging
@@ -10,6 +11,11 @@ from api.dependencies import get_supabase_dependency
 from api.auth import (
     CurrentUser,
     require_admin,
+)
+from api.auth_standard import (
+    AdminUser,
+    validate_admin_endpoint,
+    log_auth_attempt,
 )
 
 logger = logging.getLogger(__name__)

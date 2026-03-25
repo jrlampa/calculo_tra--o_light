@@ -9,3 +9,5 @@ coverage
 public
 venv
 .venv
+data
+docs/analises

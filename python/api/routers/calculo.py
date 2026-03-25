@@ -1,4 +1,15 @@
-"""Router para endpoints de cálculo de tração."""
+"""Router para endpoints de cálculo de tração.
+
+    This Python script defines a FastAPI router with endpoints for calculating voltage drop (QDT) and
+    performing a specific type of pole calculation, as well as importing data from an Excel file.
+    
+    :param inp: The `inp` parameter in the provided code refers to the input data required for
+    performing calculations related to the traction of electrical lines. It is used in various endpoint
+    functions within the FastAPI router for calculating different aspects of the electrical system
+    :type inp: QDTInput
+    :return: The code snippet defines a FastAPI router with endpoints for calculating voltage drop (QDT)
+    and performing a specific type of calculation related to pole structures.
+"""
 from __future__ import annotations
 
 import logging
@@ -23,6 +34,11 @@ from translated.ponto_blocks import (
     calcular_polo,
 )
 from translated.qdt_blocks import calcular_qdt, QDTInput as QDTLogicInput
+from api.auth_standard import (
+    WriteUser,
+    validate_write_endpoint,
+    log_auth_attempt,
+)
 
 logger = logging.getLogger(__name__)
 

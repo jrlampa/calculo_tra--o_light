@@ -2,7 +2,7 @@ import openpyxl
 import os
 
 file_path = "AP COSMO LDA NOVA 03 - PROJETO 5 - POSTE 1D.xlsm"
-output_file = "cables_excel_dump.txt"
+output_file = "data/artifacts/cables_excel_dump.txt"
 
 if not os.path.exists(file_path):
     print(f"Arquivo não encontrado: {file_path}")
@@ -31,6 +31,7 @@ if "Plan1" in wb.sheetnames:
             if any(key in val for key in ["AWG", "MCM", "mm²", "MTX", "Nu", "XLPE", "PVC"]):
                 cables.add(val)
 
+os.makedirs(os.path.dirname(output_file), exist_ok=True)
 with open(output_file, "w", encoding="utf-8") as f:
     for c in sorted(list(cables)):
         f.write(c + "\n")

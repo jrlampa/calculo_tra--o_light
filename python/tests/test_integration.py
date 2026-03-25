@@ -3,7 +3,7 @@ import pytest
 import asyncio
 import sys
 import os
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 if os.getenv("RUN_LEGACY_INTEGRATION") != "1":
@@ -57,7 +57,7 @@ class TestAuthService:
         
         payload = {
             "sub": "test_user",
-            "exp": datetime.utcnow() - timedelta(seconds=1)  # Expired
+            "exp": datetime.now(UTC) - timedelta(seconds=1)  # Expired
         }
         
         expired_token = jwt.encode(

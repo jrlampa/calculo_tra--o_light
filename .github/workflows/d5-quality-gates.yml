@@ -1,0 +1,397 @@
+name: D5 Quality Gates
+
+on:
+  pull_request:
+    branches: [main, dev]
+  push:
+    branches: [main, dev]
+
+concurrency:
+  group: d5-gates-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "18"
+
+jobs:
+  contract-snapshot-gate:
+    name: Contract and Snapshot Gate
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: d5_contract_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/d5_contract_db
+      APP_ENV: development
+      AUTH_JWT_SECRET: d5-ci-jwt-secret
+      AUTH_REQUIRE_JWT_FOR_MUTATIONS: "true"
+      API_URL: http://127.0.0.1:8000/api
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: python/requirements.txt
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install backend dependencies
+        run: |
+          cd python
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Apply database migrations
+        run: |
+          cd python
+          alembic upgrade head
+
+      - name: Run short release smoke suite (contract + auth + snapshot)
+        run: npm run test:smoke:release
+
+  security-c1-c2-c3-gate:
+    name: Security C1 C2 C3 Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run gitleaks (C1 - secrets)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: python/requirements.txt
+
+      - name: Install security tooling
+        run: |
+          cd python
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install bandit pip-audit semgrep
+
+      - name: Run bandit (SAST)
+        run: |
+          cd python
+          bandit -r api core db repositories services -ll
+
+      - name: Run pip-audit
+        run: |
+          cd python
+          pip-audit --strict
+
+      - name: Run semgrep
+        run: semgrep --config=auto --error python/
+
+      - name: Enforce no unsafe deserialization on critical path (C2)
+        run: |
+          if rg -n "pickle\\.loads\\(" python --glob '!python/tests/**'; then
+            echo "Unsafe deserialization (pickle.loads) found outside tests."
+            exit 1
+          fi
+
+  schema-check-gate:
+    name: Schema and Migration Gate
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: d5_schema_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/d5_schema_db
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: python/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          cd python
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install alembic
+
+      - name: Apply latest migration
+        run: |
+          cd python
+          alembic upgrade head
+
+      - name: Validate schema contract for critical flow
+        run: |
+          cd python
+          python - <<'PY'
+          import asyncio
+          import asyncpg
+          import os
+
+          REQUIRED_TABLES = [
+              "projetos",
+              "pontos",
+              "niveis_calculo",
+              "travessias",
+              "resultados_calculo",
+              "alembic_version",
+          ]
+
+          REQUIRED_CONSTRAINTS = [
+              ("niveis_calculo", "_ponto_nivel_uc"),
+              ("travessias", "_nivel_posicao_uc"),
+          ]
+
+          async def main() -> None:
+              conn = await asyncpg.connect(os.environ["DATABASE_URL"])
+              try:
+                  rows = await conn.fetch(
+                      """
+                      SELECT table_name
+                      FROM information_schema.tables
+                      WHERE table_schema = 'public'
+                      """
+                  )
+                  existing = {r["table_name"] for r in rows}
+                  missing_tables = [t for t in REQUIRED_TABLES if t not in existing]
+                  if missing_tables:
+                      raise SystemExit(f"Missing required tables: {missing_tables}")
+
+                  for table_name, constraint_name in REQUIRED_CONSTRAINTS:
+                      row = await conn.fetchrow(
+                          """
+                          SELECT 1
+                          FROM information_schema.table_constraints
+                          WHERE table_schema = 'public'
+                            AND table_name = $1
+                            AND constraint_name = $2
+                          """,
+                          table_name,
+                          constraint_name,
+                      )
+                      if not row:
+                          raise SystemExit(
+                              f"Missing required constraint: {table_name}.{constraint_name}"
+                          )
+
+                  print("Schema contract validation passed.")
+              finally:
+                  await conn.close()
+
+          asyncio.run(main())
+          PY
+
+  governance-evidence-gate:
+    name: Governance Evidence Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify D+5 must-have evidence docs
+        run: |
+          test -f docs/CHECKPOINTS-TIMELINE.md
+          test -f docs/API-E2E-CRITICAL-CONTRACT-MATRIX.md
+          test -f docs/ux-ui-spec.md
+
+      - name: Verify checkpoint must-have sections
+        run: |
+          rg -n "D\+5: checklist Must have" docs/CHECKPOINTS-TIMELINE.md
+          rg -n "Contrato de persistência \+ snapshot formalizado" docs/CHECKPOINTS-TIMELINE.md
+          rg -n "C1/C2/C3 de segurança com gate ativo" docs/CHECKPOINTS-TIMELINE.md
+          rg -n "Checklist normativo Go/No-Go atualizado" docs/CHECKPOINTS-TIMELINE.md
+
+      - name: Verify contract matrix status semantics
+        run: |
+          rg -n "200|401|403|404|422" docs/API-E2E-CRITICAL-CONTRACT-MATRIX.md
+          rg -n "Projeto -> Ponto -> Persistido -> Snapshot" docs/API-E2E-CRITICAL-CONTRACT-MATRIX.md
+
+      - name: Verify KPI and rollout instrumentation evidence
+        run: |
+          rg -n "rollout assistido|instrumenta|eventos|minimos" docs/ux-ui-spec.md
+
+  snapshot-slo-gate:
+    name: Snapshot SLO Baseline Gate (Advisory)
+    runs-on: ubuntu-latest
+    # Advisory: this job never blocks d5-quality-gate even if it fails.
+    # A critical SLO result requires manual review before merging the PR.
+    continue-on-error: true
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: d5_slo_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/d5_slo_db
+      APP_ENV: development
+      AUTH_JWT_SECRET: d5-ci-jwt-secret
+      AUTH_REQUIRE_JWT_FOR_MUTATIONS: "true"
+      API_URL: http://127.0.0.1:8000/api
+      SLO_CHECK_ITERATIONS: "20"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: python/requirements.txt
+
+      - name: Install backend dependencies
+        run: |
+          cd python
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Apply database migrations
+        run: |
+          cd python
+          alembic upgrade head
+
+      - name: Start API server (background)
+        run: |
+          cd python
+          nohup python -m uvicorn api.main:app --port 8000 > /tmp/api.log 2>&1 &
+          echo $! > /tmp/api.pid
+
+      - name: Wait for API health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8000/health > /dev/null; then
+              echo "API is up after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Run snapshot SLO baseline check
+        id: slo_check
+        run: |
+          python scripts/snapshot_slo_check.py \
+            --api-url http://127.0.0.1:8000/api \
+            --jwt-secret "$AUTH_JWT_SECRET" \
+            --iterations "$SLO_CHECK_ITERATIONS"
+
+      - name: Stop API server
+        if: always()
+        run: |
+          if [ -f /tmp/api.pid ]; then kill "$(cat /tmp/api.pid)" || true; fi
+
+      - name: Comment SLO status on PR
+        if: >
+          github.event_name == 'pull_request' &&
+          (steps.slo_check.outputs.snapshot_slo_status == 'critical' ||
+           steps.slo_check.outputs.snapshot_slo_status == 'degraded')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ steps.slo_check.outputs.snapshot_slo_status }}';
+            const savep95 = '${{ steps.slo_check.outputs.save_latency_p95 }}';
+            const retrievep95 = '${{ steps.slo_check.outputs.retrieve_latency_p95 }}';
+            const absence = '${{ steps.slo_check.outputs.absence_rate }}';
+            const icon = status === 'critical' ? '🔴' : '⚠️';
+            const body = [
+              `## ${icon} Snapshot SLO Gate — ${status.toUpperCase()}`,
+              '',
+              '| SLO | Measured | Target |',
+              '|---|---|---|',
+              `| Save Latency P95 | ${parseFloat(savep95).toFixed(1)} ms | ≤ 200 ms |`,
+              `| Retrieve Latency P95 | ${parseFloat(retrievep95).toFixed(1)} ms | ≤ 100 ms |`,
+              `| Undue Absence Rate | ${parseFloat(absence).toFixed(4)} % | ≤ 0.5 % |`,
+              '',
+              status === 'critical'
+                ? '> **Manual review required before merging.** At least one SLO exceeded the critical threshold.'
+                : '> At least one SLO is in the degraded range. Consider investigating before merging.',
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+  d5-quality-gate:
+    name: D5 Quality Gate (Required)
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - contract-snapshot-gate
+      - security-c1-c2-c3-gate
+      - schema-check-gate
+      - governance-evidence-gate
+
+    steps:
+      - name: Enforce all D+5 must-have checks
+        run: |
+          echo "contract-snapshot-gate=${{ needs.contract-snapshot-gate.result }}"
+          echo "security-c1-c2-c3-gate=${{ needs.security-c1-c2-c3-gate.result }}"
+          echo "schema-check-gate=${{ needs.schema-check-gate.result }}"
+          echo "governance-evidence-gate=${{ needs.governance-evidence-gate.result }}"
+
+          [[ "${{ needs.contract-snapshot-gate.result }}" == "success" ]] || exit 1
+          [[ "${{ needs.security-c1-c2-c3-gate.result }}" == "success" ]] || exit 1
+          [[ "${{ needs.schema-check-gate.result }}" == "success" ]] || exit 1
+          [[ "${{ needs.governance-evidence-gate.result }}" == "success" ]] || exit 1
+
+          echo "D+5 must-have quality gates passed."

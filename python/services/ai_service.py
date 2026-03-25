@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import logging
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import UTC, datetime
 
 from ai.ollama_client import get_ai_assistant, ChatMessage
 from models.projeto import Projeto, ProjetoCreate, ProjetoUpdate
@@ -34,7 +34,7 @@ class AIService:
             enhanced_data = {
                 "calculation_data": calculation_data,
                 "analysis_request": "comprehensive_analysis",
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(UTC).isoformat()
             }
             
             # Get AI analysis
@@ -47,7 +47,7 @@ class AIService:
                 "insights": self._parse_insights(analysis),
                 "recommendations": self._parse_recommendations(analysis),
                 "risks": self._parse_risks(analysis),
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(UTC).isoformat()
             }
             
         except Exception as e:
@@ -55,7 +55,7 @@ class AIService:
             return {
                 "status": "error",
                 "error": str(e),
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(UTC).isoformat()
             }
     
     async def suggest_project_optimizations(self, projeto: Projeto) -> Dict[str, Any]:
@@ -84,7 +84,7 @@ class AIService:
                 "optimization_areas": self._parse_optimization_areas(suggestions),
                 "estimated_savings": self._parse_savings(suggestions),
                 "implementation_priority": self._parse_priority(suggestions),
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(UTC).isoformat()
             }
             
         except Exception as e:
@@ -92,7 +92,7 @@ class AIService:
             return {
                 "status": "error",
                 "error": str(e),
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(UTC).isoformat()
             }
     
     async def validate_calculation_parameters(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
@@ -123,7 +123,7 @@ Retorne uma análise detalhada da validação."""
                 "is_valid": self._parse_validation_result(validation),
                 "issues_found": self._parse_validation_issues(validation),
                 "recommendations": self._parse_validation_recommendations(validation),
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(UTC).isoformat()
             }
             
         except Exception as e:
@@ -131,7 +131,7 @@ Retorne uma análise detalhada da validação."""
             return {
                 "status": "error",
                 "error": str(e),
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(UTC).isoformat()
             }
     
     async def generate_technical_report(self, calculation_data: Dict[str, Any], project_info: Dict[str, Any]) -> str:

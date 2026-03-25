@@ -20,6 +20,16 @@ export const UX_FUNNEL_EVENTS = Object.freeze({
   NEXT_POINT_CLICKED: 'next_point_clicked',
   UNDO_APPLIED: 'undo_applied',
   UNDO_EXPIRED: 'undo_expired',
+  BATCH_SAVE_START: 'batch_save_start',
+  BATCH_SAVE_SUCCESS: 'batch_save_success',
+  BATCH_SAVE_ERROR: 'batch_save_error',
+  BATCH_SAVE_FAILED: 'batch_save_failed',
+  NEW_PROJECT_STARTED_LOCAL: 'new_project_started_local',
+  PROJECT_OPENED_FROM_DB: 'project_opened_from_db',
+  PROJECT_DELETED_FROM_DB: 'project_deleted_from_db',
+  IMPORT_EXCEL_STARTED: 'import_excel_started',
+  IMPORT_EXCEL_SUCCESS: 'import_excel_success',
+  IMPORT_EXCEL_FAILED: 'import_excel_failed',
 })
 
 const VALID_EVENT_NAMES = new Set(Object.values(UX_FUNNEL_EVENTS))
@@ -37,7 +47,18 @@ function normalizeProperties(properties) {
   if (!properties || typeof properties !== 'object' || Array.isArray(properties)) {
     return {}
   }
-  return properties
+
+  const normalized = { ...properties }
+  if ('operation_id' in normalized) {
+    normalized.operation_id = normalized.operation_id || null
+  }
+  if ('projeto_id' in normalized) {
+    normalized.projeto_id = normalized.projeto_id || null
+  }
+  if ('ponto_id' in normalized) {
+    normalized.ponto_id = normalized.ponto_id || null
+  }
+  return normalized
 }
 
 export function buildUxFunnelEvent(eventName, properties = {}) {

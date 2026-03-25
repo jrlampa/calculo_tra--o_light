@@ -393,7 +393,8 @@ class PipelineValidator:
         report = self.generate_validation_report()
         
         # Salvar relatório
-        with open('pipeline_validation_report.md', 'w', encoding='utf-8') as f:
+        Path('docs/analises/planos').mkdir(parents=True, exist_ok=True)
+        with open('docs/analises/planos/pipeline_validation_report.md', 'w', encoding='utf-8') as f:
             f.write(report)
         
         # Determinar sucesso
@@ -435,13 +436,14 @@ async def main():
     print(f"Dependencies: {'✅' if dependencies.get('total_dependencies', 0) >= 3 else '❌'}")
     print(f"Overall Result: {'✅ SUCCESS' if success else '❌ FAILURE'}")
     
-    print("\nDetailed report saved to: pipeline_validation_report.md")
+    print("\nDetailed report saved to: docs/analises/planos/pipeline_validation_report.md")
     
     # Salvar resultados em JSON
-    with open('pipeline_validation_results.json', 'w', encoding='utf-8') as f:
+    Path('data/reports').mkdir(parents=True, exist_ok=True)
+    with open('data/reports/pipeline_validation_results.json', 'w', encoding='utf-8') as f:
         json.dump(validator.validation_results, f, indent=2)
     
-    print("Validation results saved to: pipeline_validation_results.json")
+    print("Validation results saved to: data/reports/pipeline_validation_results.json")
     
     # Exit com código apropriado
     sys.exit(0 if success else 1)

@@ -6,7 +6,7 @@ Analyzes database structure, data integrity, and consistency WITHOUT FIXING anyt
 import asyncio
 import os
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Dict, List, Any
 from dotenv import load_dotenv
 import json
@@ -22,7 +22,7 @@ class PersistenceAudit:
     
     def __init__(self):
         self.findings: Dict[str, Any] = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "sections": {}
         }
         self.connection = None
@@ -701,9 +701,10 @@ class PersistenceAudit:
         
         return self.findings
     
-    async def save_report(self, filename: str = "persistence_audit_report.json"):
+    async def save_report(self, filename: str = "data/reports/persistence_audit_report.json"):
         """Save audit findings to JSON file."""
         try:
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
             with open(filename, 'w', encoding='utf-8') as f:
                 json.dump(self.findings, f, indent=2, ensure_ascii=False, default=str)
             print(f"\n✓ Report saved to {filename}")

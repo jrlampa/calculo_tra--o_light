@@ -10,6 +10,11 @@ docs/
 *.md
 !README.md
 
+# Large local reference files and generated artifacts
+*.xlsm
+data/
+tmp/
+
 # Dependencies
 node_modules/
 venv/
@@ -43,7 +48,6 @@ playwright-report/
 Thumbs.db
 
 # Temporary files
-tmp/
 *.tmp
 *.temp
 
@@ -122,8 +126,4 @@ docker-compose.prod.yml
 junit.xml
 
 # Frontend specific
-.eslintcache
 .stylelintcache
-
-# Ollama specific
-ollama_models/

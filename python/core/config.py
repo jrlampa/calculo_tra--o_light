@@ -1,4 +1,5 @@
 from __future__ import annotations
+"""Centralized application settings based on environment variables."""
 
 import os
 from typing import Optional

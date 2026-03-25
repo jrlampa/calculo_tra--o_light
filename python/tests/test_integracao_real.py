@@ -132,7 +132,7 @@ class TestIntegracaoReal:
         projeto, ponto_id, niveis, resultado = await self.criar_dados_integracao()
         
         # 2. Salvar cálculo completo
-        sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), niveis, resultado.dict())
+        sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), niveis, resultado.model_dump())
         assert sucesso is True
         
         # 3. Validar persistência completa
@@ -177,7 +177,7 @@ class TestIntegracaoReal:
         assert resultado_salvo_antes is None
         
         # Persistir
-        sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), niveis, resultado.dict())
+        sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), niveis, resultado.model_dump())
         assert sucesso is True
         
         # Testar consistência após a persistência

@@ -7,7 +7,7 @@ import hashlib
 import os
 import asyncio
 from typing import Any, Optional, Dict, List, Union
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from dataclasses import dataclass
 
 import redis.asyncio as redis
@@ -69,7 +69,6 @@ class RedisCache:
                 max_connections=self.config.max_connections,
                 socket_timeout=self.config.socket_timeout,
                 socket_connect_timeout=self.config.socket_connect_timeout,
-                retry_on_timeout=self.config.retry_on_timeout,
                 decode_responses=self.config.decode_responses
             )
             
@@ -432,7 +431,7 @@ class CacheManager:
         try:
             # Test basic operations
             test_key = 'health_check'
-            test_value = {'test': True, 'timestamp': datetime.utcnow().isoformat()}
+            test_value = {'test': True, 'timestamp': datetime.now(UTC).isoformat()}
             
             # Set
             set_success = await self.cache.set(test_key, test_value, 'test', 10)
@@ -450,7 +449,7 @@ class CacheManager:
                 return {
                     'status': 'healthy',
                     'stats': stats,
-                    'timestamp': datetime.utcnow().isoformat()
+                    'timestamp': datetime.now(UTC).isoformat()
                 }
             else:
                 return {

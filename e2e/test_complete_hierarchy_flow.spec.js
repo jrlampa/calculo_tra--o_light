@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { criarProjeto, criarPonto, criarTravessia, criarResultado, criarCalculoPayload } from './helpers/test_factories.js';
 
-const API_BASE_URL = process.env.API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.API_URL || 'http://localhost:8000/api';
 const ADMIN_TOKEN = process.env.X_ADMIN_TOKEN || 'test-token-for-development';
 const GUEST_HEADER_NAME = process.env.E2E_GUEST_HEADER_NAME;
 const GUEST_HEADER_VALUE = process.env.E2E_GUEST_HEADER_VALUE;
@@ -45,7 +45,7 @@ function buildProjetoPayload(runId, isBatch = false) {
     .withMatricula(isBatch ? '8888' : '9999');
 
   if (!isBatch) {
-    builder.withDataEstudo(new Date().toISOString().split('T')[0]);
+    builder.withDataEstudo(new Date().toLocaleDateString('pt-BR'));
   }
 
   return builder.build();
@@ -186,6 +186,18 @@ test.describe.serial('Complete Hierarchy Persistence Flow', () => {
     expect(data).toHaveProperty('id');
     expect(data).toHaveProperty('ponto', pontoPayload.ponto);
     pontoId = data.id;
+  });
+
+  test('GET /pontos/{ponto_id}/snapshot — returns 403 for different identity', async ({ playwright }) => {
+    const isolatedRequest = await playwright.request.newContext();
+    try {
+      const response = await isolatedRequest.get(`${API_BASE_URL}/pontos/${pontoId}/snapshot`, {
+        headers: buildHeaders(),
+      });
+      expect(response.status()).toBe(403);
+    } finally {
+      await isolatedRequest.dispose();
+    }
   });
 
   test('GET /pontos/{ponto_id}/snapshot — returns 404 when snapshot is absent', async ({ request }) => {

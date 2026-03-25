@@ -155,7 +155,7 @@ export const useAppOptimizedState = () => {
     try {
       const projId = projetoState.projetoAtual?.id
       
-      trackUxFunnelEvent('BATCH_SAVE_START', { projeto_id: projId })
+      trackUxFunnelEvent(UX_FUNNEL_EVENTS.BATCH_SAVE_START, { projeto_id: projId })
       
       const payload = calculoApi.buildBatchPayload(
         projId,
@@ -176,7 +176,7 @@ export const useAppOptimizedState = () => {
       }
 
       // Notificar sucesso via persistencia status
-      trackUxFunnelEvent('BATCH_SAVE_SUCCESS')
+      trackUxFunnelEvent(UX_FUNNEL_EVENTS.BATCH_SAVE_SUCCESS)
       
       // Forçar refresh no dashboard se necessário ou apenas marcar como salvo
       // Para manter a UI reativa, poderíamos forçar um 'saved' no usePersistenciaCalculo
@@ -184,13 +184,13 @@ export const useAppOptimizedState = () => {
       return res
     } catch (err) {
       console.error('Falha no salvamento atômico:', err)
-      trackUxFunnelEvent('BATCH_SAVE_ERROR', { error: err.message })
+      trackUxFunnelEvent(UX_FUNNEL_EVENTS.BATCH_SAVE_ERROR, { error: err.message })
       throw err
     }
   }, [projetoState.projetoAtual?.id, projetoState.handlers, formState, resultado])
     } catch (err) {
       console.error('Erro no Salvar Tudo:', err)
-      trackUxFunnelEvent('BATCH_SAVE_FAILED', { error: err.message })
+      trackUxFunnelEvent(UX_FUNNEL_EVENTS.BATCH_SAVE_FAILED, { error: err.message })
     }
   }, [projetoState, pontoState, flushPersistQueue])
 
@@ -213,7 +213,7 @@ export const useAppOptimizedState = () => {
     formData.append('file', file)
 
     try {
-      trackUxFunnelEvent('IMPORT_EXCEL_STARTED', { filename: file.name })
+      trackUxFunnelEvent(UX_FUNNEL_EVENTS.IMPORT_EXCEL_STARTED, { filename: file.name })
       // Faz o upload para a nova rota
       const response = await fetch('/api/calcular/importar-excel', {
         method: 'POST',
@@ -242,10 +242,10 @@ export const useAppOptimizedState = () => {
       // 3. Atualizar Travessias em massa
       formState.handlers.applyImportedData(data)
       
-      trackUxFunnelEvent('IMPORT_EXCEL_SUCCESS', { filename: file.name })
+      trackUxFunnelEvent(UX_FUNNEL_EVENTS.IMPORT_EXCEL_SUCCESS, { filename: file.name })
     } catch (err) {
       console.error('Erro na importação:', err)
-      trackUxFunnelEvent('IMPORT_EXCEL_FAILED', { error: err.message })
+      trackUxFunnelEvent(UX_FUNNEL_EVENTS.IMPORT_EXCEL_FAILED, { error: err.message })
       // O erro será exibido pelo ErrorBoundary ou banner se necessário
     }
   }, [projetoState.handlers, pontoState.handlers, formState.handlers])

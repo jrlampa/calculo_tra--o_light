@@ -45,7 +45,7 @@ SNYK_TOKEN=your-snyk-token
 #### Test Pipeline
 ```bash
 # Run local CI/CD validation
-python test_pipeline.py
+python scripts/tools/test_pipeline.py
 
 # Check workflow syntax
 cd .github/workflows && for file in *.yml; do echo "Validating $file"; done

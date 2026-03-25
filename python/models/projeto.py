@@ -1,11 +1,11 @@
 """Pydantic models for projeto operations."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class ProjetoBase(BaseModel):
@@ -18,15 +18,17 @@ class ProjetoBase(BaseModel):
     matricula: str = Field(default="", max_length=20)
     data_estudo: Optional[str] = None
     
-    @validator('data_estudo', pre=True, always=True)
+    @field_validator('data_estudo', mode='before')
+    @classmethod
     def set_default_data_estudo(cls, v):
         if not v:
-            return datetime.utcnow().strftime("%d/%m/%Y")
+            return datetime.now(UTC).strftime("%d/%m/%Y")
         if isinstance(v, datetime):
             return v.strftime("%d/%m/%Y")
         return v
     
-    @validator('data_estudo')
+    @field_validator('data_estudo')
+    @classmethod
     def validate_data_estudo(cls, v):
         if not v:
             return v
@@ -36,7 +38,7 @@ class ProjetoBase(BaseModel):
             dt = datetime.strptime(v, "%d/%m/%Y")
             
             # Validar que a data não está no futuro
-            if dt > datetime.utcnow():
+            if dt.date() > datetime.now(UTC).date():
                 raise ValueError("Data de estudo não pode estar no futuro")
                 
             return v
@@ -50,9 +52,10 @@ class ProjetoCreate(ProjetoBase):
     """Schema for creating a projeto."""
     owner_id: UUID
     
-    @validator('orgao', 'ns', 'nome', 'estudado_por')
+    @field_validator('orgao', 'ns', 'nome', 'estudado_por')
+    @classmethod
     def normalize_string(cls, v):
-        return v.strip().title()
+        return v.strip()
 
 
 class ProjetoUpdate(BaseModel):
@@ -65,10 +68,11 @@ class ProjetoUpdate(BaseModel):
     matricula: Optional[str] = Field(None, min_length=1, max_length=20)
     data_estudo: Optional[str] = None
     
-    @validator('orgao', 'ns', 'nome', 'estudado_por')
+    @field_validator('orgao', 'ns', 'nome', 'estudado_por')
+    @classmethod
     def normalize_string(cls, v):
         if v is not None:
-            return v.strip().title()
+            return v.strip()
         return v
 
 
@@ -81,7 +85,8 @@ class ProjetoInDBBase(ProjetoBase):
     updated_at: datetime
     deleted_at: Optional[datetime] = None
 
-    @root_validator(pre=True)
+    @model_validator(mode='before')
+    @classmethod
     def normalize_timestamp_contract(cls, values):
         """Support both EN and PT-BR timestamp column contracts."""
         if not isinstance(values, dict):
@@ -98,8 +103,7 @@ class ProjetoInDBBase(ProjetoBase):
 
         return values
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Projeto(ProjetoInDBBase):

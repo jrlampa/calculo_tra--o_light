@@ -156,7 +156,7 @@ class TestHierarquiaCompleta:
         )
         
         # Testar a persistência do cálculo
-        sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), niveis, resultado.dict())
+        sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), niveis, resultado.model_dump())
         assert sucesso is True
         
         # 5. Validar persistência
@@ -196,7 +196,7 @@ class TestHierarquiaCompleta:
             niveis = self.criar_niveis_teste()
             resultado = self.criar_resultado_teste()
             
-            sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), niveis, resultado.dict())
+            sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), niveis, resultado.model_dump())
             assert sucesso is True
         
         # Validar que todos os pontos têm hierarquia completa
@@ -244,7 +244,7 @@ class TestHierarquiaCompleta:
         resultado = self.criar_resultado_teste()
         
         # Salvar hierarquia
-        sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), niveis, resultado.dict())
+        sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), niveis, resultado.model_dump())
         assert sucesso is True
         
         # Validar consistência referencial

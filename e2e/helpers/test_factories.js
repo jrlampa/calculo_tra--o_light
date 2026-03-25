@@ -11,7 +11,7 @@ class ProjetoBuilder {
       endereco: 'Rua Teste, 123',
       estudado_por: 'E2E Bot',
       matricula: '9999',
-      data_estudo: new Date().toISOString().split('T')[0],
+      data_estudo: new Date().toLocaleDateString('pt-BR'),
     };
   }
 

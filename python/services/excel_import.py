@@ -8,7 +8,7 @@ from api.schemas import (
     BTTraversalIn, 
     BTZeroTraversalIn, 
     RamaisTraversalIn,
-    PosteIn,
+    PosteCalculoIn,
     CabecalhoIn
 )
 
@@ -94,14 +94,17 @@ def extract_excel_to_input(file_content: bytes) -> CalculoInput:
     data_val = find_field_val_flexible(ws, "Data:") or ws["C10"].value
 
     cab_data = CabecalhoIn(
-        projeto=str(projeto or ""), punto=str(ponto or ""),
+        projeto=str(projeto or ""), numero=str(ponto or ""),
         endereco=str(endereco or ""), estudado_por=str(estudado_por or ""), data=str(data_val or "")
     )
     
     # 2. Poste
     tipo_poste_val = find_field_val_flexible(ws, "Tipo do Poste") or ws["C140"].value
     modelo_poste_val = find_field_val_flexible(ws, "Modelo do Poste") or ws["B12"].value
-    poste_data = PosteIn(tipo_poste=str(tipo_poste_val or ""), modelo_poste=str(modelo_poste_val or ""))
+    poste_data = PosteCalculoIn(
+        tipo_poste=str(tipo_poste_val or ""),
+        modelo_poste=str(modelo_poste_val or ""),
+    )
     
     # 3. Traversals cols
     def get_traversal_cols_v3(ws, rows):

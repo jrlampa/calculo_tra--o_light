@@ -1,18 +1,23 @@
+# The above code defines SQLAlchemy models for managing electrical distribution network data including
+# projects, poles, calculation results, and reference data.
 from datetime import datetime
 from uuid import uuid4
 from typing import Optional, List
 
-from sqlalchemy import Column, String, Float, DateTime, ForeignKey, Integer, Text, Enum, UniqueConstraint
+from sqlalchemy import Column, String, Float, DateTime, ForeignKey, Integer, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+
 class Base(DeclarativeBase):
     """Base class for SQLAlchemy models."""
+
     pass
+
 
 class Projeto(Base):
     __tablename__ = "projetos"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     orgao = Column(String(100))
     ns = Column(String(50))
@@ -23,44 +28,71 @@ class Projeto(Base):
     data_estudo = Column(String(20))
     owner_id = Column(UUID(as_uuid=True), nullable=False)
     atualizado_em = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    pontos = relationship("Ponto", back_populates="projeto", cascade="all, delete-orphan")
 
-class Ponto(Base):
-    __tablename__ = "pontos"
-    
+    postes = relationship("Poste", back_populates="projeto", cascade="all, delete-orphan")
+
+
+class Poste(Base):
+    """Agregado raiz Poste — pole/post in electrical distribution network.
+
+    Each Poste aggregates:
+    - Niveis (voltage levels): MT1, MT2, BT, BTZ, RAL (5 sempre)
+    - Travessias per nivel: 4 (positions 1-4)
+    - Calculation history: snapshots (append-only)
+    """
+
+    __tablename__ = "pontos"  # Keep table name for backward compat, but class = Poste
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     projeto_id = Column(UUID(as_uuid=True), ForeignKey("projetos.id"), nullable=False)
-    ponto = Column(String(50), nullable=False)
+    numero = Column("ponto", String(50), nullable=False)
     tipo_poste = Column(String(50))
     modelo_poste = Column(String(50))
-    
-    __table_args__ = (UniqueConstraint('projeto_id', 'ponto', name='_projeto_ponto_uc'),)
-    
-    projeto = relationship("Projeto", back_populates="pontos")
-    niveis = relationship("NivelCalculo", back_populates="ponto", cascade="all, delete-orphan")
-    resultado = relationship("ResultadoCalculo", back_populates="ponto", uselist=False, cascade="all, delete-orphan")
+    criado_em = Column(DateTime, default=datetime.utcnow)
+    atualizado_em = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    deletado_em = Column(DateTime, nullable=True)  # Soft-delete support
+
+    __table_args__ = (UniqueConstraint("projeto_id", "ponto", name="_projeto_ponto_uc"),)
+
+    projeto = relationship("Projeto", back_populates="postes")
+    niveis = relationship("NivelCalculo", back_populates="poste", cascade="all, delete-orphan")
+    resultado = relationship(
+        "ResultadoCalculo", back_populates="poste", uselist=False, cascade="all, delete-orphan"
+    )
+    calculos_snapshots = relationship(
+        "CalculoSnapshot", back_populates="poste", cascade="all, delete-orphan"
+    )
+
+    @property
+    def ponto(self) -> str:
+        return self.numero
+
+    @ponto.setter
+    def ponto(self, value: str) -> None:
+        self.numero = value
+
 
 class NivelCalculo(Base):
     __tablename__ = "niveis_calculo"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     ponto_id = Column(UUID(as_uuid=True), ForeignKey("pontos.id"), nullable=False)
-    nivel = Column(String(20), nullable=False) # MT1, MT2, BT, BTZ, RAL
+    nivel = Column(String(20), nullable=False)  # MT1, MT2, BT, BTZ, RAL
     altura_poste = Column(Float)
     altura_ancoragem = Column(Float)
-    
-    __table_args__ = (UniqueConstraint('ponto_id', 'nivel', name='_ponto_nivel_uc'),)
-    
-    ponto = relationship("Ponto", back_populates="niveis")
+
+    __table_args__ = (UniqueConstraint("ponto_id", "nivel", name="_ponto_nivel_uc"),)
+
+    poste = relationship("Poste", back_populates="niveis")
     travessias = relationship("Travessia", back_populates="nivel_ref", cascade="all, delete-orphan")
+
 
 class Travessia(Base):
     __tablename__ = "travessias"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     nivel_id = Column(UUID(as_uuid=True), ForeignKey("niveis_calculo.id"), nullable=False)
-    posicao = Column(Integer, nullable=False) # 1, 2, 3, 4
+    posicao = Column(Integer, nullable=False)  # 1, 2, 3, 4
     tipo_rede = Column(String(50))
     tipo_cabo = Column(String(50))
     vao = Column(Float)
@@ -68,14 +100,15 @@ class Travessia(Base):
     angulo = Column(Float)
     qtd_ligacoes = Column(Float)
     qtd_cabos = Column(Float)
-    
-    __table_args__ = (UniqueConstraint('nivel_id', 'posicao', name='_nivel_posicao_uc'),)
-    
+
+    __table_args__ = (UniqueConstraint("nivel_id", "posicao", name="_nivel_posicao_uc"),)
+
     nivel_ref = relationship("NivelCalculo", back_populates="travessias")
+
 
 class ResultadoCalculo(Base):
     __tablename__ = "resultados_calculo"
-    
+
     ponto_id = Column(UUID(as_uuid=True), ForeignKey("pontos.id"), primary_key=True)
     mt1_tracao = Column(Float)
     mt1_angulo = Column(Float)
@@ -97,8 +130,31 @@ class ResultadoCalculo(Base):
     texto_ral = Column(Text)
     texto_total = Column(Text)
     calculado_em = Column(DateTime, default=datetime.utcnow)
-    
-    ponto = relationship("Ponto", back_populates="resultado")
+
+    poste = relationship("Poste", back_populates="resultado")
+
+
+class CalculoSnapshot(Base):
+    """Immutable snapshot of a calculation result (append-only event).
+
+    Records calculation history with: resultado JSONB, timestamp, user, status.
+    Enables audit trail and recovery of past calculations.
+    """
+
+    __tablename__ = "calculos_snapshots"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    poste_id = Column(UUID(as_uuid=True), ForeignKey("pontos.id"), nullable=False)
+
+    # Calculation result as JSONB (all fields from ResultadoCalculo flattened)
+    resultado_json = Column(Text)  # JSON string of CalculoResultado
+
+    calculado_em = Column(DateTime, default=datetime.utcnow)
+    calculado_por = Column(String(100), nullable=True)  # user_id or email
+    status = Column(String(20), default="draft")  # 'draft' | 'saved'
+
+    poste = relationship("Poste", back_populates="calculos_snapshots")
+
 
 class Cabo(Base):
     __tablename__ = "cabos"
@@ -107,7 +163,10 @@ class Cabo(Base):
     diametro = Column(Float)
     peso = Column(Float)
 
-class Poste(Base):
+
+class PosteLookup(Base):
+    """Reference lookup table for Poste types/models and capacity."""
+
     __tablename__ = "postes"
     id = Column(Integer, primary_key=True)
     tipo = Column(String(50))
@@ -115,11 +174,13 @@ class Poste(Base):
     altura_m = Column(Float)
     carga_admissivel_dan = Column(Float)
 
+
 class Rede(Base):
     __tablename__ = "redes"
     id = Column(Integer, primary_key=True)
     tipo = Column(String(50), unique=True)
     descricao = Column(Text)
+
 
 class NormaRegra(Base):
     __tablename__ = "normas_regras"
@@ -131,3 +192,6 @@ class NormaRegra(Base):
     regra_tecnica = Column(Text)
     aplicavel_a = Column(Text)
     fonte_referencia = Column(Text)
+
+
+Ponto = Poste

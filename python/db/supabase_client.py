@@ -1,8 +1,11 @@
 """Supabase PostgreSQL client for calculo_tração_light."""
 import asyncio
+import logging
 import os
 import asyncpg
+from datetime import UTC, datetime
 from typing import Optional, List, Dict, Any
+from uuid import uuid4
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,6 +17,9 @@ def _nullable_scalar(record: Dict[str, Any], key: str) -> Any:
     if value == "":
         return None
     return value
+
+
+logger = logging.getLogger(__name__)
 
 
 class SupabaseClient:
@@ -54,6 +60,16 @@ class SupabaseClient:
         self.database_url = os.getenv("DATABASE_URL", "")
         self.enabled = bool(self.database_url)
         self._pool: Optional[asyncpg.pool.Pool] = None
+        configured_max_connections = self._read_int_env(
+            "MAX_CONNECTIONS",
+            5,
+            minimum=1,
+        )
+        self.pool_max_size = max(1, min(configured_max_connections, 5))
+        self.pool_min_size = min(
+            self._read_int_env("SUPABASE_POOL_MIN_SIZE", 1, minimum=1),
+            self.pool_max_size,
+        )
         self.snapshot_retry_max_retries = self._read_int_env(
             "SNAPSHOT_RETRY_MAX_RETRIES",
             self.SNAPSHOT_RETRY_MAX_RETRIES_DEFAULT,
@@ -142,15 +158,39 @@ class SupabaseClient:
             return None
         
         try:
+            current_loop = asyncio.get_running_loop()
+
+            if self._pool is not None:
+                pool_loop = getattr(self._pool, "_loop", None)
+                pool_is_closed = bool(getattr(self._pool, "_closed", False))
+                loop_mismatch = pool_loop is not None and pool_loop is not current_loop
+                loop_closed = bool(pool_loop and pool_loop.is_closed())
+                if pool_is_closed or loop_mismatch or loop_closed:
+                    self._pool = None
+
             if self._pool is None:
-                self._pool = await asyncpg.create_pool(
-                    self.database_url,
-                    min_size=5,
-                    max_size=20,
-                    max_queries=50000,
-                    max_inactive_connection_lifetime=300.0,
-                    command_timeout=60,
-                )
+                try:
+                    self._pool = await asyncpg.create_pool(
+                        self.database_url,
+                        min_size=self.pool_min_size,
+                        max_size=self.pool_max_size,
+                        max_queries=50000,
+                        max_inactive_connection_lifetime=300.0,
+                        command_timeout=60,
+                    )
+                except Exception as error:
+                    # Fall back to a single connection when the database is near
+                    # its connection limit so combined real-db suites remain stable.
+                    if "remaining connection slots" not in str(error).lower():
+                        raise
+                    self._pool = await asyncpg.create_pool(
+                        self.database_url,
+                        min_size=1,
+                        max_size=1,
+                        max_queries=50000,
+                        max_inactive_connection_lifetime=300.0,
+                        command_timeout=60,
+                    )
             return self._pool
         except Exception as e:
             print(f"[WARN] Error creating connection pool: {e}")
@@ -548,13 +588,14 @@ class SupabaseClient:
             if not pool:
                 return None
             async with pool.acquire() as conn:
+                ponto_id_val = str(uuid4())
                 row = await conn.fetchrow(
                     """
-                    INSERT INTO pontos (projeto_id, ponto, tipo_poste, modelo_poste)
-                    VALUES ($1::uuid, $2, $3, $4)
+                    INSERT INTO pontos (id, projeto_id, ponto, tipo_poste, modelo_poste)
+                    VALUES ($1::uuid, $2::uuid, $3, $4, $5)
                     RETURNING id::text
                     """,
-                    projeto_id, ponto, tipo_poste, modelo_poste,
+                    ponto_id_val, projeto_id, ponto, tipo_poste, modelo_poste,
                 )
                 # Touch projeto.atualizado_em
                 await conn.execute(
@@ -564,6 +605,63 @@ class SupabaseClient:
                 return row["id"] if row else None
         except Exception as e:
             print(f"[WARN] Error saving ponto: {e}")
+            return None
+
+    async def projeto_exists(self, projeto_id: str) -> bool:
+        """Check whether a projeto exists."""
+        if not self.enabled:
+            return False
+        try:
+            pool = await self._get_pool()
+            if not pool:
+                return False
+
+            async with pool.acquire() as conn:
+                row = await conn.fetchrow(
+                    "SELECT 1 FROM projetos WHERE id = $1::uuid",
+                    projeto_id,
+                )
+                return row is not None
+        except Exception as e:
+            print(f"[WARN] Error checking projeto existence: {e}")
+            return False
+
+    async def ponto_exists(self, ponto_id: str) -> bool:
+        """Check whether a ponto exists."""
+        if not self.enabled:
+            return False
+        try:
+            pool = await self._get_pool()
+            if not pool:
+                return False
+
+            async with pool.acquire() as conn:
+                row = await conn.fetchrow(
+                    "SELECT 1 FROM pontos WHERE id = $1::uuid",
+                    ponto_id,
+                )
+                return row is not None
+        except Exception as e:
+            print(f"[WARN] Error checking ponto existence: {e}")
+            return False
+
+    async def get_projeto_id_by_ponto(self, ponto_id: str) -> Optional[str]:
+        """Resolve the owning projeto_id for a ponto."""
+        if not self.enabled:
+            return None
+        try:
+            pool = await self._get_pool()
+            if not pool:
+                return None
+
+            async with pool.acquire() as conn:
+                row = await conn.fetchrow(
+                    "SELECT projeto_id::text AS projeto_id FROM pontos WHERE id = $1::uuid",
+                    ponto_id,
+                )
+                return row["projeto_id"] if row else None
+        except Exception as e:
+            print(f"[WARN] Error resolving projeto_id for ponto {ponto_id}: {e}")
             return None
 
     async def user_can_access_projeto(
@@ -646,18 +744,22 @@ class SupabaseClient:
         niveis: List[Dict[str, Any]],
     ) -> None:
         """Upsert niveis_calculo and travessias using an open transaction."""
-        for nivel_data in niveis:
+        for nivel_item in niveis:
+            # Handle Pydantic objects if passed
+            nivel_data = nivel_item.model_dump() if hasattr(nivel_item, "model_dump") else (nivel_item.dict() if hasattr(nivel_item, "dict") else nivel_item)
             nivel_label = nivel_data["nivel"]
             # Upsert nivel_calculo (UNIQUE ponto_id + nivel)
+            nivel_id_val = str(uuid4())
             nivel_row = await conn.fetchrow(
                 """
-                INSERT INTO niveis_calculo (ponto_id, nivel, altura_poste, altura_ancoragem)
-                VALUES ($1::uuid, $2::nivel_tipo, $3, $4)
+                INSERT INTO niveis_calculo (id, ponto_id, nivel, altura_poste, altura_ancoragem)
+                VALUES ($1::uuid, $2::uuid, $3, $4, $5)
                 ON CONFLICT (ponto_id, nivel)
                 DO UPDATE SET altura_poste = EXCLUDED.altura_poste,
                               altura_ancoragem = EXCLUDED.altura_ancoragem
                 RETURNING id
                 """,
+                nivel_id_val,
                 ponto_id,
                 nivel_label,
                 nivel_data.get("altura_poste"),
@@ -665,13 +767,15 @@ class SupabaseClient:
             )
             nivel_id = str(nivel_row["id"])
             # Upsert each traversal (UNIQUE nivel_id + posicao)
-            for t in nivel_data.get("travessias", []):
+            for t_item in nivel_data.get("travessias", []):
+                t = t_item.model_dump() if hasattr(t_item, "model_dump") else (t_item.dict() if hasattr(t_item, "dict") else t_item)
+                t_id_val = str(uuid4())
                 await conn.execute(
                     """
                     INSERT INTO travessias
-                      (nivel_id, posicao, tipo_rede, tipo_cabo,
+                      (id, nivel_id, posicao, tipo_rede, tipo_cabo,
                        vao, flecha, angulo, qtd_ligacoes, qtd_cabos)
-                    VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9)
+                    VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7, $8, $9, $10)
                     ON CONFLICT (nivel_id, posicao)
                     DO UPDATE SET
                       tipo_rede    = EXCLUDED.tipo_rede,
@@ -682,6 +786,7 @@ class SupabaseClient:
                       qtd_ligacoes = EXCLUDED.qtd_ligacoes,
                       qtd_cabos    = EXCLUDED.qtd_cabos
                     """,
+                    t_id_val,
                     nivel_id,
                     t["posicao"],
                     _nullable_scalar(t, "tipo_rede"),
@@ -795,6 +900,84 @@ class SupabaseClient:
             print(f"[WARN] Error saving calculo: {e}")
             return False
 
+    async def get_calculo_snapshot(self, ponto_id: str) -> Optional[Dict[str, Any]]:
+        """Fetch full persisted snapshot for a point.
+
+        Returns None when no persisted resultado exists for the point.
+        """
+        if not self.enabled:
+            return None
+
+        try:
+            pool = await self._get_pool()
+            if not pool:
+                return None
+
+            async with pool.acquire() as conn:
+                resultado_row = await conn.fetchrow(
+                    """
+                    SELECT *
+                    FROM resultados_calculo
+                    WHERE ponto_id = $1::uuid
+                    """,
+                    ponto_id,
+                )
+
+                if not resultado_row:
+                    return None
+
+                niveis_rows = await conn.fetch(
+                    """
+                    SELECT id::text AS id, nivel, altura_poste, altura_ancoragem
+                    FROM niveis_calculo
+                    WHERE ponto_id = $1::uuid
+                    ORDER BY CASE nivel
+                        WHEN 'MT1' THEN 1
+                        WHEN 'MT2' THEN 2
+                        WHEN 'BT' THEN 3
+                        WHEN 'BTZ' THEN 4
+                        WHEN 'RAL' THEN 5
+                        ELSE 99
+                    END
+                    """,
+                    ponto_id,
+                )
+
+                niveis: List[Dict[str, Any]] = []
+                for nivel_row in niveis_rows:
+                    nivel_data = dict(nivel_row)
+                    travessias_rows = await conn.fetch(
+                        """
+                        SELECT
+                            posicao,
+                            tipo_rede,
+                            tipo_cabo,
+                            vao,
+                            flecha,
+                            angulo,
+                            qtd_ligacoes,
+                            qtd_cabos
+                        FROM travessias
+                        WHERE nivel_id = $1::uuid
+                        ORDER BY posicao
+                        """,
+                        nivel_data["id"],
+                    )
+                    nivel_data["travessias"] = [dict(row) for row in travessias_rows]
+                    niveis.append(nivel_data)
+
+                resultado = dict(resultado_row)
+                resultado.pop("id", None)
+
+                return {
+                    "ponto_id": ponto_id,
+                    "niveis": niveis,
+                    "resultado": resultado,
+                }
+        except Exception as e:
+            print(f"[WARN] Error fetching calculo snapshot: {e}")
+            return None
+
     async def upsert_resultado(
         self,
         ponto_id: str,
@@ -904,19 +1087,21 @@ class SupabaseClient:
                     # 1. Projeto
                     final_proj_id = projeto_id
                     if not final_proj_id and projeto_dados:
+                        proj_id_val = str(uuid4())
                         row_p = await conn.fetchrow(
                             """
-                            INSERT INTO projetos (orgao, ns, nome, endereco, estudado_por, matricula, data_estudo, owner_id)
-                            VALUES ($1, $2, $3, $4, $5, $6, $7, $8::uuid)
+                            INSERT INTO projetos (id, orgao, ns, nome, endereco, estudado_por, matricula, data_estudo, owner_id)
+                            VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9::uuid)
                             RETURNING id::text
                             """,
+                            proj_id_val,
                             projeto_dados.get("orgao"),
                             projeto_dados.get("ns"),
                             projeto_dados.get("nome"),
                             projeto_dados.get("endereco"),
                             projeto_dados.get("estudado_por"),
                             projeto_dados.get("matricula"),
-                            projeto_dados.get("data_estudo"),
+                            projeto_dados.get("data_estudo") or datetime.now(UTC).strftime("%d/%m/%Y"),
                             owner_id,
                         )
                         final_proj_id = row_p["id"]
@@ -941,12 +1126,14 @@ class SupabaseClient:
                             ponto_dados.get("tipo_poste"), ponto_dados.get("modelo_poste"), final_ponto_id
                         )
                     else:
+                        p_id_val = str(uuid4())
                         row_pt_new = await conn.fetchrow(
                             """
-                            INSERT INTO pontos (projeto_id, ponto, tipo_poste, modelo_poste)
-                            VALUES ($1::uuid, $2, $3, $4)
+                            INSERT INTO pontos (id, projeto_id, ponto, tipo_poste, modelo_poste)
+                            VALUES ($1::uuid, $2::uuid, $3, $4, $5)
                             RETURNING id::text
                             """,
+                            p_id_val,
                             final_proj_id, ponto_label, 
                             ponto_dados.get("tipo_poste"), ponto_dados.get("modelo_poste")
                         )
@@ -974,7 +1161,7 @@ class SupabaseClient:
                     }
 
         except Exception as e:
-            print(f"[ERROR] save_batch_calculo failure: {e}")
+            logger.exception(f"save_batch_calculo failure: {e}")
             return {"error": str(e)}
 
 

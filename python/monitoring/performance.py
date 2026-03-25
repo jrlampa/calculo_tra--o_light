@@ -6,7 +6,7 @@ import asyncio
 from typing import Dict, List, Optional, Callable
 from dataclasses import dataclass, field
 from collections import defaultdict, deque
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import psutil
 from fastapi import Request, Response
@@ -112,7 +112,7 @@ class PerformanceMonitor:
                 disk = psutil.disk_usage('/')
                 
                 metrics = {
-                    "timestamp": datetime.utcnow(),
+                    "timestamp": datetime.now(UTC),
                     "cpu_usage": cpu_percent / 100.0,
                     "memory_usage": memory.percent / 100.0,
                     "disk_usage": disk.percent / 100.0
@@ -151,7 +151,7 @@ class PerformanceMonitor:
     
     def record_request(self, request: Request, response_time: float, status_code: int):
         """Record a request for metrics."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         
         # Record request time
         self.request_times.append(response_time)
@@ -172,7 +172,7 @@ class PerformanceMonitor:
     
     def get_current_metrics(self) -> PerformanceMetrics:
         """Get current performance metrics."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         
         # Calculate request metrics
         total_requests = len(self.request_times)

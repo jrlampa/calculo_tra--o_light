@@ -1,10 +1,11 @@
 """Router for AI Assistant endpoints."""
+
 from __future__ import annotations
 
 import json
 import logging
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
@@ -28,7 +29,7 @@ class ChatResponse(BaseModel):
     """Chat response model."""
     response: str = Field(..., description="AI response")
     conversation_id: str = Field(..., description="Conversation ID")
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     model: str = Field(..., description="AI model used")
 
 
@@ -56,7 +57,7 @@ async def chat_with_ai(request: ChatRequest) -> ChatResponse:
         ai_assistant = await get_ai_assistant()
         
         # Get or create conversation ID
-        conversation_id = request.conversation_id or f"conv_{datetime.utcnow().timestamp()}"
+        conversation_id = request.conversation_id or f"conv_{datetime.now(UTC).timestamp()}"
         
         # Get conversation history
         history = conversations.get(conversation_id, [])
@@ -99,7 +100,7 @@ async def stream_chat_with_ai(request: ChatRequest):
         ai_assistant = await get_ai_assistant()
         
         # Get or create conversation ID
-        conversation_id = request.conversation_id or f"conv_{datetime.utcnow().timestamp()}"
+        conversation_id = request.conversation_id or f"conv_{datetime.now(UTC).timestamp()}"
         
         # Get conversation history
         history = conversations.get(conversation_id, [])
@@ -161,7 +162,7 @@ async def analyze_calculation(request: AnalysisRequest) -> Dict[str, Any]:
             "status": "success",
             "analysis": analysis,
             "analysis_type": request.analysis_type,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "model": ai_assistant.model or "unknown"
         }
         
@@ -194,7 +195,7 @@ async def optimize_project(request: OptimizationRequest) -> Dict[str, Any]:
             "status": "success",
             "suggestions": suggestions,
             "optimization_goals": request.optimization_goals,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "model": ai_assistant.model or "unknown"
         }
         
@@ -244,7 +245,7 @@ async def delete_conversation(conversation_id: str) -> Dict[str, Any]:
         return {
             "status": "success",
             "message": f"Conversation {conversation_id} deleted",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(UTC).isoformat()
         }
         
     except Exception as e:
@@ -313,7 +314,7 @@ async def get_ai_status() -> Dict[str, Any]:
             "available_models": models,
             "ollama_connected": ai_assistant.client is not None and await ai_assistant.client.check_connection(),
             "active_conversations": len(conversations),
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(UTC).isoformat()
         }
         
     except Exception as e:
@@ -322,7 +323,7 @@ async def get_ai_status() -> Dict[str, Any]:
             "status": "error",
             "error": str(e),
             "ai_initialized": False,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(UTC).isoformat()
         }
 
 
@@ -349,7 +350,7 @@ async def websocket_chat(websocket: WebSocket):
                 conversation_id = data.get("conversation_id")
                 
                 if not conversation_id:
-                    conversation_id = f"ws_conv_{datetime.utcnow().timestamp()}"
+                    conversation_id = f"ws_conv_{datetime.now(UTC).timestamp()}"
                 
                 # Get conversation history
                 history = conversations.get(conversation_id, [])

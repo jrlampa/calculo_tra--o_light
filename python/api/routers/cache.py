@@ -1,9 +1,10 @@
 """Router for cache management and monitoring."""
+
 from __future__ import annotations
 
 import logging
 from typing import Dict, Any, Optional
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -179,7 +180,7 @@ async def list_cache_keys(
             "prefix": prefix,
             "total_keys": len(key_info),
             "keys": key_info,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(UTC).isoformat()
         }
         
     except Exception as e:
@@ -215,7 +216,7 @@ async def get_cache_key(
             "exists": exists,
             "ttl": ttl,
             "value": value,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(UTC).isoformat()
         }
         
     except Exception as e:
@@ -338,7 +339,7 @@ async def get_cache_performance() -> Dict[str, Any]:
             "operations": local_stats,
             "redis_info": stats["redis_info"],
             "recommendations": get_performance_recommendations(hit_rate, error_rate),
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(UTC).isoformat()
         }
         
     except Exception as e:

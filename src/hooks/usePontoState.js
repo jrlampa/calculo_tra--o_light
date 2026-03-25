@@ -5,7 +5,7 @@
  * @returns The `usePontoState` custom hook is returning an object with the following properties:
  */
 import { useState, useCallback, useMemo, useEffect } from 'react'
-import { createPonto } from '../services/calculoApi.js'
+import { createPonto, getLastRequestContext } from '../services/calculoApi.js'
 import { POSTE_INICIAL } from '../features/calculo/formConfig.js'
 import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstrumentation.js'
 
@@ -73,6 +73,7 @@ export const usePontoState = ({ projetoAtual, cabecalho, resetPersistencia }) =>
         tipoPoste: poste.tipoPoste,
         modeloPoste: poste.modeloPoste,
       })
+      const { operation_id: operationId } = getLastRequestContext()
 
       setPontoAtual(pontoCriado)
       setPontoSnapshot({
@@ -85,6 +86,7 @@ export const usePontoState = ({ projetoAtual, cabecalho, resetPersistencia }) =>
       trackUxFunnelEvent(UX_FUNNEL_EVENTS.POINT_CONFIRMED, {
         projeto_id: projetoAtual?.id ?? null,
         ponto_id: pontoCriado?.id ?? null,
+        operation_id: operationId || null,
         ponto,
         tipo_poste: poste.tipoPoste || '',
         modelo_poste: poste.modeloPoste || '',

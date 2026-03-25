@@ -1,4 +1,5 @@
 """Router para endpoints públicos de lookup."""
+
 from __future__ import annotations
 
 import logging
@@ -8,6 +9,11 @@ from fastapi import APIRouter, HTTPException, Depends
 
 from translated.plan1_tables import CABOS_POR_REDE, CABOS_TABLE, POSTE_TABLE, REDE_TABLE
 from api.dependencies import get_supabase_dependency
+from api.auth_standard import (
+    PublicUser,
+    validate_public_endpoint,
+    log_auth_attempt,
+)
 
 logger = logging.getLogger(__name__)
 

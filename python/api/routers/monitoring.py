@@ -3,13 +3,15 @@ from __future__ import annotations
 
 import asyncio
 from typing import Dict, Any, List
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 
 from monitoring.performance import get_performance_monitor, PerformanceMetrics
+from monitoring.snapshot_metrics import get_snapshot_tracker
 from core.config import get_settings
+from core.snapshot_slos import SNAPSHOT_SLOS
 
 router = APIRouter(prefix="/monitoring", tags=["Monitoring"])
 settings = get_settings()
@@ -25,7 +27,7 @@ async def get_performance_metrics() -> Dict[str, Any]:
         "status": "success",
         "data": metrics.to_dict(),
         "alerts": monitor.get_alerts(),
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(UTC).isoformat()
     }
 
 
@@ -69,7 +71,7 @@ async def get_metrics_summary() -> Dict[str, Any]:
                 "uptime": "N/A"  # Would need to track app start time
             }
         },
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(UTC).isoformat()
     }
 
 
@@ -88,7 +90,7 @@ async def get_endpoint_metrics(
             "endpoint": endpoint,
             "metrics": metrics
         },
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(UTC).isoformat()
     }
 
 
@@ -117,7 +119,7 @@ async def list_endpoint_metrics() -> Dict[str, Any]:
             "total_endpoints": len(endpoints),
             "endpoints": endpoint_summaries
         },
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(UTC).isoformat()
     }
 
 
@@ -133,7 +135,7 @@ async def get_active_alerts() -> Dict[str, Any]:
             "active_alerts": alerts,
             "alert_count": len(alerts)
         },
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(UTC).isoformat()
     }
 
 
@@ -146,7 +148,7 @@ async def reset_metrics() -> Dict[str, Any]:
     return {
         "status": "success",
         "message": "All metrics have been reset",
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(UTC).isoformat()
     }
 
 
@@ -201,7 +203,7 @@ async def performance_health_check() -> Dict[str, Any]:
                 "memory_usage": f"{metrics.memory_usage:.1%}"
             }
         },
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(UTC).isoformat()
     }
 
 
@@ -242,5 +244,138 @@ async def get_dashboard_data() -> Dict[str, Any]:
             "alerts": monitor.get_alerts(),
             "top_endpoints": endpoint_data
         },
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(UTC).isoformat()
+    }
+
+
+# ── Snapshot SLO endpoints ────────────────────────────────────────────────
+
+@router.get("/snapshot/baseline", response_model=Dict[str, Any])
+async def snapshot_baseline() -> Dict[str, Any]:
+    """Current latency and absence-rate baseline for snapshot operations.
+
+    All values are computed from an in-memory rolling window (default 24 h).
+    Returns zero-value metrics when the process has no observations yet.
+    """
+    tracker = get_snapshot_tracker()
+    return {
+        "status": "success",
+        "data": tracker.baseline(),
+        "timestamp": datetime.now(UTC).isoformat() + "Z",
+    }
+
+
+@router.get("/snapshot/slos", response_model=Dict[str, Any])
+async def snapshot_slos() -> Dict[str, Any]:
+    """Evaluate each snapshot SLO against the current baseline.
+
+    Overall status is the worst-case status across all SLOs.
+    Returns 'no_data' for SLOs whose metric has zero samples.
+    """
+    tracker = get_snapshot_tracker()
+    bl = tracker.baseline()
+
+    current_by_id = {
+        "snapshot.latency.save.p95": bl["save"]["p95_ms"],
+        "snapshot.latency.retrieve.p95": bl["retrieve"]["p95_ms"],
+        "snapshot.undue_absence_rate": bl["undue_absence"]["absence_rate_percent"],
+    }
+
+    slo_results = []
+    overall = "healthy"
+    _rank = {"no_data": 0, "healthy": 1, "degraded": 2, "critical": 3}
+
+    for slo in SNAPSHOT_SLOS:
+        current = current_by_id.get(slo.slo_id)
+        # Treat 0.0 as no_data for latency metrics (no samples yet)
+        effective = None if (current is None or current == 0.0) else current
+        status = slo.evaluate(effective)
+        slo_results.append(slo.to_dict(effective))
+        if _rank.get(status, 0) > _rank.get(overall, 1):
+            overall = status
+
+    return {
+        "status": "success",
+        "data": {
+            "slos": slo_results,
+            "overall_status": overall,
+            "sample_counts": {
+                "save": bl["save"]["sample_count"],
+                "retrieve": bl["retrieve"]["sample_count"],
+                "batch_save": bl["batch_save"]["sample_count"],
+            },
+        },
+        "timestamp": datetime.now(UTC).isoformat() + "Z",
+    }
+
+
+@router.post("/snapshot/record-undue-absence", response_model=Dict[str, Any])
+async def record_undue_absence() -> Dict[str, Any]:
+    """Increment the undue-absence counter.
+
+    Called by the E2E smoke suite after it detects a 404 on GET /snapshot
+    immediately following a confirmed successful save for the same ponto_id.
+    This endpoint is idempotent per call; each POST adds exactly one event.
+    """
+    get_snapshot_tracker().record_undue_absence()
+    return {"recorded": True, "timestamp": datetime.now(UTC).isoformat() + "Z"}
+
+
+@router.get("/snapshot/report", response_model=Dict[str, Any])
+async def snapshot_report() -> Dict[str, Any]:
+    """Structured baseline + SLO report suitable for CI output and auditing."""
+    tracker = get_snapshot_tracker()
+    bl = tracker.baseline()
+
+    current_by_id = {
+        "snapshot.latency.save.p95": bl["save"]["p95_ms"],
+        "snapshot.latency.retrieve.p95": bl["retrieve"]["p95_ms"],
+        "snapshot.undue_absence_rate": bl["undue_absence"]["absence_rate_percent"],
+    }
+
+    slo_summary = {}
+    recommendations = []
+    overall = "healthy"
+    _rank = {"no_data": 0, "healthy": 1, "degraded": 2, "critical": 3}
+
+    for slo in SNAPSHOT_SLOS:
+        current = current_by_id.get(slo.slo_id)
+        effective = None if (current is None or current == 0.0) else current
+        status = slo.evaluate(effective)
+        slo_summary[slo.slo_id] = {
+            "target": slo.target,
+            "current": effective,
+            "status": status,
+            "unit": slo.unit,
+        }
+        if _rank.get(status, 0) > _rank.get(overall, 1):
+            overall = status
+        if status == "critical":
+            recommendations.append(
+                f"CRITICAL: {slo.name} ({effective} {slo.unit}) exceeded "
+                f"critical threshold ({slo.threshold_critical} {slo.unit})."
+            )
+        elif status == "degraded":
+            recommendations.append(
+                f"WARNING: {slo.name} ({effective} {slo.unit}) exceeded "
+                f"degraded threshold ({slo.threshold_degraded} {slo.unit})."
+            )
+
+    return {
+        "status": "success",
+        "data": {
+            "overall_status": overall,
+            "baseline": {
+                "save_latency_p95_ms": bl["save"]["p95_ms"],
+                "save_latency_p99_ms": bl["save"]["p99_ms"],
+                "retrieve_latency_p95_ms": bl["retrieve"]["p95_ms"],
+                "retrieve_latency_p99_ms": bl["retrieve"]["p99_ms"],
+                "undue_absence_rate_percent": bl["undue_absence"]["absence_rate_percent"],
+                "save_attempts_total": bl["undue_absence"]["save_attempts_total"],
+                "window_hours": bl["window_hours"],
+            },
+            "slos": slo_summary,
+            "recommendations": recommendations,
+        },
+        "timestamp": datetime.now(UTC).isoformat() + "Z",
     }

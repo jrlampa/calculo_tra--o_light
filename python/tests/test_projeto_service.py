@@ -1,6 +1,6 @@
 """Unit tests for ProjetoService."""
 import pytest
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from models.projeto import Projeto, ProjetoCreate, ProjetoUpdate
@@ -28,20 +28,20 @@ class MockProjetoRepository:
     async def create(self, obj_in):
         projeto = Projeto(
             id=uuid4(),
-            **obj_in.dict(),
+            **obj_in.model_dump(),
             total_pontos=0,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC)
         )
         self.projetos[projeto.id] = projeto
         self.pontos_count[projeto.id] = 0
         return projeto
     
     async def update(self, db_obj, obj_in):
-        update_data = obj_in.dict(exclude_unset=True)
+        update_data = obj_in.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(db_obj, field, value)
-        db_obj.updated_at = datetime.utcnow()
+        db_obj.updated_at = datetime.now(UTC)
         self.projetos[db_obj.id] = db_obj
         return db_obj
     
@@ -65,7 +65,7 @@ class MockProjetoRepository:
         projeto = self.projetos.get(projeto_id)
         if projeto:
             return {
-                **projeto.dict(),
+                **projeto.model_dump(),
                 "total_pontos": self.pontos_count.get(projeto_id, 0)
             }
         return None
@@ -99,7 +99,7 @@ def sample_projeto_data():
         "endereco": "Test Address",
         "estudado_por": "Test User",
         "matricula": "12345",
-        "data_estudo": datetime.utcnow(),
+        "data_estudo": datetime.now(UTC),
         "owner_id": uuid4()
     }
 
@@ -117,14 +117,14 @@ class TestProjetoService:
             endereco="Test Address",
             estudado_por="Test User",
             matricula="12345",
-            data_estudo=datetime.utcnow(),
+            data_estudo=datetime.now(UTC),
             owner_id=sample_user_id
         )
         
         result = await projeto_service.create_projeto(projeto_data, sample_user_id)
         
         assert result.orgao == "Test Orgao"
-        assert result.ns == "Ns-001"  # Using actual result from mock
+        assert result.ns == "NS-001"
         assert result.nome == "Test Projeto"
         assert result.owner_id == sample_user_id
     

@@ -27,7 +27,7 @@ export const useProjetoState = () => {
     setProjetoAtual(null) // null indica que é um rascunho novo
     setCabecalho({ ...CABECALHO_INICIAL })
     setEtapa('projeto')
-    trackUxFunnelEvent('NEW_PROJECT_STARTED_LOCAL')
+    trackUxFunnelEvent(UX_FUNNEL_EVENTS.NEW_PROJECT_STARTED_LOCAL)
   }, [])
 
   // Confirmar dados iniciais do projeto (Ainda no modo Rascunho ou Persistência Inicial)
@@ -62,7 +62,7 @@ export const useProjetoState = () => {
         ponto: ''
       })
       setEtapa('calculo')
-      trackUxFunnelEvent('PROJECT_OPENED_FROM_DB', { id: projeto.id })
+      trackUxFunnelEvent(UX_FUNNEL_EVENTS.PROJECT_OPENED_FROM_DB, { id: projeto.id })
     } catch (err) {
       setProjetoState({ loading: false, error: 'Erro ao abrir projeto.' })
     } finally {
@@ -72,7 +72,7 @@ export const useProjetoState = () => {
 
   const handleExcluirProjeto = useCallback(async (id) => {
     await deleteProjeto(id)
-    trackUxFunnelEvent('PROJECT_DELETED_FROM_DB', { id })
+    trackUxFunnelEvent(UX_FUNNEL_EVENTS.PROJECT_DELETED_FROM_DB, { id })
   }, [])
 
   const handleEditarProjeto = useCallback((projeto) => {

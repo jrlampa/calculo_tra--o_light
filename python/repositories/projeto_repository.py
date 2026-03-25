@@ -84,9 +84,11 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
 
     @staticmethod
     def _to_dict(record: Any) -> Dict[str, Any]:
-        if isinstance(record, dict):
-            return record
-        return dict(record)
+        raw = record if isinstance(record, dict) else dict(record)
+        normalized: Dict[str, Any] = {}
+        for key, value in raw.items():
+            normalized[key] = str(value) if isinstance(value, UUID) else value
+        return normalized
     
     async def _log_activity(
         self, 
@@ -354,10 +356,8 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
     async def _get_ponto(self, ponto_id: str) -> Optional[Dict[str, Any]]:
         """Get ponto by ID (for testing)."""
         try:
-            contract = await self._get_column_contract()
-            deleted_filter = self._active_filter(contract["deleted"], alias="pt")
             result = await self.db.fetch_one(
-                f"SELECT * FROM pontos pt WHERE pt.id = $1{deleted_filter}",  # nosec B608
+                "SELECT * FROM pontos WHERE id = $1",
                 ponto_id
             )
             return self._to_dict(result) if result else None
@@ -367,15 +367,8 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
     async def _get_niveis_calculo(self, ponto_id: str) -> List[Dict[str, Any]]:
         """Get all niveis for a ponto (for testing)."""
         try:
-            contract = await self._get_column_contract()
-            deleted_filter = self._active_filter(contract["deleted"], alias="nc")
             result = await self.db.fetch_all(
-                f"""
-                SELECT nc.*
-                FROM niveis_calculo nc
-                WHERE nc.ponto_id = $1{deleted_filter}
-                ORDER BY nc.nivel
-                """,  # nosec B608
+                "SELECT * FROM niveis_calculo WHERE ponto_id = $1 ORDER BY nivel",
                 ponto_id
             )
             return [self._to_dict(row) for row in result]
@@ -385,15 +378,8 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
     async def _get_travessias(self, nivel_id: str) -> List[Dict[str, Any]]:
         """Get all travessias for a nivel (for testing)."""
         try:
-            contract = await self._get_column_contract()
-            deleted_filter = self._active_filter(contract["deleted"], alias="t")
             result = await self.db.fetch_all(
-                f"""
-                SELECT t.*
-                FROM travessias t
-                WHERE t.nivel_id = $1{deleted_filter}
-                ORDER BY t.posicao
-                """,  # nosec B608
+                "SELECT * FROM travessias WHERE nivel_id = $1 ORDER BY posicao",
                 nivel_id
             )
             return [self._to_dict(row) for row in result]
@@ -403,12 +389,108 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
     async def _get_resultado_calculo(self, ponto_id: str) -> Optional[Dict[str, Any]]:
         """Get resultado for a ponto (for testing)."""
         try:
-            contract = await self._get_column_contract()
-            deleted_filter = self._active_filter(contract["deleted"], alias="rc")
             result = await self.db.fetch_one(
-                f"SELECT * FROM resultados_calculo rc WHERE rc.ponto_id = $1{deleted_filter}",  # nosec B608
+                "SELECT * FROM resultados_calculo WHERE ponto_id = $1",
                 ponto_id
             )
             return self._to_dict(result) if result else None
         except Exception as e:
             raise RuntimeError(f"Error fetching resultado for ponto {ponto_id}: {e}")
+
+    async def save_ponto(
+        self,
+        projeto_id: str,
+        ponto: str,
+        tipo_poste: str,
+        modelo_poste: str,
+    ) -> Optional[str]:
+        """Persist a ponto delegating to the underlying DB client."""
+        saver = getattr(self.db, "save_ponto", None)
+        if saver is None:
+            raise RuntimeError("DB client does not implement save_ponto")
+
+        ponto_id = await saver(projeto_id, ponto, tipo_poste, modelo_poste)
+        if ponto_id:
+            return ponto_id
+
+        # Keep tests and retries idempotent: when (projeto_id, ponto) already exists,
+        # return the existing point id instead of propagating duplicate-insert behavior.
+        existing = await self.db.fetch_one(
+            "SELECT id::text AS id FROM pontos WHERE projeto_id = $1::uuid AND ponto = $2 LIMIT 1",
+            projeto_id,
+            ponto,
+        )
+        if existing:
+            existing_dict = self._to_dict(existing)
+            return existing_dict.get("id")
+        return None
+
+    async def save_calculo_snapshot(
+        self,
+        ponto_id: str,
+        niveis: List[Dict[str, Any]] | Any,
+        resultado: Dict[str, Any],
+    ) -> bool:
+        """Persist full snapshot (niveis/travessias/resultado) for a ponto."""
+        saver = getattr(self.db, "save_calculo_snapshot", None)
+        if saver is None:
+            raise RuntimeError("DB client does not implement save_calculo_snapshot")
+        normalized_niveis = self._normalize_niveis_payload(niveis)
+        return await saver(ponto_id, normalized_niveis, resultado)
+
+    @staticmethod
+    def _normalize_niveis_payload(niveis: Any) -> List[Dict[str, Any]]:
+        """Accept legacy CalculoInput payloads and normalize to niveis list."""
+        if isinstance(niveis, list):
+            return niveis
+
+        if hasattr(niveis, "model_dump"):
+            raw_payload = niveis.model_dump()
+        elif hasattr(niveis, "dict"):
+            raw_payload = niveis.dict()
+        elif isinstance(niveis, dict):
+            raw_payload = niveis
+        else:
+            return []
+
+        if not isinstance(raw_payload, dict):
+            return []
+
+        level_map = [
+            ("MT1", "mt1"),
+            ("MT2", "mt2"),
+            ("BT", "bt"),
+            ("BTZ", "btz"),
+            ("RAL", "ral"),
+        ]
+
+        normalized: List[Dict[str, Any]] = []
+        for nivel_label, key in level_map:
+            travessias_raw = raw_payload.get(key, [])
+            travessias: List[Dict[str, Any]] = []
+            for idx, item in enumerate(travessias_raw, start=1):
+                if hasattr(item, "model_dump"):
+                    trav = item.model_dump()
+                elif hasattr(item, "dict"):
+                    trav = item.dict()
+                elif isinstance(item, dict):
+                    trav = item
+                else:
+                    continue
+
+                trav = dict(trav)
+                trav.setdefault("posicao", idx)
+                travessias.append(trav)
+
+            altura_poste = travessias[0].get("altura_poste", 0.0) if travessias else 0.0
+            altura_ancoragem = travessias[0].get("altura_ancoragem", 0.0) if travessias else 0.0
+            normalized.append(
+                {
+                    "nivel": nivel_label,
+                    "altura_poste": altura_poste,
+                    "altura_ancoragem": altura_ancoragem,
+                    "travessias": travessias,
+                }
+            )
+
+        return normalized

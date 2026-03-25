@@ -1,4 +1,21 @@
-"""API documentation configuration and enhancements."""
+"""API documentation configuration and enhancements.
+
+The above functions configure and enhance the API documentation for a FastAPI application, providing
+custom OpenAPI schema, security schemes, tags descriptions, servers information, contact and license
+details, as well as custom Swagger UI and ReDoc endpoints.
+
+:param app: The `app` parameter in the provided code refers to an instance of the FastAPI class,
+which represents your FastAPI application. This instance is used to configure and enhance the API
+documentation by defining custom OpenAPI schemas, security schemes, tags descriptions, servers,
+contact information, license details, and custom
+:type app: FastAPI
+:return: The code provided defines functions for configuring and enhancing API documentation using
+FastAPI. The `custom_openapi_schema` function generates a custom OpenAPI schema with enhanced
+documentation details such as security schemes, tags descriptions, contact information, license
+info, and more. The `setup_api_documentation` function sets up the enhanced API documentation by
+defining a custom Swagger UI endpoint and a ReDoc documentation endpoint.
+"""
+
 from __future__ import annotations
 
 from typing import Dict, Any
@@ -10,7 +27,7 @@ def custom_openapi_schema(app: FastAPI) -> Dict[str, Any]:
     """Generate custom OpenAPI schema with enhanced documentation."""
     if app.openapi_schema:
         return app.openapi_schema
-    
+
     openapi_schema = get_openapi(
         title="Cálculo de Tração API",
         version="2.0.0",
@@ -43,107 +60,68 @@ def custom_openapi_schema(app: FastAPI) -> Dict[str, Any]:
         """,
         routes=app.routes,
     )
-    
+
     # Add custom schemas
     openapi_schema["components"]["schemas"]["ErrorResponse"] = {
         "type": "object",
         "properties": {
-            "error": {
-                "type": "string",
-                "description": "Error code"
-            },
-            "message": {
-                "type": "string", 
-                "description": "Error description"
-            },
-            "type": {
-                "type": "string",
-                "description": "Error type"
-            }
+            "error": {"type": "string", "description": "Error code"},
+            "message": {"type": "string", "description": "Error description"},
+            "type": {"type": "string", "description": "Error type"},
         },
-        "required": ["error", "message"]
+        "required": ["error", "message"],
     }
-    
+
     openapi_schema["components"]["schemas"]["SuccessResponse"] = {
         "type": "object",
         "properties": {
-            "data": {
-                "type": "object",
-                "description": "Response data"
-            },
-            "message": {
-                "type": "string",
-                "description": "Success message"
-            }
+            "data": {"type": "object", "description": "Response data"},
+            "message": {"type": "string", "description": "Success message"},
         },
-        "required": ["data"]
+        "required": ["data"],
     }
-    
+
     # Add security schemes
     openapi_schema["components"]["securitySchemes"] = {
         "BearerAuth": {
             "type": "http",
             "scheme": "bearer",
             "bearerFormat": "JWT",
-            "description": "JWT authentication token"
+            "description": "JWT authentication token",
         }
     }
-    
+
     # Add global security
     openapi_schema["security"] = [{"BearerAuth": []}]
-    
+
     # Add tags descriptions
     openapi_schema["tags"] = [
-        {
-            "name": "Projetos",
-            "description": "Gerenciamento de projetos de cálculo de tração"
-        },
-        {
-            "name": "Cálculo",
-            "description": "Endpoints para processamento de cálculos"
-        },
-        {
-            "name": "Public",
-            "description": "Endpoints públicos para lookup de dados"
-        },
-        {
-            "name": "Admin",
-            "description": "Endpoints administrativos"
-        },
-        {
-            "name": "Health",
-            "description": "Verificação de saúde do sistema"
-        },
-        {
-            "name": "Authentication",
-            "description": "Autenticação e gerenciamento de usuários"
-        }
+        {"name": "Projetos", "description": "Gerenciamento de projetos de cálculo de tração"},
+        {"name": "Cálculo", "description": "Endpoints para processamento de cálculos"},
+        {"name": "Public", "description": "Endpoints públicos para lookup de dados"},
+        {"name": "Admin", "description": "Endpoints administrativos"},
+        {"name": "Health", "description": "Verificação de saúde do sistema"},
+        {"name": "Authentication", "description": "Autenticação e gerenciamento de usuários"},
     ]
-    
+
     # Add servers
     openapi_schema["servers"] = [
-        {
-            "url": "http://localhost:8000",
-            "description": "Development server"
-        },
-        {
-            "url": "https://api.calculo-tracao.com",
-            "description": "Production server"
-        }
+        {"url": "http://localhost:8000", "description": "Development server"},
+        {"url": "https://api.calculo-tracao.com", "description": "Production server"},
     ]
-    
+
     # Add contact and license info
     openapi_schema["info"]["contact"] = {
         "name": "API Support",
         "email": "support@calculo-tracao.com",
-        "url": "https://calculo-tracao.com/support"
+        "url": "https://calculo-tracao.com/support",
     }
-    
+
     openapi_schema["info"]["license"] = {
         "name": "MIT",
-        "url": "https://opensource.org/licenses/MIT"
+        "url": "https://opensource.org/licenses/MIT",
     }
-    
+
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
@@ -151,14 +129,15 @@ def custom_openapi_schema(app: FastAPI) -> Dict[str, Any]:
 def setup_api_documentation(app: FastAPI) -> None:
     """Setup enhanced API documentation."""
     app.openapi = lambda: custom_openapi_schema(app)
-    
+
     # Add custom documentation endpoints
     @app.get("/docs", include_in_schema=False)
     async def custom_swagger_ui_html():
         """Custom Swagger UI."""
         from fastapi.responses import HTMLResponse
-        
-        return HTMLResponse("""
+
+        return HTMLResponse(
+            """
         <!DOCTYPE html>
         <html>
         <head>
@@ -201,14 +180,16 @@ def setup_api_documentation(app: FastAPI) -> None:
             </script>
         </body>
         </html>
-        """)
-    
+        """
+        )
+
     @app.get("/redoc", include_in_schema=False)
     async def redoc_html():
         """ReDoc documentation."""
         from fastapi.responses import HTMLResponse
-        
-        return HTMLResponse("""
+
+        return HTMLResponse(
+            """
         <!DOCTYPE html>
         <html>
         <head>
@@ -225,4 +206,5 @@ def setup_api_documentation(app: FastAPI) -> None:
             <script src="https://cdn.jsdelivr.net/npm/redoc@2.0.0/bundles/redoc.standalone.js"></script>
         </body>
         </html>
-        """)
+        """
+        )

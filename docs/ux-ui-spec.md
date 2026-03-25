@@ -1232,3 +1232,197 @@ Handoff de desenvolvimento:
 2. Atualizar status por agente em cada janela de revisao.
 3. Registrar decisao parcial com risco residual e owner.
 4. Bloquear release quando criterio critico estiver aberto.
+
+## 16. Especificacao UX/UI - Rollout Assistido e Confianca de Campo (P6)
+
+Data de referencia: 2026-03-24.
+
+Escopo: padronizar a experiencia de operacao assistida no fluxo
+Projeto -> Ponto -> Persistido -> Snapshot,
+com criterio objetivo para ampliar ou bloquear rollout,
+sem alterar layout principal de produto.
+
+### 1. Objetivo e contexto
+
+Objetivo do usuario:
+
+- Saber quando pode avancar com seguranca para o proximo ponto.
+- Entender rapidamente qual acao deve executar em caso de falha.
+- Operar com confianca mesmo em janela de liberacao controlada.
+
+Objetivo de negocio:
+
+- Reduzir risco de liberacao ampla com evidencia incompleta.
+- Aumentar previsibilidade do comite de decisao D+7.
+- Diminuir retrabalho operacional durante uso assistido.
+
+Criterios de sucesso:
+
+- Taxa de conclusao ponta a ponta no rollout assistido >= 95%.
+- Taxa de inconsistencia persistido x snapshot <= 1%.
+- Tempo medio para recuperar falha transitoria <= 60 s.
+- 0 casos de liberacao com criterio critico sem evidencia.
+
+Restricoes:
+
+- Sem mudanca de formula, dominio ou regra de paridade LIGHT.
+- Sem mudanca estrutural de layout.
+- Sem bypass de criterio critico em decisao de release.
+
+### 2. Decisoes UX/UI com justificativa
+
+#### 2.1 Modo assistido explicito no contexto operacional
+
+Decisao:
+
+- Exibir estado textual de operacao assistida
+  no bloco de status existente,
+  com nivel atual de confianca (estavel, monitorado, bloqueado).
+
+Justificativa:
+
+- Nielsen: Visibility of System Status.
+- Torna clara a condicao de operacao sem exigir leitura de ata externa.
+
+Impacto esperado:
+
+- Menor ambiguidade para operador em campo.
+
+#### 2.2 Proxima acao unica por classe de falha
+
+Decisao:
+
+- Cada classe de falha deve apontar um unico CTA recomendado:
+  tentar novamente, reconfirmar contexto, ou interromper e escalar.
+
+Justificativa:
+
+- Nielsen: Recognition rather than Recall.
+- Reduz decisao por tentativa e erro em ambiente critico.
+
+Impacto esperado:
+
+- Menor tempo de recuperacao e menor erro operacional.
+
+#### 2.3 Confianca de saida vinculada a evidencia automatica
+
+Decisao:
+
+- Estado "pronto para ampliar rollout" so aparece
+  quando os gates criticos estiverem aprovados no ciclo vigente.
+
+Justificativa:
+
+- Nielsen: Error Prevention.
+- Evita liberar escopo por percepcao subjetiva de estabilidade.
+
+Impacto esperado:
+
+- Decisao Go/No-Go mais previsivel e auditavel.
+
+### 3. Especificacao de implementacao
+
+#### 3.1 Escopo funcional
+
+Estados de rollout assistido:
+
+- assisted_stable: operacao assistida ativa sem bloqueio critico.
+- assisted_monitoring: operacao ativa com risco monitorado.
+- assisted_blocked: operacao assistida bloqueada por gate critico.
+- ready_for_partial_go: elegivel para Go parcial no comite.
+
+Sinais minimos necessarios:
+
+- resultado do gate de contrato.
+- resultado do gate de autenticacao/autorizacao.
+- resultado do gate de snapshot.
+- risco residual consolidado por checkpoint.
+
+#### 3.2 Modelo de interacao (sem alteracao de jornada)
+
+Fluxo principal:
+
+1. Usuario conclui persistencia do ponto.
+2. Sistema valida leitura de snapshot e status de gate.
+3. Bloco de status apresenta nivel de confianca assistida.
+4. Usuario recebe CTA unico para seguir, recuperar ou escalar.
+
+Fluxos alternativos:
+
+- Gate critico falhou: bloquear avancar ponto e orientar escalacao.
+- Falha transitoria: habilitar retry com tempo sugerido.
+- Falha de permissao: orientar reconfirmacao de contexto.
+
+#### 3.3 Criterios de aceite testaveis
+
+1. Estado assisted_blocked deve impedir avancar quando gate critico falhar.
+2. Estado ready_for_partial_go so pode surgir com 100% de gates criticos aprovados.
+3. Toda falha operacional deve mapear para apenas um CTA recomendado.
+4. Mudanca de estado assistido deve registrar evento auditavel.
+5. Decisao final D+7 deve refletir estado agregado sem override manual silencioso.
+
+#### 3.4 Regras de decisao operacional
+
+- Go parcial: contrato, auth e snapshot aprovados,
+  sem bloqueio critico aberto no ciclo.
+- No-Go: qualquer gate critico reprovado,
+  ou evidencia ausente em item obrigatorio.
+- Rollback assistido: incidente critico reabre estado assisted_blocked.
+
+#### 3.5 Instrumentacao minima
+
+Eventos minimos:
+
+- assisted_mode_status_changed.
+- assisted_mode_blocked.
+- assisted_mode_recovered.
+- partial_go_eligibility_changed.
+- d7_decision_published.
+
+Propriedades minimas:
+
+- operation_id, projeto_id, ponto_id, assisted_status,
+  gate_contract, gate_auth, gate_snapshot,
+  recommended_action, decision_window, timestamp.
+
+### 4. Responsividade (Desktop, Tablet, Mobile)
+
+Desktop:
+
+- Estado assistido visivel no header de status sem deslocar painel tecnico.
+- Mensagem de acao em uma linha com prioridade visual clara.
+
+Tablet:
+
+- Estado assistido abaixo do status principal,
+  mantendo leitura sequencial e sem sobrepor CTAs.
+
+Mobile:
+
+- Status assistido compacto e persistente no bloco superior.
+- CTA recomendado com alvo minimo de 44 px e distancia segura da action bar.
+
+### 5. Acessibilidade (WCAG 2.1 AA)
+
+Requisitos:
+
+- Estado assistido sempre expresso por texto + cor + icone.
+- Mudanca para assisted_blocked anunciada em aria-live assertive.
+- Ordem de foco: status principal -> status assistido -> CTA recomendado.
+- Mensagens de recuperacao com linguagem objetiva e sem ambiguidade.
+
+### 6. Entregaveis ativados
+
+Checklist de handoff aplicado:
+
+- Objetivo, escopo e sucesso definidos para rollout assistido.
+- Estados obrigatorios, regras de decisao e aceite testavel especificados.
+- Responsividade e WCAG documentados para Desktop, Tablet e Mobile.
+- Eventos e propriedades prontos para monitorar decisao D+7.
+
+Handoff de desenvolvimento:
+
+1. Integrar estado assistido ao bloco de status existente sem alterar layout base.
+2. Mapear cada classe de falha para um unico CTA operacional.
+3. Conectar elegibilidade de Go parcial aos gates criticos automatizados.
+4. Registrar eventos minimos para auditoria de rollout assistido.

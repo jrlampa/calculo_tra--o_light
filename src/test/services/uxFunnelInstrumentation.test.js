@@ -32,6 +32,24 @@ describe('uxFunnelInstrumentation', () => {
     expect(Number.isNaN(Date.parse(event.ts))).toBe(false)
   })
 
+  it('preserves operation and domain identifiers when provided', () => {
+    const event = buildUxFunnelEvent(UX_FUNNEL_EVENTS.PERSISTENCE_SAVED, {
+      operation_id: '11111111-1111-1111-1111-111111111111',
+      projeto_id: '22222222-2222-2222-2222-222222222222',
+      ponto_id: '33333333-3333-3333-3333-333333333333',
+    })
+
+    expect(event.properties.operation_id).toBe(
+      '11111111-1111-1111-1111-111111111111'
+    )
+    expect(event.properties.projeto_id).toBe(
+      '22222222-2222-2222-2222-222222222222'
+    )
+    expect(event.properties.ponto_id).toBe(
+      '33333333-3333-3333-3333-333333333333'
+    )
+  })
+
   it('ignores unknown event names', () => {
     const event = trackUxFunnelEvent('not_allowed_event', { foo: 'bar' })
 

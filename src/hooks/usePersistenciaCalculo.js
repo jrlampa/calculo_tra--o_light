@@ -4,7 +4,11 @@
  * @returns The `usePersistenciaCalculo` custom hook is returning an object with three properties:
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { buildSalvarCalculoPayload, persistCalculo } from '../services/calculoApi.js'
+import {
+  buildSalvarCalculoPayload,
+  getLastRequestContext,
+  persistCalculo,
+} from '../services/calculoApi.js'
 import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstrumentation.js'
 
 const PERSIST_WINDOW_MS = 5000
@@ -82,6 +86,7 @@ export default function usePersistenciaCalculo({ pontoId, lastPayload, resultado
 
     try {
       await persistCalculo(nextPersist.pontoId, nextPersist.payload)
+      const { operation_id: operationId } = getLastRequestContext()
       // Sucesso confirmado — limpa o pending somente se ainda for o mesmo item
       if (pendingPersistRef.current === nextPersist) {
         pendingPersistRef.current = null
@@ -98,6 +103,7 @@ export default function usePersistenciaCalculo({ pontoId, lastPayload, resultado
       }))
       trackUxFunnelEvent(UX_FUNNEL_EVENTS.PERSISTENCE_SAVED, {
         ponto_id: nextPersist.pontoId,
+        operation_id: operationId || null,
         has_queue: Boolean(pendingPersistRef.current),
       })
     } catch (err) {
@@ -118,6 +124,7 @@ export default function usePersistenciaCalculo({ pontoId, lastPayload, resultado
         retryCountRef.current = 0
         trackUxFunnelEvent(UX_FUNNEL_EVENTS.PERSISTENCE_FAILED, {
           ponto_id: nextPersist.pontoId,
+          operation_id: err.operationId || null,
           is_forbidden: true,
           will_retry: false,
           error: err.message || 'Acesso negado',
@@ -140,6 +147,7 @@ export default function usePersistenciaCalculo({ pontoId, lastPayload, resultado
           persistTimerRef.current = setTimeout(() => void flushPersistQueue(), backoffMs)
           trackUxFunnelEvent(UX_FUNNEL_EVENTS.PERSISTENCE_FAILED, {
             ponto_id: nextPersist.pontoId,
+            operation_id: err.operationId || null,
             is_forbidden: false,
             will_retry: true,
             retry_count: retryCountRef.current,
@@ -159,6 +167,7 @@ export default function usePersistenciaCalculo({ pontoId, lastPayload, resultado
           }))
           trackUxFunnelEvent(UX_FUNNEL_EVENTS.PERSISTENCE_FAILED, {
             ponto_id: nextPersist.pontoId,
+            operation_id: err.operationId || null,
             is_forbidden: false,
             will_retry: false,
             retry_count: MAX_RETRIES,

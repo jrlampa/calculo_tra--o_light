@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from models.projeto import Projeto
@@ -30,7 +30,7 @@ class FakeDB:
 
 
 def _sample_row_en() -> dict:
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     return {
         "id": uuid4(),
         "orgao": "Orgao A",
@@ -49,7 +49,7 @@ def _sample_row_en() -> dict:
 
 
 def _sample_row_ptbr() -> dict:
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     return {
         "id": uuid4(),
         "orgao": "Orgao B",

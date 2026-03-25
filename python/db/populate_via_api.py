@@ -8,11 +8,12 @@ from supabase import create_client, Client
 sys.path.append(str(Path(__file__).parent.parent))
 from translated.plan1_tables import CABOS_TABLE, POSTE_TABLE, REDE_TABLE
 
+
 def populate():
     load_dotenv()
     url = os.getenv("VITE_SUPABASE_URL")
     key = os.getenv("VITE_SUPABASE_ANON_KEY")
-    
+
     if not url or not key:
         print("Erro: VITE_SUPABASE_URL ou VITE_SUPABASE_ANON_KEY não encontradas no .env")
         return
@@ -21,11 +22,7 @@ def populate():
 
     print("--- Populando Cabos via API ---")
     for row in CABOS_TABLE:
-        data = {
-            "nome": row[0],
-            "diametro": row[1],
-            "peso": row[2]
-        }
+        data = {"nome": row[0], "diametro": row[1], "peso": row[2]}
         try:
             # Upsert using 'nome' as unique constraint (requires unique constraint in DB)
             res = supabase.table("cabos").upsert(data, on_conflict="nome").execute()
@@ -35,10 +32,7 @@ def populate():
 
     print("--- Populando Redes via API ---")
     for row in REDE_TABLE:
-        data = {
-            "tipo": row[0],
-            "descricao": f"Rede {row[0]}"
-        }
+        data = {"tipo": row[0], "descricao": f"Rede {row[0]}"}
         try:
             res = supabase.table("redes").upsert(data, on_conflict="tipo").execute()
             print(f"✅ Rede {row[0]} processada.")
@@ -55,15 +49,16 @@ def populate():
             carga = 0
             if len(parts) >= 2:
                 try:
-                    altura = float(parts[0].strip().split()[0].replace(',', '.'))
-                    carga = float(parts[1].strip().split()[0].replace(',', '.'))
-                except: pass
-            
+                    altura = float(parts[0].strip().split()[0].replace(",", "."))
+                    carga = float(parts[1].strip().split()[0].replace(",", "."))
+                except:
+                    pass
+
             data = {
                 "tipo": tipo,
                 "modelo": label,
                 "altura_m": altura,
-                "carga_admissivel_dan": carga
+                "carga_admissivel_dan": carga,
             }
             try:
                 # Postes table doesn't have a simple unique constraint for upsert in some migrations
@@ -74,6 +69,7 @@ def populate():
                 print(f"⚠️ Poste {label} talvez já exista ou erro: {e}")
 
     print("✅ Sincronização via API concluída!")
+
 
 if __name__ == "__main__":
     populate()

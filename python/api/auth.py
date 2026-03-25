@@ -1,5 +1,21 @@
-"""Authentication and authorization helpers for JWT and signed sessions."""
-from __future__ import annotations
+"""Authentication and authorization helpers for JWT and signed sessions.
+The provided code contains authentication and authorization helpers for JWT and signed sessions in a
+Python FastAPI application.
+
+:param var_name: The `var_name` parameter in the `_read_positive_int_env` and `_read_bool_env`
+functions is a string representing the name of the environment variable that you want to read the
+value from. It is used to retrieve the value of the specified environment variable from the system
+environment variables
+:type var_name: str
+:param default: The code you provided contains helper functions and classes for authentication and
+authorization using JWT and signed sessions in a FastAPI application. Here is a brief overview of
+the key components:
+:type default: int
+:return: The code snippet provided contains helper functions for authentication and authorization
+using JWT and signed sessions. It includes functions for reading environment variables, resolving
+secrets, creating and verifying session cookies, parsing JWT tokens, resolving current user
+information, requiring JWT for mutations, and handling admin access.
+"""
 
 import base64
 import hashlib
@@ -45,11 +61,10 @@ def _read_bool_env(var_name: str, default: bool) -> bool:
 
 def _is_production_environment() -> bool:
     env_name = (
-        os.getenv("APP_ENV")
-        or os.getenv("ENVIRONMENT")
-        or os.getenv("PYTHON_ENV")
-        or ""
-    ).strip().lower()
+        (os.getenv("APP_ENV") or os.getenv("ENVIRONMENT") or os.getenv("PYTHON_ENV") or "")
+        .strip()
+        .lower()
+    )
     return env_name in {"prod", "production"}
 
 
@@ -100,7 +115,7 @@ class CurrentUser(BaseModel):
 
     user_id: str = Field(..., description="Authenticated user UUID")
     role: str = Field(default="user", description="Caller role")
-    auth_source: Literal["jwt", "session"] = Field(
+    auth_source: Literal["jwt", "session", "anonymous", "admin_token"] = Field(
         default="session",
         description="Source used for authentication",
     )
@@ -391,12 +406,12 @@ def require_mutation_identity(
     Allow bypass if guest_mode is enabled (local dev/audit).
     """
     from core.config import get_settings
-    
+
     # Allow bypass if guest_mode is on and header matches
     guest_header = request.headers.get("X-Guest-Access", "").lower() == "true"
     if get_settings().guest_mode and guest_header:
         return user
-        
+
     if _should_require_jwt_for_mutations() and user.auth_source != "jwt":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

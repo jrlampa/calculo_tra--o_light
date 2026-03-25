@@ -11,6 +11,27 @@
  */
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 const GUEST_HEADERS = { ...JSON_HEADERS, 'X-Guest-Access': 'true' }
+const OPERATION_ID_HEADER = 'X-Operation-ID'
+
+let lastRequestContext = {
+  operation_id: null,
+  method: null,
+  url: null,
+  status: null,
+}
+
+function storeRequestContext(response, url, method) {
+  lastRequestContext = {
+    operation_id: response.headers.get(OPERATION_ID_HEADER),
+    method,
+    url,
+    status: response.status,
+  }
+}
+
+export function getLastRequestContext() {
+  return { ...lastRequestContext }
+}
 
 function toFloat(value) {
   if (value === '' || value === null || value === undefined) return null
@@ -37,6 +58,7 @@ async function parseErrorMessage(response, fallbackMessage) {
 }
 
 async function requestJson(url, options = {}, fallbackMessage) {
+  const method = options.method || 'GET'
   const response = await fetch(url, {
     credentials: 'include',
     ...options,
@@ -45,6 +67,8 @@ async function requestJson(url, options = {}, fallbackMessage) {
       ...(window.localStorage.getItem('guest_mode') === 'true' ? GUEST_HEADERS : {})
     }
   })
+
+  storeRequestContext(response, url, method)
 
   if (!response.ok) {
     const message = await parseErrorMessage(response, fallbackMessage)
@@ -57,6 +81,7 @@ async function requestJson(url, options = {}, fallbackMessage) {
       err.code = 'FORBIDDEN'
       err.isForbidden = true
     }
+    err.operationId = lastRequestContext.operation_id
     throw err
   }
 

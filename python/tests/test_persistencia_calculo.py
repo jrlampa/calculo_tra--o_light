@@ -4,7 +4,7 @@
 import pytest
 import asyncio
 from uuid import uuid4
-from datetime import datetime
+from datetime import UTC, datetime
 
 # Importar os schemas e serviços necessários
 from api.schemas import CalculoInput, ProjetoIn, PontoIn, NivelSalvarIn, TravessiaSalvarIn, ResultadoSalvarIn
@@ -140,7 +140,7 @@ class TestPersistenciaCalculo:
         resultado = self.criar_resultado_teste()
         
         # 4. Salvar cálculo
-        sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), calculo_input, resultado.dict())
+        sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), calculo_input, resultado.model_dump())
         assert sucesso is True
         
         # 5. Validar persistência
@@ -193,7 +193,7 @@ class TestPersistenciaCalculo:
             texto_total="Primeiro cálculo"
         )
         
-        sucesso1 = await self.repository.save_calculo_snapshot(str(ponto_id), [], resultado1.dict())
+        sucesso1 = await self.repository.save_calculo_snapshot(str(ponto_id), [], resultado1.model_dump())
         assert sucesso1 is True
         
         # Validar primeiro cálculo
@@ -224,7 +224,7 @@ class TestPersistenciaCalculo:
             texto_total="Segundo cálculo"
         )
         
-        sucesso2 = await self.repository.save_calculo_snapshot(str(ponto_id), [], resultado2.dict())
+        sucesso2 = await self.repository.save_calculo_snapshot(str(ponto_id), [], resultado2.model_dump())
         assert sucesso2 is True
         
         # Validar atualização
@@ -262,7 +262,7 @@ class TestPersistenciaCalculo:
             texto_total="Resultado detalhado"
         )
         
-        sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), [], resultado.dict())
+        sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), [], resultado.model_dump())
         assert sucesso is True
         
         # Validar consistência dos dados
@@ -319,8 +319,8 @@ class TestPersistenciaCalculo:
         )
         
         # Salvar cálculos em ambos os pontos
-        sucesso1 = await self.repository.save_calculo_snapshot(str(ponto_id1), [], resultado1.dict())
-        sucesso2 = await self.repository.save_calculo_snapshot(str(ponto_id2), [], resultado2.dict())
+        sucesso1 = await self.repository.save_calculo_snapshot(str(ponto_id1), [], resultado1.model_dump())
+        sucesso2 = await self.repository.save_calculo_snapshot(str(ponto_id2), [], resultado2.model_dump())
         
         assert sucesso1 is True
         assert sucesso2 is True
@@ -356,19 +356,18 @@ class TestPersistenciaCalculo:
         ]
         
         for teste in testes_validacao:
-            resultado = ResultadoSalvarIn(
-                mt1_tracao=100.0, mt1_angulo=0.0, mt2_tracao=100.0, mt2_angulo=0.0,
-                bt_tracao=50.0, bt_angulo=0.0, btz_tracao=30.0, btz_angulo=0.0,
-                ral_tracao=20.0, ral_angulo=0.0,
-                total_tracao=teste.get('total_tracao', 300.0),
-                total_angulo=teste.get('total_angulo', 0.0),
-                poste_ecc=teste.get('poste_ecc', 150.0),
-                texto_mt1="Teste", texto_mt2="Teste", texto_bt="Teste",
-                texto_btz="Teste", texto_ral="Teste", texto_total="Teste"
-            )
-            
             try:
-                sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), [], resultado.dict())
+                resultado = ResultadoSalvarIn(
+                    mt1_tracao=100.0, mt1_angulo=0.0, mt2_tracao=100.0, mt2_angulo=0.0,
+                    bt_tracao=50.0, bt_angulo=0.0, btz_tracao=30.0, btz_angulo=0.0,
+                    ral_tracao=20.0, ral_angulo=0.0,
+                    total_tracao=teste.get('total_tracao', 300.0),
+                    total_angulo=teste.get('total_angulo', 0.0),
+                    poste_ecc=teste.get('poste_ecc', 150.0),
+                    texto_mt1="Teste", texto_mt2="Teste", texto_bt="Teste",
+                    texto_btz="Teste", texto_ral="Teste", texto_total="Teste"
+                )
+                sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), [], resultado.model_dump())
                 if teste['expected_error']:
                     assert sucesso is False, f"Deveria ter falhado para valores: {teste}"
                 else:

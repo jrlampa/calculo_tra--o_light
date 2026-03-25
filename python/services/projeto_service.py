@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 from uuid import UUID, uuid4
-from datetime import datetime
+from datetime import UTC, datetime
 
 from models.projeto import Projeto, ProjetoCreate, ProjetoUpdate
 from repositories.projeto_repository import ProjetoRepository
@@ -49,15 +49,15 @@ class ProjetoService:
         # Business validation
         await self._validate_projeto_data(projeto_in)
         
-        # Ensure owner_id matches authenticated user
-        projeto_in.owner_id = user_id
+        # Ensure owner_id matches authenticated user without mutating input model.
+        projeto_payload = projeto_in.model_copy(update={"owner_id": user_id})
         
         # Check for duplicate NS (if needed)
-        existing = await self._check_duplicate_ns(projeto_in.ns, user_id)
+        existing = await self._check_duplicate_ns(projeto_payload.ns, user_id)
         if existing:
-            raise ValidationError(f"Projeto com NS '{projeto_in.ns}' já existe")
+            raise ValidationError(f"Projeto com NS '{projeto_payload.ns}' já existe")
         
-        return await self.projeto_repository.create(projeto_in)
+        return await self.projeto_repository.create(projeto_payload)
     
     async def update_projeto(
         self, 
@@ -128,7 +128,7 @@ class ProjetoService:
 
         # Validate matricula: minimum 1 character (relaxed for guest mode defaults)
         if len(projeto_in.matricula) < 1:
-            raise ValidationError("Matrícula não pode ser vazia")
+            raise ValidationError("Erro de validação: Matrícula não pode ser vazia")
 
         # Validate study date is not in future - this is now handled by Pydantic validator
         # but we keep this for additional safety and custom error messages
@@ -136,7 +136,7 @@ class ProjetoService:
             try:
                 # Handle string format (consistent with Pydantic model change)
                 dt = datetime.strptime(projeto_in.data_estudo, "%d/%m/%Y")
-                if dt > datetime.utcnow():
+                if dt.date() > datetime.now(UTC).date():
                     raise ValidationError("Data de estudo não pode estar no futuro")
             except (ValueError, TypeError):
                 raise ValidationError("Formato de data inválido. Use DD/MM/AAAA")

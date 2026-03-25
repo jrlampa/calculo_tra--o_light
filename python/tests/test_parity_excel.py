@@ -6,6 +6,7 @@ import asyncio
 import pandas as pd
 from uuid import uuid4
 from datetime import datetime
+import copy
 
 # Importar os schemas e serviços necessários
 from api.schemas import PontoIn, NivelSalvarIn, TravessiaSalvarIn, ResultadoSalvarIn
@@ -140,7 +141,7 @@ class TestParityExcel:
     async def criar_ponto_referencia(self, projeto, dados_excel):
         """Cria um ponto de referência baseado nos dados do Excel."""
         ponto_in = PontoIn(**dados_excel["ponto"])
-        ponto_id = await self.repository.save_ponto(
+        ponto_id = await self.supabase_client.save_ponto(
             str(projeto.id), 
             ponto_in.ponto, 
             ponto_in.tipo_poste, 
@@ -215,7 +216,7 @@ class TestParityExcel:
         resultado_schema = self.criar_resultado_schema(dados_excel["resultado_esperado"])
         
         # 4. Salvar cálculo no Supabase
-        sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), niveis_schema, resultado_schema.dict())
+        sucesso = await self.supabase_client.save_calculo_snapshot(str(ponto_id), niveis_schema, resultado_schema.model_dump())
         assert sucesso is True
         
         # 5. Validar paridade
@@ -279,7 +280,7 @@ class TestParityExcel:
         # Criar múltiplos projetos com variações
         projetos_criados = []
         for i in range(3):
-            dados_variacao = dados_excel.copy()
+            dados_variacao = copy.deepcopy(dados_excel)
             dados_variacao["projeto"]["ns"] = f"REF-00{i+1}"
             dados_variacao["projeto"]["nome"] = f"Projeto Referência {i+1}"
             
@@ -293,7 +294,7 @@ class TestParityExcel:
             niveis_schema = self.converter_niveis_excel_para_schema(dados_variacao["niveis"])
             resultado_schema = self.criar_resultado_schema(dados_variacao["resultado_esperado"])
             
-            sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), niveis_schema, resultado_schema.dict())
+            sucesso = await self.supabase_client.save_calculo_snapshot(str(ponto_id), niveis_schema, resultado_schema.model_dump())
             assert sucesso is True
             
             projetos_criados.append((projeto, ponto_id, dados_variacao))
@@ -317,7 +318,7 @@ class TestParityExcel:
         niveis_schema = self.converter_niveis_excel_para_schema(dados_excel["niveis"])
         resultado_schema = self.criar_resultado_schema(dados_excel["resultado_esperado"])
         
-        sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), niveis_schema, resultado_schema.dict())
+        sucesso = await self.supabase_client.save_calculo_snapshot(str(ponto_id), niveis_schema, resultado_schema.model_dump())
         assert sucesso is True
         
         resultado_salvo = await self.repository._get_resultado_calculo(str(ponto_id))
@@ -347,7 +348,7 @@ class TestParityExcel:
         niveis_schema = self.converter_niveis_excel_para_schema(dados_excel["niveis"])
         resultado_schema = self.criar_resultado_schema(dados_excel["resultado_esperado"])
         
-        sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), niveis_schema, resultado_schema.dict())
+        sucesso = await self.supabase_client.save_calculo_snapshot(str(ponto_id), niveis_schema, resultado_schema.model_dump())
         assert sucesso is True
         
         resultado_salvo = await self.repository._get_resultado_calculo(str(ponto_id))
@@ -374,7 +375,7 @@ class TestParityExcel:
         niveis_schema = self.converter_niveis_excel_para_schema(dados_excel["niveis"])
         resultado_schema = self.criar_resultado_schema(dados_excel["resultado_esperado"])
         
-        sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), niveis_schema, resultado_schema.dict())
+        sucesso = await self.supabase_client.save_calculo_snapshot(str(ponto_id), niveis_schema, resultado_schema.model_dump())
         assert sucesso is True
         
         resultado_salvo = await self.repository._get_resultado_calculo(str(ponto_id))

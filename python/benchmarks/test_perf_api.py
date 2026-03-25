@@ -8,6 +8,7 @@ Usage:
     pytest python/benchmarks/test_perf_api.py --benchmark-histogram
     pytest python/benchmarks/test_perf_api.py --benchmark-compare=0001
 """
+
 import asyncio
 import json
 from uuid import uuid4

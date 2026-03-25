@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
 # import aiohttp (DISABLED: Host dependency issues)
 from pydantic import BaseModel, Field
@@ -194,7 +194,7 @@ class OllamaClient:
                 response_message = ChatMessage(
                     role=data["message"]["role"],
                     content=data["message"]["content"],
-                    timestamp=datetime.utcnow()
+                    timestamp=datetime.now(UTC)
                 )
                 
                 return ChatResponse(
