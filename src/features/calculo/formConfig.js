@@ -1,3 +1,5 @@
+/* This JavaScript code snippet is defining various constants and functions related to electrical
+network infrastructure. Here's a breakdown of what each part of the code is doing: */
 export const CAMPOS_MT = [
   { campo: 'tipoRede', label: 'Tipo de rede', unidade: '', isDropdown: true, configKey: 'redes' },
   { campo: 'tipoCabo', label: 'Tipo de cabo', unidade: '', isDropdown: true, configKey: 'cabos' },

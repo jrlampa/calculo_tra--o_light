@@ -1,4 +1,24 @@
 /**
+ * The `useCalculo` React hook sends form state to a FastAPI endpoint for computation and returns the
+ * computed result along with loading and error states.
+ * @param formState - The `formState` parameter in the `useCalculo` hook represents the state of a form
+ * that contains the data needed for a calculation. This form state is used to build a request payload
+ * that is sent to the FastAPI endpoint for computation. The form state typically includes the input
+ * values required for
+ * @param [debounceMs=600] - The `debounceMs` parameter in the `useCalculo` hook is used to specify the
+ * delay in milliseconds before making the API request after the form state has been updated. This
+ * delay helps in reducing the number of API calls made in quick succession, especially when the form
+ * state is changing rapidly.
+ * @param [enabled=true] - The `enabled` parameter in the `useCalculo` hook is a boolean value that
+ * determines whether the hook should be active or not. When `enabled` is set to `true`, the hook will
+ * send the form state to the FastAPI endpoint for calculation. If `enabled` is set to
+ * @returns The `useCalculo` hook returns an object with the following properties:
+ * - `resultado`: The computed result from the FastAPI endpoint.
+ * - `loading`: A boolean indicating whether the request is currently loading.
+ * - `error`: Any error message encountered during the request.
+ * - `lastPayload`: The last payload sent to the FastAPI endpoint.
+ */
+/**
  * useCalculo.js – React hook that sends form state to the FastAPI /calcular
  * endpoint and returns the computed resultado.
  */

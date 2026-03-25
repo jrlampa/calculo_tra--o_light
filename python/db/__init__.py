@@ -1,4 +1,14 @@
-"""Database module for Supabase integration."""
-from .supabase_client import SupabaseClient, get_supabase_client
+"""
+Database module initialization.
+This module provides database connection and client management.
+"""
 
-__all__ = ["SupabaseClient", "get_supabase_client"]
+from .supabase_client import get_supabase_client, SupabaseClient
+from .pool import get_connection_pool, close_connection_pool
+
+__all__ = [
+    'get_supabase_client',
+    'SupabaseClient', 
+    'get_connection_pool',
+    'close_connection_pool'
+]

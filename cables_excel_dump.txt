@@ -1,0 +1,31 @@
+1/0-AWG, MTX-BT
+1/0AWG-CAA, Nu
+1/0AWG-CAA, PVC
+1/0AWG-CAA, XLPE, 13,8 kV
+10 mm² - Bipolar
+10 mm² - Tetrapolar
+16 mm² - Bipolar
+16 mm² - Tetrapolar
+185mm², MTX-BT
+185mm², MTX-MT, 12/20 kV
+185mm², MTX-MT, 20/35 kV
+240mm², MTX-BT
+3/0-AWG, MTX-BT
+397MCM-CA, Nu
+397MCM-CA, PVC
+397MCM-CA, XLPE, 13,8 kV
+397MCM-CA, XLPE, 34,5 kV
+4 AWG-CAA, Nu
+4 AWG-CAA, XLPE, 13,8 kV
+4-AWG, MTX-BT
+4/0-AWG, MTX-BT
+50mm², MTX-MT, 12/20 kV
+556MCM-CA, Nu
+6-AWG, MTX-BT  - Duplex
+6-AWG, MTX-BT  - Quadriplex
+6-AWG, MTX-BT  - Triplex
+70mm², MTX-BT
+Cabo armado 240mm²
+Cabo armado 25mm²
+Cabo armado 50mm²
+Cabo armado 95mm²

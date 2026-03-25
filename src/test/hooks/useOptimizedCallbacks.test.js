@@ -1,3 +1,6 @@
+/* This code snippet is a test suite written in JavaScript using the `vitest` testing library. It is
+testing the functionality of three custom hooks: `useOptimizedCallback`, `useStableObject`, and
+`useStableArray` which are imported from the `@/hooks/useOptimizedCallbacks` module. */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useOptimizedCallback, useStableObject, useStableArray } from '@/hooks/useOptimizedCallbacks'

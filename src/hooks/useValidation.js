@@ -1,3 +1,20 @@
+/**
+ * The above code defines custom hooks for form validation and traversal validation in React.
+ * @param [initialValues] - The `initialValues` parameter in the `useValidation` hook refers to the
+ * initial values of the form fields that you want to validate. It is an object where each key
+ * represents a form field and the corresponding value is the initial value of that field.
+ * @param [validationRules] - The `validationRules` parameter is an object that contains the rules for
+ * validating each field in a form. Each key in the object represents a field in the form, and the
+ * corresponding value is an object that defines the validation rules for that field. Here are the
+ * possible validation rules that can be defined for
+ * @returns The `useValidation` hook returns an object with the following properties and functions:
+ * - `values`: current form values
+ * - `errors`: validation errors for each field
+ * - `touched`: tracks which fields have been touched
+ * - `isValid`: boolean indicating if the form is valid
+ * - `isDirty`: boolean indicating if the form has been modified
+ * - `setValue`: function to update a
+ */
 import { useState, useCallback, useMemo } from 'react'
 
 /**

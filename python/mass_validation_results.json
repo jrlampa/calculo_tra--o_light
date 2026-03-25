@@ -1,14 +1,14 @@
 [
     {
         "file": "CLANDESTINO - RUA JERUSAL\u00c9M - PROJETO I - POSTE 1.xlsm",
-        "calc_tr": 18.49,
+        "calc_tr": 84.34,
         "gold_tr": null,
         "parity": true,
         "status": "SUCCESS"
     },
     {
         "file": "CLANDESTINO - RUA JERUSAL\u00c9M - PROJETO I - POSTE 10.xlsm",
-        "calc_tr": 20.09,
+        "calc_tr": 40.32,
         "gold_tr": null,
         "parity": true,
         "status": "SUCCESS"
@@ -43,7 +43,7 @@
     },
     {
         "file": "CLANDESTINO - RUA JERUSAL\u00c9M - PROJETO I - POSTE 15.xlsm",
-        "calc_tr": 20.09,
+        "calc_tr": 1018.73,
         "gold_tr": null,
         "parity": true,
         "status": "SUCCESS"
@@ -78,7 +78,7 @@
     },
     {
         "file": "CLANDESTINO - RUA JERUSAL\u00c9M - PROJETO I - POSTE 2.xlsm",
-        "calc_tr": 23.27,
+        "calc_tr": 574.74,
         "gold_tr": null,
         "parity": true,
         "status": "SUCCESS"
@@ -99,21 +99,21 @@
     },
     {
         "file": "CLANDESTINO - RUA JERUSAL\u00c9M - PROJETO I - POSTE 3.xlsm",
-        "calc_tr": 18.49,
+        "calc_tr": 308.3,
         "gold_tr": null,
         "parity": true,
         "status": "SUCCESS"
     },
     {
         "file": "CLANDESTINO - RUA JERUSAL\u00c9M - PROJETO I - POSTE 4.xlsm",
-        "calc_tr": 18.49,
+        "calc_tr": 159.45,
         "gold_tr": null,
         "parity": true,
         "status": "SUCCESS"
     },
     {
         "file": "CLANDESTINO - RUA JERUSAL\u00c9M - PROJETO I - POSTE 5.xlsm",
-        "calc_tr": 18.49,
+        "calc_tr": 260.08,
         "gold_tr": null,
         "parity": true,
         "status": "SUCCESS"
@@ -127,21 +127,21 @@
     },
     {
         "file": "CLANDESTINO - RUA JERUSAL\u00c9M - PROJETO I - POSTE 7.xlsm",
-        "calc_tr": 18.49,
+        "calc_tr": 32.88,
         "gold_tr": null,
         "parity": true,
         "status": "SUCCESS"
     },
     {
         "file": "CLANDESTINO - RUA JERUSAL\u00c9M - PROJETO I - POSTE 8.xlsm",
-        "calc_tr": 18.49,
+        "calc_tr": 124.48,
         "gold_tr": null,
         "parity": true,
         "status": "SUCCESS"
     },
     {
         "file": "CLANDESTINO - RUA JERUSAL\u00c9M - PROJETO I - POSTE 9.xlsm",
-        "calc_tr": 18.49,
+        "calc_tr": 167.46,
         "gold_tr": null,
         "parity": true,
         "status": "SUCCESS"
@@ -197,7 +197,7 @@
     },
     {
         "file": "CLANDESTINO - RUA UVA - PROJETO II - POSTE 29.xlsm",
-        "calc_tr": 20.09,
+        "calc_tr": 1018.73,
         "gold_tr": null,
         "parity": true,
         "status": "SUCCESS"
@@ -225,21 +225,21 @@
     },
     {
         "file": "CLANDESTINO - RUA UVA - PROJETO II - POSTE 33.xlsm",
-        "calc_tr": 18.49,
+        "calc_tr": 167.46,
         "gold_tr": null,
         "parity": true,
         "status": "SUCCESS"
     },
     {
         "file": "CLANDESTINO - RUA UVA - PROJETO II - POSTE 34.xlsm",
-        "calc_tr": 18.49,
+        "calc_tr": 118.03,
         "gold_tr": null,
         "parity": true,
         "status": "SUCCESS"
     },
     {
         "file": "CLANDESTINO - RUA UVA - PROJETO II - POSTE 35.xlsm",
-        "calc_tr": 20.09,
+        "calc_tr": 149.42,
         "gold_tr": null,
         "parity": true,
         "status": "SUCCESS"
@@ -260,49 +260,49 @@
     },
     {
         "file": "CLANDESTINO - RUA UVA - PROJETO II - POSTE 38.xlsm",
-        "calc_tr": 18.49,
+        "calc_tr": 25.42,
         "gold_tr": null,
         "parity": true,
         "status": "SUCCESS"
     },
     {
         "file": "CLANDESTINO - RUA UVA - PROJETO II - POSTE 39.xlsm",
-        "calc_tr": 20.09,
+        "calc_tr": 71.08,
         "gold_tr": null,
         "parity": true,
         "status": "SUCCESS"
     },
     {
         "file": "CLANDESTINO - RUA UVA - PROJETO II - POSTE 40.xlsm",
-        "calc_tr": 18.49,
+        "calc_tr": 124.48,
         "gold_tr": null,
         "parity": true,
         "status": "SUCCESS"
     },
     {
         "file": "CLANDESTINO - RUA UVA - PROJETO II - POSTE 41.xlsm",
-        "calc_tr": 18.49,
+        "calc_tr": 42.67,
         "gold_tr": null,
         "parity": true,
         "status": "SUCCESS"
     },
     {
         "file": "CLANDESTINO - RUA UVA - PROJETO II - POSTE 42.xlsm",
-        "calc_tr": 23.27,
+        "calc_tr": 587.98,
         "gold_tr": null,
         "parity": true,
         "status": "SUCCESS"
     },
     {
         "file": "CLANDESTINO - RUA UVA - PROJETO II - POSTE 43.xlsm",
-        "calc_tr": 23.27,
+        "calc_tr": 960.56,
         "gold_tr": null,
         "parity": true,
         "status": "SUCCESS"
     },
     {
         "file": "CLANDESTINO - RUA UVA - PROJETO II - POSTE 44.xlsm",
-        "calc_tr": 23.27,
+        "calc_tr": 772.21,
         "gold_tr": null,
         "parity": true,
         "status": "SUCCESS"

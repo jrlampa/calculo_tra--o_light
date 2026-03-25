@@ -1,3 +1,13 @@
+/**
+ * The above code defines custom React hooks for performance monitoring, detecting unnecessary
+ * re-renders, and optimizing large lists with virtualization.
+ * @returns The `usePerformanceMonitor` hook returns an object with the following properties and
+ * functions:
+ * - `metrics`: Object containing performance metrics such as render count, last render time, average
+ * render time, and slow renders.
+ * - `startTimer`: Function that starts a performance timer and returns the start time.
+ * - `endTimer`: Function that ends a performance timer, calculates the duration, and logs a warning if
+ */
 import { useState, useEffect, useRef, useCallback } from 'react'
 
 /**

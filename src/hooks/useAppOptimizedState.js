@@ -1,3 +1,9 @@
+/**
+ * The `useAppOptimizedState` function in the provided JavaScript code is a complex custom hook that
+ * optimizes state management for a specific application by partitioning state, handling calculations,
+ * persistence, undo functionality, and providing data for various components.
+ * @returns The `useAppOptimizedState` hook returns an object with the following properties:
+ */
 import { useMemo, useCallback, useEffect, useRef } from 'react'
 import useCalculo from './useCalculo.js'
 import usePersistenciaCalculo from './usePersistenciaCalculo.js'
@@ -48,10 +54,12 @@ export const useAppOptimizedState = () => {
   )
   
   // 4. Persistência (Depende de resultado e lastPayload)
+  // Se for rascunho (projetoAtual é null), desativa autoSave
   const { persistencia, resetPersistencia, flushPersistQueue } = usePersistenciaCalculo({
     pontoId: pontoState.pontoAtual?.id,
     lastPayload,
     resultado,
+    autoSave: !!projetoState.projetoAtual
   })
 
   // Vincular a implementação real ao proxy
@@ -141,6 +149,50 @@ export const useAppOptimizedState = () => {
     pontoState.handlers.resetPonto()
     resetPersistencia()
   }, [formState.handlers, pontoState.handlers, resetPersistencia])
+
+  // Handler mestre para PERSISTÊNCIA EM LOTE (Salvar Tudo)
+  const handleSalvarTudo = useCallback(async () => {
+    try {
+      const projId = projetoState.projetoAtual?.id
+      
+      trackUxFunnelEvent('BATCH_SAVE_START', { projeto_id: projId })
+      
+      const payload = calculoApi.buildBatchPayload(
+        projId,
+        formState,
+        resultado
+      )
+
+      const res = await calculoApi.batchSaveCalculo(payload)
+
+      // Atualizar estados locais se for um novo projeto
+      if (!projId && res.projeto_id) {
+        // Buscar detalhes do projeto para o estado
+        const todos = await calculoApi.listProjetos(100, 0)
+        const novo = todos.find(p => p.id === res.projeto_id)
+        if (novo) {
+          projetoState.handlers.handleAbrirProjeto(novo)
+        }
+      }
+
+      // Notificar sucesso via persistencia status
+      trackUxFunnelEvent('BATCH_SAVE_SUCCESS')
+      
+      // Forçar refresh no dashboard se necessário ou apenas marcar como salvo
+      // Para manter a UI reativa, poderíamos forçar um 'saved' no usePersistenciaCalculo
+      // Mas o mais limpo é o componente saber que terminou.
+      return res
+    } catch (err) {
+      console.error('Falha no salvamento atômico:', err)
+      trackUxFunnelEvent('BATCH_SAVE_ERROR', { error: err.message })
+      throw err
+    }
+  }, [projetoState.projetoAtual?.id, projetoState.handlers, formState, resultado])
+    } catch (err) {
+      console.error('Erro no Salvar Tudo:', err)
+      trackUxFunnelEvent('BATCH_SAVE_FAILED', { error: err.message })
+    }
+  }, [projetoState, pontoState, flushPersistQueue])
 
   // Handler para próximo ponto
   const handleProximoPonto = useCallback(() => {
@@ -308,7 +360,7 @@ export const useAppOptimizedState = () => {
     
     // Mobile Action Bar
     mobileActionBar: {
-      onConfirm: () => flushPersistQueue(),
+      onConfirm: handleSalvarTudo, // Agora usa o Salvar Tudo (que inclui criar projeto/ponto se necessário)
       onRetry: persistencia.canRetry ? handleManualPersistRetry : undefined,
       onNextPoint: persistencia.status === 'saved' ? handleProximoPonto : undefined,
       statusPersistencia: persistencia.status,

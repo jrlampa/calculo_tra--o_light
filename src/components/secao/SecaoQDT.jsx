@@ -1,3 +1,7 @@
+/**
+ * The SecaoQDT function in JavaScript React renders a section for calculating voltage drop percentage
+ * with input fields and displays the calculated results.
+ */
 import React from 'react'
 
 export default function SecaoQDT({ dados, onChange, resultado }) {

@@ -1,3 +1,5 @@
+/* This code snippet is a React functional component named `TelaProjetoInicial` that represents a
+screen for initial project setup. Here's a breakdown of what the code is doing: */
 import React, { useEffect, useRef } from 'react'
 
 const CAMPOS_PROJETO = [
@@ -10,7 +12,7 @@ const CAMPOS_PROJETO = [
   { id: 'data', label: 'Data', placeholder: 'dd/mm/aaaa' },
 ]
 
-export default function TelaProjetoInicial({ dados, onChange, onConfirm, onGuestConfirm, loading, error }) {
+export default function TelaProjetoInicial({ dados, onChange, onConfirm, onGuestConfirm, onBack, loading, error }) {
   const projetoInputRef = useRef(null)
   const projetoErrorId = 'project-projeto-error'
   const hasProjetoError = Boolean(error)
@@ -63,23 +65,26 @@ export default function TelaProjetoInicial({ dados, onChange, onConfirm, onGuest
           ))}
 
           <div className="project-form-footer">
-            <p className="project-helper">A confirmação cria o projeto via API antes de liberar a tela de cálculo.</p>
-            <div className="project-form-actions">
-              {error ? (
-                <p id={projetoErrorId} className="project-error" role="alert">
-                  {error}
-                </p>
-              ) : null}
-              
+            <p className="project-helper">O projeto será mantido localmente até que você decida salvar todos os dados no banco.</p>
+            <div className="project-form-actions flex gap-3">
+              <button 
+                type="button" 
+                onClick={onBack}
+                className="project-submit bg-gray-700 hover:bg-gray-600 border-gray-600"
+                disabled={loading}
+              >
+                Voltar
+              </button>
+
               <div className="flex flex-col gap-2 w-full">
                 <button 
                   type="submit" 
                   id="project-submit-btn"
                   className="project-submit" 
                   disabled={loading}
-                  aria-label={loading ? 'Salvando projeto' : 'Confirmar dados e iniciar cálculo'}
+                  aria-label={loading ? 'Preparando rascunho' : 'Iniciar cálculo'}
                 >
-                  {loading ? 'Salvando projeto...' : 'Confirmar e iniciar cálculo'}
+                  {loading ? 'Preparando...' : 'Iniciar cálculo 🚀'}
                 </button>
 
                 {import.meta.env.DEV && (
@@ -89,7 +94,7 @@ export default function TelaProjetoInicial({ dados, onChange, onConfirm, onGuest
                     onClick={onGuestConfirm}
                     disabled={loading}
                   >
-                    Entrar como Convidado (Bypass JWT)
+                    Bypass Login (Convidado)
                   </button>
                 )}
               </div>

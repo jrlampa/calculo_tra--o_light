@@ -1,3 +1,6 @@
+/* This code defines a React component called `SecaoNivel`, which represents a generic section for
+network level (MT1, MT2, BT, Ramais). The component renders a section with a title, a table of data
+with multiple rows and columns, and a footer displaying a result label and an optional note. */
 // SecaoNivel.jsx — Seção genérica de nível de rede (MT1, MT2, BT, Ramais)
 // Layout fiel ao Excel: label alinhado à esquerda, inputs cinza, unidade à direita
 import React from 'react'

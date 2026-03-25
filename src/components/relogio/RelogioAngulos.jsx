@@ -1,3 +1,13 @@
+/**
+ * The `RelogioAngulos` function in JavaScript React creates a clock-like visualization of traction
+ * angles with vectors and a resultant vector, along with a textual summary of the vectors and
+ * resultant.
+ * @returns The `RelogioAngulos` component is being returned. It consists of a canvas element that
+ * displays a clock-like visualization of angles and vectors, along with a summary text below the
+ * canvas. The canvas renders ticks, labels, reference lines, traction vectors, and a resultant vector
+ * based on the provided input props (`vetores`, `resultante`, `resumoDados`). The summary text
+ * provides information
+ */
 // RelogioAngulos.jsx — Relógio de ângulos idêntico ao Excel
 // Linhas vermelhas = vetores de tração; linha grossa vermelha = resultante
 import React, { useEffect, useMemo, useRef } from 'react'

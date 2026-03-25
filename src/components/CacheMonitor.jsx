@@ -1,3 +1,5 @@
+/* The above code is a React component called `CacheMonitor` that serves as a monitoring tool for a
+cache system. Here is a summary of what the code is doing: */
 import React, { useState, useEffect } from 'react';
 import { Database, Activity, TrendingUp, AlertCircle, CheckCircle, Trash2, RefreshCw, BarChart3 } from 'lucide-react';
 

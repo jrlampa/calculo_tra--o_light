@@ -17,6 +17,8 @@ from api.schemas import (
     PontoIn,
     PontoOut,
     SalvarCalculoIn,
+    ProjetoUpdate,
+    BatchSalvarCalculoIn,
 )
 from services.projeto_service import ProjetoService
 from repositories.projeto_repository import ProjetoRepository
@@ -158,3 +160,87 @@ async def salvar_calculo(
     if not ok_snapshot:
         raise HTTPException(status_code=500, detail="Erro ao persistir cálculo")
     return {"saved": True, "ponto_id": ponto_id}
+
+
+@router.post("/projetos/batch-save", status_code=200)
+async def batch_save(
+    inp: BatchSalvarCalculoIn,
+    user: CurrentUser = Depends(require_mutation_identity),
+    supabase: object = Depends(get_supabase_dependency),
+) -> dict:
+    """Persistência atômica de Projeto, Ponto e Cálculo em uma única chamada."""
+    await _ensure_supabase_available(supabase)
+
+    # Note: user_can_access check skipped if projeto_id is None (new project)
+    # If projeto_id is provided, we check access
+    if inp.projeto_id:
+        can_access = await supabase.user_can_access_projeto(
+            projeto_id=str(inp.projeto_id),
+            user_id=user.user_id,
+        )
+        if not can_access:
+            raise HTTPException(status_code=403, detail="Sem permissão para este projeto")
+
+    res = await supabase.save_batch_calculo(
+        owner_id=user.user_id,
+        projeto_id=str(inp.projeto_id) if inp.projeto_id else None,
+        projeto_dados=inp.projeto_dados.model_dump() if inp.projeto_dados else None,
+        ponto_dados=inp.ponto_dados.model_dump(),
+        niveis=[nivel.model_dump() for nivel in inp.niveis],
+        resultado=inp.resultado.model_dump(),
+    )
+
+    if "error" in res:
+        raise HTTPException(status_code=500, detail=res["error"])
+
+    return res
+
+
+# ── Novos Endpoints de Gerenciamento ─────────────────────────────────────
+
+@router.put("/projetos/{projeto_id}", response_model=ProjetoOut)
+async def update_projeto(
+    projeto_id: str,
+    inp: ProjetoUpdate,
+    user: CurrentUser = Depends(require_mutation_identity),
+    projeto_service: ProjetoService = Depends(get_projeto_service),
+) -> ProjetoOut:
+    """Atualiza dados do cabeçalho de um projeto."""
+    try:
+        projeto = await projeto_service.update_projeto(
+            UUID(projeto_id), 
+            inp, 
+            UUID(str(user.user_id))
+        )
+        return ProjetoOut(**projeto.model_dump(mode='json'))
+    except (NotFoundError, PermissionError, ValidationError) as e:
+        raise HTTPException(status_code=400, detail=e.message)
+    except Exception as e:
+        logger.error(f"Error updating projeto {projeto_id}: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao atualizar projeto")
+
+
+@router.delete("/projetos/{projeto_id}", status_code=204)
+async def delete_projeto(
+    projeto_id: str,
+    user: CurrentUser = Depends(require_mutation_identity),
+    projeto_service: ProjetoService = Depends(get_projeto_service),
+):
+    """Exclui um projeto. Falha se houver pontos vinculados (Soft Delete)."""
+    try:
+        await projeto_service.delete_projeto(
+            UUID(projeto_id), 
+            UUID(str(user.user_id))
+        )
+        return None
+    except (NotFoundError, PermissionError, ValidationError) as e:
+        raise HTTPException(status_code=400, detail=e.message)
+    except Exception as e:
+        logger.error(f"Error deleting projeto {projeto_id}: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao excluir projeto")
+
+
+async def _ensure_supabase_available(supabase):
+    """Verifica se o cliente de persistência está ativo."""
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database connection unavailable")

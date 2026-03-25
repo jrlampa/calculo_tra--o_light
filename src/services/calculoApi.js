@@ -1,3 +1,14 @@
+/**
+ * The above code contains various functions for handling API requests and data mapping in a JavaScript
+ * application.
+ * @param value - The code you provided contains various functions related to handling JSON data,
+ * parsing error messages, making API requests, and mapping data objects. It also includes functions
+ * for building payloads and interacting with a backend API.
+ * @returns The code provided includes various functions related to handling API requests, parsing
+ * data, and mapping objects. The functions are related to creating, updating, and deleting projects
+ * and points, as well as persisting calculations and listing projects. The code also includes
+ * functions for building payloads and mapping data for calculations.
+ */
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 const GUEST_HEADERS = { ...JSON_HEADERS, 'X-Guest-Access': 'true' }
 
@@ -60,7 +71,7 @@ function mapCabecalho(cabecalho) {
     projeto: cabecalho.projeto || '',
     ponto: cabecalho.ponto || '',
     endereco: cabecalho.endereco || '',
-    estudado_por: cabecalho.estudadoPor || '',
+    estudado_por: cabecalho.estudado_por || cabecalho.estudadoPor || '',
     matricula: cabecalho.matricula || '',
     data: cabecalho.data || '',
   }
@@ -135,7 +146,6 @@ function buildNivelPayload(nivel, travessias) {
         console.warn(
           `[buildNivelPayload] Nível ${nivel}, posição ${index + 1}: flecha deve ser maior que zero quando vão é ${vao} m`
         )
-        // No longer throwing to avoid breaking the reactive chain during state transitions
       }
 
       return {
@@ -204,6 +214,38 @@ export function buildSalvarCalculoPayload(pontoId, calculoRequest, resultado) {
   }
 }
 
+export function buildBatchPayload(projetoId, formState, resultado) {
+  const { cabecalho, poste, mt1, mt2, bt, btz, ral } = formState
+
+  return {
+    projeto_id: projetoId || null,
+    projeto_dados: !projetoId
+      ? {
+          orgao: cabecalho.orgao || '',
+          ns: cabecalho.ns || '',
+          nome: cabecalho.projeto || '',
+          endereco: cabecalho.endereco || '',
+          estudado_por: cabecalho.estudado_por || cabecalho.estudadoPor || '',
+          matricula: cabecalho.matricula || '',
+          data_estudo: cabecalho.data || '',
+        }
+      : null,
+    ponto_dados: {
+      ponto: cabecalho.ponto || '',
+      tipo_poste: poste.tipoPoste || '',
+      modelo_poste: poste.modeloPoste || '',
+    },
+    niveis: [
+      buildNivelPayload('MT1', mt1.map(mapMTTravessia)),
+      buildNivelPayload('MT2', mt2.map(mapMTTravessia)),
+      buildNivelPayload('BT', bt.map(mapBTTravessia)),
+      buildNivelPayload('BTZ', btz.map(mapBTZTravessia)),
+      buildNivelPayload('RAL', ral.map(mapRALTravessia)),
+    ],
+    resultado: mapResultado(resultado),
+  }
+}
+
 export async function createProjeto(cabecalho) {
   return requestJson(
     '/api/projetos',
@@ -215,7 +257,7 @@ export async function createProjeto(cabecalho) {
         ns: cabecalho.ns || '',
         nome: cabecalho.projeto || '',
         endereco: cabecalho.endereco || '',
-        estudado_por: cabecalho.estudadoPor || '',
+        estudado_por: cabecalho.estudado_por || cabecalho.estudadoPor || '',
         matricula: cabecalho.matricula || '',
         data_estudo: cabecalho.data || '',
       }),
@@ -251,3 +293,52 @@ export async function persistCalculo(pontoId, payload) {
     'Erro ao persistir cálculo'
   )
 }
+
+export async function listProjetos(limit = 20, offset = 0) {
+  return requestJson(
+    `/api/projetos?limit=${limit}&offset=${offset}`,
+    { method: 'GET', headers: JSON_HEADERS },
+    'Erro ao listar projetos'
+  )
+}
+
+export async function updateProjeto(id, cabecalho) {
+  return requestJson(
+    `/api/projetos/${id}`,
+    {
+      method: 'PUT',
+      headers: JSON_HEADERS,
+      body: JSON.stringify({
+        orgao: cabecalho.orgao,
+        ns: cabecalho.ns,
+        nome: cabecalho.projeto,
+        endereco: cabecalho.endereco,
+        estudado_por: cabecalho.estudado_por || cabecalho.estudadoPor,
+        matricula: cabecalho.matricula,
+        data_estudo: cabecalho.data,
+      }),
+    },
+    'Erro ao atualizar projeto'
+  )
+}
+
+export async function deleteProjeto(id) {
+  return requestJson(
+    `/api/projetos/${id}`,
+    { method: 'DELETE', headers: JSON_HEADERS },
+    'Erro ao excluir projeto'
+  )
+}
+
+export async function batchSaveCalculo(payload) {
+  return requestJson(
+    '/api/projetos/batch-save',
+    {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify(payload),
+    },
+    'Erro ao realizar salvamento atômico'
+  )
+}
+```

@@ -1,3 +1,8 @@
+/**
+ * The `usePersistenciaCalculo` custom hook manages the persistence of calculation data with retry
+ * logic and error handling.
+ * @returns The `usePersistenciaCalculo` custom hook is returning an object with three properties:
+ */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { buildSalvarCalculoPayload, persistCalculo } from '../services/calculoApi.js'
 import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstrumentation.js'
@@ -5,7 +10,7 @@ import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstru
 const PERSIST_WINDOW_MS = 5000
 const MAX_RETRIES = 3
 
-export default function usePersistenciaCalculo({ pontoId, lastPayload, resultado }) {
+export default function usePersistenciaCalculo({ pontoId, lastPayload, resultado, autoSave = true }) {
   const [persistencia, setPersistencia] = useState({ 
     status: 'idle', 
     error: '', 
@@ -250,8 +255,12 @@ export default function usePersistenciaCalculo({ pontoId, lastPayload, resultado
       payload,
       signature,
     }
-    schedulePersistQueue()
-  }, [lastPayload, pontoId, resultado, schedulePersistQueue])
+    if (autoSave) {
+      schedulePersistQueue()
+    } else {
+      setPersistencia(prev => ({ ...prev, status: 'queued' })) // Indica que há mudanças pendentes
+    }
+  }, [lastPayload, pontoId, resultado, schedulePersistQueue, autoSave])
 
   useEffect(() => {
     return () => {

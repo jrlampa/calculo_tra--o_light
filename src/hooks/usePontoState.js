@@ -1,3 +1,9 @@
+/**
+ * The function `usePontoState` manages the state and logic related to creating and confirming points
+ * in a project, including handling post details, confirming points, resetting point state, and
+ * providing feedback to the user.
+ * @returns The `usePontoState` custom hook is returning an object with the following properties:
+ */
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { createPonto } from '../services/calculoApi.js'
 import { POSTE_INICIAL } from '../features/calculo/formConfig.js'

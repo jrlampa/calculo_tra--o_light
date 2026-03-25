@@ -1,3 +1,14 @@
+/**
+ * The above JavaScript code defines a module for tracking user experience funnel events and allows
+ * setting a callback function to handle these events.
+ * @param properties - The `properties` parameter in the code snippet refers to additional data that
+ * can be associated with a specific UX funnel event. These properties provide more context or details
+ * about the event being tracked. The `normalizeProperties` function ensures that the properties are in
+ * the correct format before being included in the event object.
+ * @returns The code snippet provided defines a set of UX funnel events, a set of valid event names,
+ * functions to set a callback for UX funnel events, normalize properties, build a UX funnel event
+ * object, and track a UX funnel event.
+ */
 export const UX_FUNNEL_EVENTS = Object.freeze({
   FLOW_STARTED: 'flow_started',
   PROJECT_CONFIRMED: 'project_confirmed',

@@ -1,3 +1,7 @@
+/* The above code is a React component named `Header` that represents a header section of a UI. It
+includes fields for various data such as organization, project, point, address, etc. The component
+also includes status chips (`VinculoChip` and `PersistenciaChip`) for displaying status messages
+related to data persistence and confirmation. */
 // Header.jsx — Cabeçalho fiel ao Excel: Órgão | N.S. | Projeto | Ponto / Endereço / Estudado por | Matrícula | Data
 import React from 'react'
 

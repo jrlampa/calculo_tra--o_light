@@ -1,3 +1,5 @@
+/* This code represents a React component called `DiagramaPoste` that generates an SVG diagram of a
+pole with specific markers and labels. Here's a breakdown of what the code is doing: */
 // DiagramaPoste.jsx — Diagrama SVG fiel ao Excel: poste com CN (seta baixo), R (diagonal) e α (arco)
 import React, { useId, memo } from 'react'
 

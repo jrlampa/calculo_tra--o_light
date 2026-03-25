@@ -857,6 +857,102 @@ class SupabaseClient:
                 await self._upsert_resultado_tx(conn, ponto_id, resultado)
         return True
 
+    async def save_batch_calculo(
+        self,
+        owner_id: str,
+        projeto_id: Optional[str],
+        projeto_dados: Optional[Dict[str, Any]],
+        ponto_dados: Dict[str, Any],
+        niveis: List[Dict[str, Any]],
+        resultado: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Atomic batch save of everything in one transaction (Project, Point, Snapshot)."""
+        if not self.enabled:
+            return {"error": "Supabase disabled"}
+
+        pool = await self._get_pool()
+        if not pool:
+            return {"error": "Connection pool unavailable"}
+
+        try:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    # 1. Projeto
+                    final_proj_id = projeto_id
+                    if not final_proj_id and projeto_dados:
+                        row_p = await conn.fetchrow(
+                            """
+                            INSERT INTO projetos (orgao, ns, nome, endereco, estudado_por, matricula, data_estudo, owner_id)
+                            VALUES ($1, $2, $3, $4, $5, $6, $7, $8::uuid)
+                            RETURNING id::text
+                            """,
+                            projeto_dados.get("orgao"),
+                            projeto_dados.get("ns"),
+                            projeto_dados.get("nome"),
+                            projeto_dados.get("endereco"),
+                            projeto_dados.get("estudado_por"),
+                            projeto_dados.get("matricula"),
+                            projeto_dados.get("data_estudo"),
+                            owner_id,
+                        )
+                        final_proj_id = row_p["id"]
+                    
+                    if not final_proj_id:
+                        return {"error": "Falha ao resolver projeto_id"}
+
+                    # 2. Ponto (Upsert-like logic to avoid 409)
+                    # We check if (projeto_id, ponto) exists
+                    ponto_label = ponto_dados.get("ponto")
+                    row_pt = await conn.fetchrow(
+                        "SELECT id::text FROM pontos WHERE projeto_id = $1::uuid AND ponto = $2",
+                        final_proj_id, ponto_label
+                    )
+                    
+                    final_ponto_id = None
+                    if row_pt:
+                        final_ponto_id = row_pt["id"]
+                        # Update poste info if changed
+                        await conn.execute(
+                            "UPDATE pontos SET tipo_poste = $1, modelo_poste = $2 WHERE id = $3::uuid",
+                            ponto_dados.get("tipo_poste"), ponto_dados.get("modelo_poste"), final_ponto_id
+                        )
+                    else:
+                        row_pt_new = await conn.fetchrow(
+                            """
+                            INSERT INTO pontos (projeto_id, ponto, tipo_poste, modelo_poste)
+                            VALUES ($1::uuid, $2, $3, $4)
+                            RETURNING id::text
+                            """,
+                            final_proj_id, ponto_label, 
+                            ponto_dados.get("tipo_poste"), ponto_dados.get("modelo_poste")
+                        )
+                        final_ponto_id = row_pt_new["id"]
+
+                    if not final_ponto_id:
+                        return {"error": "Falha ao resolver ponto_id"}
+
+                    # 3. Snapshot (Níveis + Travessias)
+                    await self._upsert_niveis_travessias_tx(conn, final_ponto_id, niveis)
+                    
+                    # 4. Resultado
+                    await self._upsert_resultado_tx(conn, final_ponto_id, resultado)
+
+                    # 5. Touch Project
+                    await conn.execute(
+                        "UPDATE projetos SET atualizado_em = now() WHERE id = $1::uuid",
+                        final_proj_id
+                    )
+
+                    return {
+                        "projeto_id": final_proj_id,
+                        "ponto_id": final_ponto_id,
+                        "success": True
+                    }
+
+        except Exception as e:
+            print(f"[ERROR] save_batch_calculo failure: {e}")
+            return {"error": str(e)}
+
 
 _client: Optional[SupabaseClient] = None
 

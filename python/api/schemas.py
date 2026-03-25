@@ -190,8 +190,9 @@ class ProjetoIn(BaseModel):
     estudado_por: str = ""
     matricula: str = ""
     data_estudo: str = ""       # dd/mm/yyyy
-
+    
     model_config = {
+        "extra": "forbid",  # Não permitir campos extras
         "json_schema_extra": {
             "example": {
                 "orgao": "IM3 Brasil",
@@ -204,6 +205,16 @@ class ProjetoIn(BaseModel):
             }
         }
     }
+
+
+class ProjetoUpdate(BaseModel):
+    orgao: Optional[str] = None
+    ns: Optional[str] = None
+    nome: Optional[str] = None
+    endereco: Optional[str] = None
+    estudado_por: Optional[str] = None
+    matricula: Optional[str] = None
+    data_estudo: Optional[str] = None
 
 
 class ProjetoOut(BaseModel):
@@ -319,4 +330,19 @@ class SalvarCalculoIn(BaseModel):
         informed_levels = [nivel.nivel for nivel in self.niveis]
         if set(informed_levels) != expected_levels or len(informed_levels) != len(set(informed_levels)):
             raise ValueError("niveis must contain MT1, MT2, BT, BTZ and RAL without duplication")
+        return self
+
+
+class BatchSalvarCalculoIn(BaseModel):
+    """Payload atômico para persistir tudo (Projeto, Ponto e Cálculo)."""
+    projeto_id: Optional[UUID] = None
+    projeto_dados: Optional[ProjetoIn] = None
+    ponto_dados: PontoIn
+    niveis: list[NivelSalvarIn] = Field(min_length=5, max_length=5)
+    resultado: ResultadoSalvarIn
+
+    @model_validator(mode="after")
+    def validate_project_info(self) -> BatchSalvarCalculoIn:
+        if not self.projeto_id and not self.projeto_dados:
+            raise ValueError("projeto_id or projeto_dados must be provided")
         return self

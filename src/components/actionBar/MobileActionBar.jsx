@@ -1,3 +1,7 @@
+/* The above code is a React functional component called `MobileActionBar` that renders different sets
+of action buttons based on the screen size (desktop, tablet, mobile). It takes several props such as
+`onConfirm`, `onRetry`, `onNextPoint`, `statusPersistencia`, `canRetry`, `canNextPoint`, and
+`isDisabled`. */
 import React from 'react'
 
 export default function MobileActionBar({

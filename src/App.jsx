@@ -1,3 +1,5 @@
+/* The above code is a React component named `App` that serves as the main application for calculating
+traction in an electrical network. Here is a breakdown of what the code is doing: */
 // App.jsx — Aplicação principal de Cálculo de Tração de Rede Elétrica (Otimizado)
 import React, { useRef } from 'react'
 import { useAppOptimizedState } from './hooks/useAppOptimizedState.js'
@@ -5,6 +7,7 @@ import Header from './components/header/Header.jsx'
 import FlowStepper from './components/fluxo/FlowStepper.jsx'
 import ErrorBoundary from './components/error/ErrorBoundary.jsx'
 import TelaProjetoInicial from './components/projeto/TelaProjetoInicial.jsx'
+import GerenciadorProjetos from './components/projeto/GerenciadorProjetos.jsx'
 import SecaoNivel from './components/secao/SecaoNivel.jsx'
 import { 
   LazyTabelaCarga, 
@@ -22,7 +25,20 @@ export default function App() {
   const appState = useAppOptimizedState()
   const fileInputRef = useRef(null)
 
-  // Se estiver na etapa de projeto
+  // Etapa inicial: Dashboard
+  if (appState.etapa === 'home') {
+    return (
+      <GerenciadorProjetos
+        onNovo={appState.projetoState.handlers.handleIniciarNovoProjeto}
+        onAbrir={appState.projetoState.handlers.handleAbrirProjeto}
+        onEditar={appState.projetoState.handlers.handleEditarProjeto}
+        onExcluir={appState.projetoState.handlers.handleExcluirProjeto}
+        listProjetos={appState.projetoState.handlers.listProjetos}
+      />
+    )
+  }
+
+  // Se estiver na etapa de cadastro/edição de cabeçalho
   if (appState.etapa === 'projeto') {
     return (
       <TelaProjetoInicial
@@ -30,6 +46,7 @@ export default function App() {
         onChange={appState.projetoState.handlers.handleHeader}
         onConfirm={appState.projetoState.handlers.handleConfirmProjeto}
         onGuestConfirm={appState.projetoState.handlers.handleGuestConfirm}
+        onBack={() => appState.projetoState.handlers.setEtapa('home')}
         loading={appState.projetoState.projetoState.loading}
         error={appState.projetoState.projetoState.error}
       />

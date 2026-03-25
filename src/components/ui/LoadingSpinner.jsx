@@ -1,3 +1,5 @@
+/* The code provided is a React component named `LoadingSpinner`. Here is a breakdown of what the code
+is doing: */
 import React from 'react'
 
 const LoadingSpinner = ({ size = 'medium', message = 'Carregando...' }) => {

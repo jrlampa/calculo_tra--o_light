@@ -1,3 +1,13 @@
+/**
+ * The provided code contains custom hooks for debouncing and throttling callbacks in React.
+ * @param value - The `value` parameter in the `useDebounce` hook is the value that you want to
+ * debounce. This can be any type of value such as a string, number, object, or array. The purpose of
+ * debouncing a value is to delay its update until a certain amount of time has
+ * @param delay - The `delay` parameter in the custom hooks `useDebounce`, `useDebouncedCallback`, and
+ * `useThrottledCallback` represents the time interval in milliseconds for which the debounce or
+ * throttle should be applied before executing the callback function or updating the value.
+ * @returns For the `useDebounce` hook, it returns the debounced value after the specified delay.
+ */
 import { useState, useEffect, useCallback } from 'react'
 
 /**

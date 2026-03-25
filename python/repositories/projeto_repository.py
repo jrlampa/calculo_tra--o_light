@@ -167,6 +167,13 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
             contract = await self._get_column_contract()
             projeto_id = uuid4()
 
+            # Ensure all required fields are present and valid
+            if not obj_in.orgao or not obj_in.ns or not obj_in.nome or not obj_in.estudado_por or not obj_in.matricula:
+                raise ValueError("Campos obrigatórios ausentes: orgao, ns, nome, estudado_por, matricula")
+            
+            if not obj_in.data_estudo:
+                raise ValueError("Campo data_estudo é obrigatório")
+
             columns = [
                 "id",
                 "orgao",
@@ -206,6 +213,9 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
                 str(obj_in.owner_id)
             )
             
+            if not result:
+                raise RuntimeError("Projeto não foi criado no banco de dados")
+            
             projeto = Projeto(**self._to_dict(result))
             
             # Audit Trail
@@ -213,7 +223,7 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
                 activity_type="PROJECT_CREATE",
                 user_id=obj_in.owner_id,
                 projeto_id=projeto.id,
-                details={"nome": projeto.nome}
+                details={"nome": projeto.nome, "ns": projeto.ns}
             )
             
             return projeto
@@ -339,3 +349,66 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
             return self._to_dict(result) if result else None
         except Exception as e:
             raise RuntimeError(f"Error fetching projeto with pontos: {e}")
+    
+    # Métodos auxiliares para testes de hierarquia
+    async def _get_ponto(self, ponto_id: str) -> Optional[Dict[str, Any]]:
+        """Get ponto by ID (for testing)."""
+        try:
+            contract = await self._get_column_contract()
+            deleted_filter = self._active_filter(contract["deleted"], alias="pt")
+            result = await self.db.fetch_one(
+                f"SELECT * FROM pontos pt WHERE pt.id = $1{deleted_filter}",  # nosec B608
+                ponto_id
+            )
+            return self._to_dict(result) if result else None
+        except Exception as e:
+            raise RuntimeError(f"Error fetching ponto {ponto_id}: {e}")
+    
+    async def _get_niveis_calculo(self, ponto_id: str) -> List[Dict[str, Any]]:
+        """Get all niveis for a ponto (for testing)."""
+        try:
+            contract = await self._get_column_contract()
+            deleted_filter = self._active_filter(contract["deleted"], alias="nc")
+            result = await self.db.fetch_all(
+                f"""
+                SELECT nc.*
+                FROM niveis_calculo nc
+                WHERE nc.ponto_id = $1{deleted_filter}
+                ORDER BY nc.nivel
+                """,  # nosec B608
+                ponto_id
+            )
+            return [self._to_dict(row) for row in result]
+        except Exception as e:
+            raise RuntimeError(f"Error fetching niveis for ponto {ponto_id}: {e}")
+    
+    async def _get_travessias(self, nivel_id: str) -> List[Dict[str, Any]]:
+        """Get all travessias for a nivel (for testing)."""
+        try:
+            contract = await self._get_column_contract()
+            deleted_filter = self._active_filter(contract["deleted"], alias="t")
+            result = await self.db.fetch_all(
+                f"""
+                SELECT t.*
+                FROM travessias t
+                WHERE t.nivel_id = $1{deleted_filter}
+                ORDER BY t.posicao
+                """,  # nosec B608
+                nivel_id
+            )
+            return [self._to_dict(row) for row in result]
+        except Exception as e:
+            raise RuntimeError(f"Error fetching travessias for nivel {nivel_id}: {e}")
+    
+    async def _get_resultado_calculo(self, ponto_id: str) -> Optional[Dict[str, Any]]:
+        """Get resultado for a ponto (for testing)."""
+        try:
+            contract = await self._get_column_contract()
+            deleted_filter = self._active_filter(contract["deleted"], alias="rc")
+            result = await self.db.fetch_one(
+                f"SELECT * FROM resultados_calculo rc WHERE rc.ponto_id = $1{deleted_filter}",  # nosec B608
+                ponto_id
+            )
+            return self._to_dict(result) if result else None
+        except Exception as e:
+            raise RuntimeError(f"Error fetching resultado for ponto {ponto_id}: {e}")

@@ -1,3 +1,11 @@
+/**
+ * The function `TabelaCarga` renders a table component in React to display data related to loads and
+ * angles.
+ * @returns The `TabelaCarga` component is being returned. It is a functional component that renders a
+ * table based on the provided `dados` prop. The table structure includes headers for angles (α °) and
+ * forces (R) at 300 and 600 daN, and it maps through the `dados` array to display the corresponding
+ * data rows.
+ */
 import React from 'react'
 
 export default function TabelaCarga({ dados }) {

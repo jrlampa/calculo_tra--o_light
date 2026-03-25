@@ -1,3 +1,5 @@
+/* The above code is a React component named `AIAssistant` that serves as an AI chatbot interface. Here
+is a summary of its functionality: */
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Bot, User, Trash2, MessageSquare, TrendingUp, AlertTriangle } from 'lucide-react';
 

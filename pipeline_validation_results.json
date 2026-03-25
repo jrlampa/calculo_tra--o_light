@@ -1,0 +1,55 @@
+{
+  "workflow_files": {
+    "ci.yml": true,
+    "test-persistence.yml": true,
+    "deploy.yml": true,
+    "test-setup.yml": false,
+    "total_workflows": 5
+  },
+  "test_files": {
+    "executar_testes_persistencia.py": true,
+    "ci_cd_integration.py": true,
+    "test_hierarquia_completa.py": true,
+    "test_persistencia_calculo.py": true,
+    "test_parity_excel.py": true,
+    "test_integracao_real.py": true,
+    "total_test_files": 13
+  },
+  "dependencies": {
+    "python_requirements": true,
+    "node_package_json": true,
+    "docker_files": true,
+    "total_dependencies": 4
+  },
+  "environment_setup": {
+    "environment_variables": [],
+    "database_config": false,
+    "supabase_config": false,
+    "redis_config": false
+  },
+  "database_connection": {
+    "connection_test": false,
+    "connection_details": {},
+    "error_message": "No module named 'db'"
+  },
+  "test_execution": {
+    "pytest_available": true,
+    "test_discovery": true,
+    "test_execution": false,
+    "test_files_found": [
+      "test_api_validation.py",
+      "test_cache_redis_client.py",
+      "test_fuzzy_inputs.py",
+      "test_hierarquia_completa.py",
+      "test_integracao_real.py",
+      "test_integration.py",
+      "test_jerusalem_parity.py",
+      "test_parity_excel.py",
+      "test_persistence_retry.py",
+      "test_persistencia_calculo.py",
+      "test_projeto_contract_compat.py",
+      "test_projeto_service.py",
+      "test_qdt_parity.py"
+    ]
+  }
+}

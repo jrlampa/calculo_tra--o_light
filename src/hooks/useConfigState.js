@@ -1,3 +1,7 @@
+/**
+ * The `useConfigState` function in this code snippet manages the state and loading of technical
+ * configuration data for types and models of utility poles.
+ */
 import { useState, useCallback, useMemo, useEffect } from 'react'
 
 const createConfigInicial = () => ({

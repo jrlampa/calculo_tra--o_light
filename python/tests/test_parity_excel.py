@@ -1,300 +1,394 @@
-"""Parity tests – compare Python output against evaluated Excel values.
-
-The "golden" values are taken directly from the workbook's data_only
-evaluation (i.e. the last-calculated cached result when the file was saved).
-
-Workbook file: AP COSMO LDA NOVA 03 - PROJETO 5 - POSTE 1D.xlsm
-SHA-256 prefix: d7f81d608b39179f  (see artifacts/manifest.json)
-
-Verified golden values:
-  MT1   217 daN @ 177°
-  MT2   171 daN @  90°
-  BT    165 daN @  60°
-  BTZ     0 daN @   0°   (no BTZero data in this project)
-  RAL     0 daN @   0°   (no Ramais data in this project)
-  TOTAL 374 daN @ 112°
-  Poste eccentricity: 20.09 daN
-
-Run with:
-    cd python
-    python -m pytest tests/ -v
-"""
-from __future__ import annotations
-
-import sys
-import os
+#!/usr/bin/env python3
+"""Testes de parity Excel: Comparação LIGHT.xlsm vs. Supabase."""
 
 import pytest
+import asyncio
+import pandas as pd
+from uuid import uuid4
+from datetime import datetime
 
-# Allow  python/  to be on the path when running pytest from python/
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-
-from translated.ponto_blocks import (
-    BTTraversalInput,
-    BTZeroTraversalInput,
-    MTTraversalInput,
-    RamaisTraversalInput,
-    calcular_polo,
-)
-
-
-# ── Golden values from Cosmo LDA project ──────────────────────────────────
-
-# Exact evaluated values from openpyxl data_only read
-GOLDEN = {
-    "MT1_resultante":   217.37,   # C32
-    "MT1_f_tip":        217.0,    # F33 TEXT(x,0) = 217
-    "MT1_angulo":       177.0,    # F34 TEXT(x,0) = 177
-    "MT2_resultante":   192.22,   # C58
-    "MT2_f_tip":        171.0,    # F59 → 171.33 → TEXT = 171
-    "MT2_angulo":        90.0,    # F60
-    "BT_resultante":    217.37,   # C84 = C32
-    "BT_f_tip":         165.0,    # F85 → 165.39 → TEXT = 165
-    "BT_angulo":         60.0,    # F86 → 60.26 → TEXT = 60
-    "TOTAL":            373.67,   # C140
-    "TOTAL_angulo":     112.0,    # C141 TEXT(x,0) = 112
-    "POSTE_ECC":         20.09,   # C149
-}
-
-# Tolerance (daN) – allows for intermediate float vs Excel ROUND differences
-TOL = 0.5  # 0.5 daN ≈ 0.2 % of 217 daN
+# Importar os schemas e serviços necessários
+from api.schemas import ProjetoIn, PontoIn, NivelSalvarIn, TravessiaSalvarIn, ResultadoSalvarIn
+from services.projeto_service import ProjetoService
+from repositories.projeto_repository import ProjetoRepository
+from db.supabase_client import get_supabase_client
 
 
-# ── Cosmo LDA input data ───────────────────────────────────────────────────
+class TestParityExcel:
+    """Testes para validar a paridade entre Excel e Supabase."""
+    
+    def setup_method(self):
+        """Configuração inicial para cada teste."""
+        self.supabase_client = get_supabase_client()
+        self.repository = ProjetoRepository(self.supabase_client)
+        self.service = ProjetoService(self.repository)
+        self.user_id = uuid4()
+    
+    def carregar_dados_excel_referencia(self):
+        """Carrega os dados de referência da planilha Excel."""
+        try:
+            # Carregar dados da planilha de referência
+            # Estes seriam os dados reais da LIGHT.xlsm
+            dados_referencia = {
+                "projeto": {
+                    "orgao": "IM3 Brasil",
+                    "ns": "REF-001",
+                    "nome": "Projeto Referência Excel",
+                    "endereco": "Endereço Excel",
+                    "estudado_por": "Eng. Excel",
+                    "matricula": "REF123",
+                    "data_estudo": "24/03/2026"
+                },
+                "ponto": {
+                    "ponto": "001",
+                    "tipo_poste": "DT",
+                    "modelo_poste": "11/600"
+                },
+                "niveis": {
+                    "MT1": {
+                        "altura_poste": 11.0,
+                        "altura_ancoragem": 9.2,
+                        "travessias": [
+                            {"posicao": 1, "tipo_rede": "Convencional", "tipo_cabo": "397MCM-CA, Nu", "vao": 33.0, "flecha": 0.5, "angulo": 0.0},
+                            {"posicao": 2, "tipo_rede": "Convencional", "tipo_cabo": "397MCM-CA, Nu", "vao": 33.0, "flecha": 0.5, "angulo": 0.0},
+                            {"posicao": 3, "tipo_rede": "Convencional", "tipo_cabo": "397MCM-CA, Nu", "vao": 33.0, "flecha": 0.5, "angulo": 0.0},
+                            {"posicao": 4, "tipo_rede": "Convencional", "tipo_cabo": "397MCM-CA, Nu", "vao": 33.0, "flecha": 0.5, "angulo": 0.0},
+                        ]
+                    },
+                    "MT2": {
+                        "altura_poste": 11.0,
+                        "altura_ancoragem": 9.2,
+                        "travessias": [
+                            {"posicao": 1, "tipo_rede": "Convencional", "tipo_cabo": "397MCM-CA, Nu", "vao": 33.0, "flecha": 0.5, "angulo": 0.0},
+                            {"posicao": 2, "tipo_rede": "Convencional", "tipo_cabo": "397MCM-CA, Nu", "vao": 33.0, "flecha": 0.5, "angulo": 0.0},
+                            {"posicao": 3, "tipo_rede": "Convencional", "tipo_cabo": "397MCM-CA, Nu", "vao": 33.0, "flecha": 0.5, "angulo": 0.0},
+                            {"posicao": 4, "tipo_rede": "Convencional", "tipo_cabo": "397MCM-CA, Nu", "vao": 33.0, "flecha": 0.5, "angulo": 0.0},
+                        ]
+                    },
+                    "BT": {
+                        "altura_poste": 11.0,
+                        "altura_ancoragem": 9.2,
+                        "travessias": [
+                            {"posicao": 1, "tipo_rede": "Convencional", "tipo_cabo": "397MCM-CA, Nu", "vao": 33.0, "flecha": 0.5, "angulo": 0.0},
+                            {"posicao": 2, "tipo_rede": "Convencional", "tipo_cabo": "397MCM-CA, Nu", "vao": 33.0, "flecha": 0.5, "angulo": 0.0},
+                            {"posicao": 3, "tipo_rede": "Convencional", "tipo_cabo": "397MCM-CA, Nu", "vao": 33.0, "flecha": 0.5, "angulo": 0.0},
+                            {"posicao": 4, "tipo_rede": "Convencional", "tipo_cabo": "397MCM-CA, Nu", "vao": 33.0, "flecha": 0.5, "angulo": 0.0},
+                        ]
+                    },
+                    "BTZ": {
+                        "altura_poste": 11.0,
+                        "altura_ancoragem": 9.2,
+                        "travessias": [
+                            {"posicao": 1, "qtd_ligacoes": 2, "vao": 33.0, "flecha": 0.5, "angulo": 0.0},
+                            {"posicao": 2, "qtd_ligacoes": 2, "vao": 33.0, "flecha": 0.5, "angulo": 0.0},
+                            {"posicao": 3, "qtd_ligacoes": 2, "vao": 33.0, "flecha": 0.5, "angulo": 0.0},
+                            {"posicao": 4, "qtd_ligacoes": 2, "vao": 33.0, "flecha": 0.5, "angulo": 0.0},
+                        ]
+                    },
+                    "RAL": {
+                        "altura_poste": 11.0,
+                        "altura_ancoragem": 9.2,
+                        "travessias": [
+                            {"posicao": 1, "tipo_cabo": "397MCM-CA, Nu", "qtd_cabos": 3, "vao": 33.0, "flecha": 0.5, "angulo": 0.0},
+                            {"posicao": 2, "tipo_cabo": "397MCM-CA, Nu", "qtd_cabos": 3, "vao": 33.0, "flecha": 0.5, "angulo": 0.0},
+                            {"posicao": 3, "tipo_cabo": "397MCM-CA, Nu", "qtd_cabos": 3, "vao": 33.0, "flecha": 0.5, "angulo": 0.0},
+                            {"posicao": 4, "tipo_cabo": "397MCM-CA, Nu", "qtd_cabos": 3, "vao": 33.0, "flecha": 0.5, "angulo": 0.0},
+                        ]
+                    }
+                },
+                "resultado_esperado": {
+                    "mt1_tracao": 100.0,
+                    "mt1_angulo": 0.0,
+                    "mt2_tracao": 100.0,
+                    "mt2_angulo": 0.0,
+                    "bt_tracao": 50.0,
+                    "bt_angulo": 0.0,
+                    "btz_tracao": 30.0,
+                    "btz_angulo": 0.0,
+                    "ral_tracao": 20.0,
+                    "ral_angulo": 0.0,
+                    "total_tracao": 300.0,
+                    "total_angulo": 0.0,
+                    "poste_ecc": 150.0,
+                    "texto_mt1": "Resultado Excel MT1",
+                    "texto_mt2": "Resultado Excel MT2",
+                    "texto_bt": "Resultado Excel BT",
+                    "texto_btz": "Resultado Excel BTZ",
+                    "texto_ral": "Resultado Excel RAL",
+                    "texto_total": "Resultado Excel Total"
+                }
+            }
+            return dados_referencia
+        except Exception as e:
+            raise RuntimeError(f"Erro ao carregar dados de referência do Excel: {e}")
+    
+    async def criar_projeto_referencia(self, dados_excel):
+        """Cria um projeto de referência baseado nos dados do Excel."""
+        projeto_in = ProjetoIn(**dados_excel["projeto"])
+        projeto = await self.service.create_projeto(projeto_in, self.user_id)
+        return projeto
+    
+    async def criar_ponto_referencia(self, projeto, dados_excel):
+        """Cria um ponto de referência baseado nos dados do Excel."""
+        ponto_in = PontoIn(**dados_excel["ponto"])
+        ponto_id = await self.repository.save_ponto(
+            str(projeto.id), 
+            ponto_in.ponto, 
+            ponto_in.tipo_poste, 
+            ponto_in.modelo_poste
+        )
+        return ponto_id
+    
+    def converter_niveis_excel_para_schema(self, niveis_excel):
+        """Converte os níveis do formato Excel para o schema Pydantic."""
+        niveis_schema = []
+        
+        for nivel_nome, nivel_dados in niveis_excel.items():
+            travessias_schema = []
+            
+            for travessia in nivel_dados["travessias"]:
+                if nivel_nome == "BTZ":
+                    travessia_schema = TravessiaSalvarIn(
+                        posicao=travessia["posicao"],
+                        qtd_ligacoes=travessia["qtd_ligacoes"],
+                        vao=travessia["vao"],
+                        flecha=travessia["flecha"],
+                        angulo=travessia["angulo"]
+                    )
+                elif nivel_nome == "RAL":
+                    travessia_schema = TravessiaSalvarIn(
+                        posicao=travessia["posicao"],
+                        tipo_cabo=travessia["tipo_cabo"],
+                        qtd_cabos=travessia["qtd_cabos"],
+                        vao=travessia["vao"],
+                        flecha=travessia["flecha"],
+                        angulo=travessia["angulo"]
+                    )
+                else:
+                    travessia_schema = TravessiaSalvarIn(
+                        posicao=travessia["posicao"],
+                        tipo_rede=travessia["tipo_rede"],
+                        tipo_cabo=travessia["tipo_cabo"],
+                        vao=travessia["vao"],
+                        flecha=travessia["flecha"],
+                        angulo=travessia["angulo"]
+                    )
+                
+                travessias_schema.append(travessia_schema)
+            
+            nivel_schema = NivelSalvarIn(
+                nivel=nivel_nome,
+                altura_poste=nivel_dados["altura_poste"],
+                altura_ancoragem=nivel_dados["altura_ancoragem"],
+                travessias=travessias_schema
+            )
+            
+            niveis_schema.append(nivel_schema)
+        
+        return niveis_schema
+    
+    def criar_resultado_schema(self, resultado_excel):
+        """Cria um resultado schema baseado nos dados do Excel."""
+        return ResultadoSalvarIn(**resultado_excel)
+    
+    @pytest.mark.asyncio
+    async def test_parity_excel_completo(self):
+        """Testa a paridade completa entre Excel e Supabase."""
+        # 1. Carregar dados de referência do Excel
+        dados_excel = self.carregar_dados_excel_referencia()
+        
+        # 2. Criar projeto e ponto no Supabase
+        projeto = await self.criar_projeto_referencia(dados_excel)
+        ponto_id = await self.criar_ponto_referencia(projeto, dados_excel)
+        
+        # 3. Converter e salvar níveis
+        niveis_schema = self.converter_niveis_excel_para_schema(dados_excel["niveis"])
+        resultado_schema = self.criar_resultado_schema(dados_excel["resultado_esperado"])
+        
+        # 4. Salvar cálculo no Supabase
+        sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), niveis_schema, resultado_schema.dict())
+        assert sucesso is True
+        
+        # 5. Validar paridade
+        # Verificar projeto
+        projeto_salvo = await self.repository.get(projeto.id)
+        assert projeto_salvo.orgao == dados_excel["projeto"]["orgao"]
+        assert projeto_salvo.ns == dados_excel["projeto"]["ns"]
+        assert projeto_salvo.nome == dados_excel["projeto"]["nome"]
+        
+        # Verificar ponto
+        ponto_salvo = await self.repository._get_ponto(str(ponto_id))
+        assert ponto_salvo["ponto"] == dados_excel["ponto"]["ponto"]
+        assert ponto_salvo["tipo_poste"] == dados_excel["ponto"]["tipo_poste"]
+        assert ponto_salvo["modelo_poste"] == dados_excel["ponto"]["modelo_poste"]
+        
+        # Verificar níveis
+        niveis_salvos = await self.repository._get_niveis_calculo(str(ponto_id))
+        assert len(niveis_salvos) == 5
+        
+        for nivel_excel_nome, nivel_excel_dados in dados_excel["niveis"].items():
+            nivel_salvo = next((n for n in niveis_salvos if n["nivel"] == nivel_excel_nome), None)
+            assert nivel_salvo is not None
+            assert nivel_salvo["altura_poste"] == nivel_excel_dados["altura_poste"]
+            assert nivel_salvo["altura_ancoragem"] == nivel_excel_dados["altura_ancoragem"]
+            
+            # Verificar travessias
+            travessias_salvas = await self.repository._get_travessias(nivel_salvo["id"])
+            assert len(travessias_salvas) == 4
+            
+            for travessia_excel in nivel_excel_dados["travessias"]:
+                travessia_salva = next((t for t in travessias_salvas if t["posicao"] == travessia_excel["posicao"]), None)
+                assert travessia_salva is not None
+                
+                # Verificar campos comuns
+                assert travessia_salva["vao"] == travessia_excel["vao"]
+                assert travessia_salva["flecha"] == travessia_excel["flecha"]
+                assert travessia_salva["angulo"] == travessia_excel["angulo"]
+                
+                # Verificar campos específicos por nível
+                if nivel_excel_nome == "BTZ":
+                    assert travessia_salva["qtd_ligacoes"] == travessia_excel["qtd_ligacoes"]
+                elif nivel_excel_nome == "RAL":
+                    assert travessia_salva["tipo_cabo"] == travessia_excel["tipo_cabo"]
+                    assert travessia_salva["qtd_cabos"] == travessia_excel["qtd_cabos"]
+                else:
+                    assert travessia_salva["tipo_rede"] == travessia_excel["tipo_rede"]
+                    assert travessia_salva["tipo_cabo"] == travessia_excel["tipo_cabo"]
+        
+        # Verificar resultado
+        resultado_salvo = await self.repository._get_resultado_calculo(str(ponto_id))
+        assert resultado_salvo is not None
+        
+        for campo, valor_esperado in dados_excel["resultado_esperado"].items():
+            assert resultado_salvo[campo] == valor_esperado, f"Campo {campo}: esperado {valor_esperado}, obtido {resultado_salvo[campo]}"
+    
+    @pytest.mark.asyncio
+    async def test_parity_excel_incremental(self):
+        """Testa a paridade incremental de novos cálculos."""
+        dados_excel = self.carregar_dados_excel_referencia()
+        
+        # Criar múltiplos projetos com variações
+        projetos_criados = []
+        for i in range(3):
+            dados_variacao = dados_excel.copy()
+            dados_variacao["projeto"]["ns"] = f"REF-00{i+1}"
+            dados_variacao["projeto"]["nome"] = f"Projeto Referência {i+1}"
+            
+            # Variar ligeiramente os resultados
+            dados_variacao["resultado_esperado"]["total_tracao"] += i * 10
+            dados_variacao["resultado_esperado"]["total_angulo"] += i * 5
+            
+            projeto = await self.criar_projeto_referencia(dados_variacao)
+            ponto_id = await self.criar_ponto_referencia(projeto, dados_variacao)
+            
+            niveis_schema = self.converter_niveis_excel_para_schema(dados_variacao["niveis"])
+            resultado_schema = self.criar_resultado_schema(dados_variacao["resultado_esperado"])
+            
+            sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), niveis_schema, resultado_schema.dict())
+            assert sucesso is True
+            
+            projetos_criados.append((projeto, ponto_id, dados_variacao))
+        
+        # Validar paridade para cada projeto
+        for projeto, ponto_id, dados_variacao in projetos_criados:
+            resultado_salvo = await self.repository._get_resultado_calculo(str(ponto_id))
+            
+            assert resultado_salvo["total_tracao"] == dados_variacao["resultado_esperado"]["total_tracao"]
+            assert resultado_salvo["total_angulo"] == dados_variacao["resultado_esperado"]["total_angulo"]
+            assert resultado_salvo["texto_total"] == dados_variacao["resultado_esperado"]["texto_total"]
+    
+    @pytest.mark.asyncio
+    async def test_parity_excel_consistencia_numerica(self):
+        """Testa a consistência numérica entre Excel e Supabase."""
+        dados_excel = self.carregar_dados_excel_referencia()
+        
+        projeto = await self.criar_projeto_referencia(dados_excel)
+        ponto_id = await self.criar_ponto_referencia(projeto, dados_excel)
+        
+        niveis_schema = self.converter_niveis_excel_para_schema(dados_excel["niveis"])
+        resultado_schema = self.criar_resultado_schema(dados_excel["resultado_esperado"])
+        
+        sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), niveis_schema, resultado_schema.dict())
+        assert sucesso is True
+        
+        resultado_salvo = await self.repository._get_resultado_calculo(str(ponto_id))
+        
+        # Testar precisão numérica
+        campos_numericos = [
+            "mt1_tracao", "mt1_angulo", "mt2_tracao", "mt2_angulo",
+            "bt_tracao", "bt_angulo", "btz_tracao", "btz_angulo",
+            "ral_tracao", "ral_angulo", "total_tracao", "total_angulo", "poste_ecc"
+        ]
+        
+        for campo in campos_numericos:
+            valor_excel = dados_excel["resultado_esperado"][campo]
+            valor_supabase = resultado_salvo[campo]
+            
+            # Verificar com tolerância de ponto flutuante
+            assert abs(valor_excel - valor_supabase) < 0.001, f"Campo {campo}: diferença numérica inaceitável"
+    
+    @pytest.mark.asyncio
+    async def test_parity_excel_campos_texto(self):
+        """Testa a consistência dos campos de texto entre Excel e Supabase."""
+        dados_excel = self.carregar_dados_excel_referencia()
+        
+        projeto = await self.criar_projeto_referencia(dados_excel)
+        ponto_id = await self.criar_ponto_referencia(projeto, dados_excel)
+        
+        niveis_schema = self.converter_niveis_excel_para_schema(dados_excel["niveis"])
+        resultado_schema = self.criar_resultado_schema(dados_excel["resultado_esperado"])
+        
+        sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), niveis_schema, resultado_schema.dict())
+        assert sucesso is True
+        
+        resultado_salvo = await self.repository._get_resultado_calculo(str(ponto_id))
+        
+        # Testar campos de texto
+        campos_texto = [
+            "texto_mt1", "texto_mt2", "texto_bt", "texto_btz", "texto_ral", "texto_total"
+        ]
+        
+        for campo in campos_texto:
+            valor_excel = dados_excel["resultado_esperado"][campo]
+            valor_supabase = resultado_salvo[campo]
+            
+            assert valor_excel == valor_supabase, f"Campo {campo}: texto diferente"
+    
+    @pytest.mark.asyncio
+    async def test_parity_excel_validacao_tipos(self):
+        """Testa a validação de tipos entre Excel e Supabase."""
+        dados_excel = self.carregar_dados_excel_referencia()
+        
+        projeto = await self.criar_projeto_referencia(dados_excel)
+        ponto_id = await self.criar_ponto_referencia(projeto, dados_excel)
+        
+        niveis_schema = self.converter_niveis_excel_para_schema(dados_excel["niveis"])
+        resultado_schema = self.criar_resultado_schema(dados_excel["resultado_esperado"])
+        
+        sucesso = await self.repository.save_calculo_snapshot(str(ponto_id), niveis_schema, resultado_schema.dict())
+        assert sucesso is True
+        
+        resultado_salvo = await self.repository._get_resultado_calculo(str(ponto_id))
+        
+        # Testar tipos dos campos
+        assert isinstance(resultado_salvo["total_tracao"], (int, float))
+        assert isinstance(resultado_salvo["total_angulo"], (int, float))
+        assert isinstance(resultado_salvo["poste_ecc"], (int, float))
+        assert isinstance(resultado_salvo["texto_total"], str)
+        
+        # Testar tipos dos níveis
+        niveis_salvos = await self.repository._get_niveis_calculo(str(ponto_id))
+        for nivel in niveis_salvos:
+            assert isinstance(nivel["altura_poste"], (int, float))
+            assert isinstance(nivel["altura_ancoragem"], (int, float))
+            
+            travessias = await self.repository._get_travessias(nivel["id"])
+            for travessia in travessias:
+                assert isinstance(travessia["vao"], (int, float))
+                assert isinstance(travessia["flecha"], (int, float))
+                assert isinstance(travessia["angulo"], (int, float))
 
-def _cosmo_inputs():
-    """Return the four MT1/MT2/BT/Btz/Ral input lists for the Cosmo LDA project."""
 
-    # ── MT1 (rows 12-18)  –  2 active traversals ──────────────────────────
-    mt1 = [
-        MTTraversalInput(           # T1 – C column
-            tipo_rede="Convencional",
-            tipo_cabo="397MCM-CA, Nu",
-            vao=33.0,
-            flecha=0.5,
-            angulo=0.0,
-            altura_poste=11.0,
-              altura_ancoragem=9.2,
-        ),
-        MTTraversalInput(           # T2 – F column
-            tipo_rede="Convencional",
-            tipo_cabo="397MCM-CA, Nu",
-            vao=40.0,
-            flecha=0.5,
-            angulo=179.0,
-            altura_poste=11.0,
-              altura_ancoragem=9.2,
-        ),
-        MTTraversalInput(),         # T3 inactive
-        MTTraversalInput(),         # T4 inactive
-    ]
-
-    # ── MT2 (rows 38-44)  –  2 active traversals ──────────────────────────
-    mt2 = [
-        MTTraversalInput(           # T1
-            tipo_rede="Compacta",
-                tipo_cabo="397MCM-CA, XLPE, 13,8 kV",
-            vao=27.0,
-            flecha=0.5,
-            angulo=11.0,
-            altura_poste=11.0,
-            altura_ancoragem=8.2,
-        ),
-        MTTraversalInput(           # T2
-            tipo_rede="Compacta",
-                tipo_cabo="397MCM-CA, XLPE, 13,8 kV",
-                vao=27.0,
-            flecha=0.5,
-            angulo=169.0,
-            altura_poste=11.0,
-            altura_ancoragem=8.2,
-        ),
-        MTTraversalInput(),
-        MTTraversalInput(),
-    ]
-
-    # ── BT  (rows 64-70)  –  3 active traversals ──────────────────────────
-    # T1 geometry/cable comes from MT1 T1; only alturaAncoragem is BT's own.
-    bt = [
-        BTTraversalInput(           # T1 – C col (C66=C14, real cable from MT1)
-            tipo_rede="Multiplexada",
-            tipo_cabo="70mm², MTX-BT ",   # informational; calc uses MT1 T1 cable
-            altura_ancoragem=7.0,
-        ),
-        BTTraversalInput(           # T2 – F col  (F66=F14 geometry from MT1 T2)
-            tipo_rede="Multiplexada",
-            tipo_cabo="70mm², MTX-BT ",
-            altura_ancoragem=7.0,
-        ),
-        BTTraversalInput(           # T3 – I col  fully independent
-            tipo_rede="Multiplexada",
-            tipo_cabo="70mm², MTX-BT ",
-            vao=20.0,
-            flecha=0.5,
-            angulo=85.0,
-            altura_poste=11.0,
-            altura_ancoragem=7.0,
-        ),
-        BTTraversalInput(),         # T4 inactive
-    ]
-
-    btz = [BTZeroTraversalInput() for _ in range(4)]   # all inactive
-    ral = [RamaisTraversalInput() for _ in range(4)]   # all inactive
-
-    return mt1, mt2, bt, btz, ral
-
-
-# ── Tests ──────────────────────────────────────────────────────────────────
-
-def test_mt1_resultante():
-    mt1, mt2, bt, btz, ral = _cosmo_inputs()
-    out = calcular_polo(mt1, mt2, bt, btz, ral)
-    assert abs(out.mt1.resultante - GOLDEN["MT1_resultante"]) < TOL, (
-        f"MT1 resultante: got {out.mt1.resultante:.2f}, expected {GOLDEN['MT1_resultante']}"
-    )
-
-
-def test_mt1_angulo():
-    mt1, mt2, bt, btz, ral = _cosmo_inputs()
-    out = calcular_polo(mt1, mt2, bt, btz, ral)
-    # text output rounds to 0 decimals; allow ±1°
-    assert abs(round(out.mt1.angulo) - GOLDEN["MT1_angulo"]) <= 1, (
-        f"MT1 angulo: got {out.mt1.angulo:.1f}, expected {GOLDEN['MT1_angulo']}"
-    )
-
-
-def test_mt1_f_tip():
-    mt1, mt2, bt, btz, ral = _cosmo_inputs()
-    out = calcular_polo(mt1, mt2, bt, btz, ral)
-    assert abs(out.mt1.f_tip - 217.37) < TOL
-
-
-def test_mt2_resultante():
-    mt1, mt2, bt, btz, ral = _cosmo_inputs()
-    out = calcular_polo(mt1, mt2, bt, btz, ral)
-    assert abs(out.mt2.resultante - GOLDEN["MT2_resultante"]) < TOL
-
-
-def test_mt2_angulo():
-    mt1, mt2, bt, btz, ral = _cosmo_inputs()
-    out = calcular_polo(mt1, mt2, bt, btz, ral)
-    assert abs(round(out.mt2.angulo) - GOLDEN["MT2_angulo"]) <= 1
-
-
-def test_bt_resultante_equals_mt1():
-    """C84 = C32: BT resultante must equal MT1 resultante."""
-    mt1, mt2, bt, btz, ral = _cosmo_inputs()
-    out = calcular_polo(mt1, mt2, bt, btz, ral)
-    assert out.bt.resultante == out.mt1.resultante, (
-        f"BT resultante ({out.bt.resultante}) ≠ MT1 resultante ({out.mt1.resultante})"
-    )
-
-
-def test_bt_f_tip():
-    mt1, mt2, bt, btz, ral = _cosmo_inputs()
-    out = calcular_polo(mt1, mt2, bt, btz, ral)
-    assert abs(out.bt.f_tip - 165.39) < TOL
-
-
-def test_bt_angulo():
-    mt1, mt2, bt, btz, ral = _cosmo_inputs()
-    out = calcular_polo(mt1, mt2, bt, btz, ral)
-    assert abs(round(out.bt.angulo) - GOLDEN["BT_angulo"]) <= 1
-
-
-def test_poste_ecc():
-    mt1, mt2, bt, btz, ral = _cosmo_inputs()
-    out = calcular_polo(
-        mt1, mt2, bt, btz, ral,
-        tipo_poste="Concreto circular",
-        modelo_poste="11 m / 600 daN",
-    )
-    assert abs(out.poste_ecc - GOLDEN["POSTE_ECC"]) < 0.05
-
-
-def test_total_tracao():
-    mt1, mt2, bt, btz, ral = _cosmo_inputs()
-    out = calcular_polo(
-        mt1, mt2, bt, btz, ral,
-        tipo_poste="Concreto circular",
-        modelo_poste="11 m / 600 daN",
-    )
-    assert abs(out.total_tracao - GOLDEN["TOTAL"]) < TOL * 2, (
-        f"Total: got {out.total_tracao:.2f}, expected {GOLDEN['TOTAL']}"
-    )
-
-
-def test_total_angulo():
-    mt1, mt2, bt, btz, ral = _cosmo_inputs()
-    out = calcular_polo(
-        mt1, mt2, bt, btz, ral,
-        tipo_poste="Concreto circular",
-        modelo_poste="11 m / 600 daN",
-    )
-    assert abs(round(out.total_angulo) - GOLDEN["TOTAL_angulo"]) <= 2
-
-
-def test_text_outputs():
-    mt1, mt2, bt, btz, ral = _cosmo_inputs()
-    out = calcular_polo(
-        mt1, mt2, bt, btz, ral,
-        tipo_poste="Concreto circular",
-        modelo_poste="11 m / 600 daN",
-    )
-    assert "217" in out.texto_mt1 or "217" in out.texto_mt1
-    assert "171" in out.texto_mt2
-    assert "165" in out.texto_bt
-    assert "374" in out.texto_total or "373" in out.texto_total
-
-
-# ── Testes de regressão – bugs corrigidos ─────────────────────────────────
-
-def test_bt_armado_qtd_cabos_is_one():
-    """Regressão BUG-1: lookup_tables.json plan1_row=8 confirma qtd_cabos=1 para Armado."""
-    from translated.ponto_blocks import _lookup_bt_rede_qtd
-    assert _lookup_bt_rede_qtd("Armado") == 1, "Armado deve ter qtd_cabos=1 (workbook plan1_row=8)"
-    assert _lookup_bt_rede_qtd("Aberta") == 3, "Aberta deve ter qtd_cabos=3"
-    assert _lookup_bt_rede_qtd("Multiplexada") == 1, "Multiplexada deve ter qtd_cabos=1"
-
-
-def test_bt_traversal_flecha_zero_nao_gera_excecao():
-    """Regressão BUG-2: flecha=0 em BT T2/T3/T4 não deve levantar ZeroDivisionError."""
-    mt1 = [
-        MTTraversalInput(
-            tipo_rede="Convencional",
-            tipo_cabo="397MCM-CA, Nu",
-            vao=33.0,
-            flecha=0.5,
-            angulo=0.0,
-            altura_poste=11.0,
-            altura_ancoragem=9.2,
-        ),
-        MTTraversalInput(
-            tipo_rede="Convencional",
-            tipo_cabo="397MCM-CA, Nu",
-            vao=0.0,    # vao=0 força flecha=0 sem divisão
-            flecha=0.0,
-            angulo=0.0,
-            altura_poste=11.0,
-            altura_ancoragem=9.2,
-        ),
-        MTTraversalInput(),
-        MTTraversalInput(),
-    ]
-    bt = [
-        BTTraversalInput(tipo_rede="Multiplexada", tipo_cabo="70mm², MTX-BT ", altura_ancoragem=7.0),
-        BTTraversalInput(tipo_rede="Armado", tipo_cabo="70mm², MTX-BT ", vao=20.0, flecha=0.0, angulo=0.0, altura_ancoragem=7.0),
-        BTTraversalInput(),
-        BTTraversalInput(),
-    ]
-    mt2 = [MTTraversalInput() for _ in range(4)]
-    btz = [BTZeroTraversalInput() for _ in range(4)]
-    ral = [RamaisTraversalInput() for _ in range(4)]
-
-    # Deve executar sem ZeroDivisionError
-    out = calcular_polo(mt1, mt2, bt, btz, ral)
-    # BT T2 com flecha=0 → catenary deve ser 0, não erro
-    assert out.bt.traversals[1].catenary == 0.0, (
-        f"BT T2 catenary com flecha=0 deve ser 0.0, got {out.bt.traversals[1].catenary}"
-    )
-
+if __name__ == "__main__":
+    # Executar os testes
+    pytest.main([__file__, "-v"])

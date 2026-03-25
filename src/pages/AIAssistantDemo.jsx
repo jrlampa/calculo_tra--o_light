@@ -1,3 +1,12 @@
+/**
+ * The AIAssistantDemo component in this code snippet demonstrates the use of an AI assistant for
+ * calculating traction in electrical networks.
+ * @returns The `AIAssistantDemo` component is being returned. This component contains various sections
+ * including header, status card, demo actions buttons for analyzing calculation, optimizing project,
+ * generating report, and validating parameters. It also displays loading indicators, results grid for
+ * analysis, optimization, report, and validation results. Additionally, it includes demo data for
+ * calculation and project details.
+ */
 import React, { useState, useEffect } from 'react';
 import { Bot, Cpu, Database, Zap, TrendingUp, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { useAIAssistant } from '../hooks/useAIAssistant';

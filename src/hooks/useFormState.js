@@ -1,3 +1,11 @@
+/**
+ * The `useFormState` function in JavaScript manages form state for multiple levels of traversal with
+ * optimized callbacks for updating, resetting, and importing data.
+ * @returns The `useFormState` custom hook is being returned. This hook manages the state of a form
+ * with multiple levels of data (mt1, mt2, bt, btz, ral) and provides optimized callbacks for handling
+ * changes, resetting the form, applying imported data, and checking form data completeness. The hook
+ * returns an object containing the form state, individual level data, flags for form data
+ */
 import { useState, useCallback, useMemo } from 'react'
 import { useOptimizedCallback } from './useOptimizedCallbacks.js'
 import {

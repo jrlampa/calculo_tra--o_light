@@ -1,0 +1,1046 @@
+{
+  "timestamp": "2026-03-24T23:02:49.735730",
+  "sections": {
+    "schema_structure": {
+      "tables": {
+        "activity_logs": {
+          "column_count": 6,
+          "columns": [
+            {
+              "name": "id",
+              "type": "uuid",
+              "nullable": "NO",
+              "default": false
+            },
+            {
+              "name": "projeto_id",
+              "type": "uuid",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "user_id",
+              "type": "uuid",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "activity_type",
+              "type": "character varying",
+              "nullable": "NO",
+              "default": false
+            },
+            {
+              "name": "details",
+              "type": "jsonb",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "created_at",
+              "type": "timestamp with time zone",
+              "nullable": "NO",
+              "default": true
+            }
+          ]
+        },
+        "alembic_version": {
+          "column_count": 1,
+          "columns": [
+            {
+              "name": "version_num",
+              "type": "character varying",
+              "nullable": "NO",
+              "default": false
+            }
+          ]
+        },
+        "cabos": {
+          "column_count": 4,
+          "columns": [
+            {
+              "name": "id",
+              "type": "integer",
+              "nullable": "NO",
+              "default": true
+            },
+            {
+              "name": "nome",
+              "type": "character varying",
+              "nullable": "NO",
+              "default": false
+            },
+            {
+              "name": "diametro",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "peso",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            }
+          ]
+        },
+        "niveis_calculo": {
+          "column_count": 5,
+          "columns": [
+            {
+              "name": "id",
+              "type": "uuid",
+              "nullable": "NO",
+              "default": false
+            },
+            {
+              "name": "ponto_id",
+              "type": "uuid",
+              "nullable": "NO",
+              "default": false
+            },
+            {
+              "name": "nivel",
+              "type": "character varying",
+              "nullable": "NO",
+              "default": false
+            },
+            {
+              "name": "altura_poste",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "altura_ancoragem",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            }
+          ]
+        },
+        "normas_regras": {
+          "column_count": 8,
+          "columns": [
+            {
+              "name": "id",
+              "type": "integer",
+              "nullable": "NO",
+              "default": true
+            },
+            {
+              "name": "categoria",
+              "type": "character varying",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "arquivo_origem",
+              "type": "character varying",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "titulo",
+              "type": "character varying",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "descricao",
+              "type": "text",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "regra_tecnica",
+              "type": "text",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "aplicavel_a",
+              "type": "text",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "fonte_referencia",
+              "type": "text",
+              "nullable": "YES",
+              "default": false
+            }
+          ]
+        },
+        "pontos": {
+          "column_count": 5,
+          "columns": [
+            {
+              "name": "id",
+              "type": "uuid",
+              "nullable": "NO",
+              "default": false
+            },
+            {
+              "name": "projeto_id",
+              "type": "uuid",
+              "nullable": "NO",
+              "default": false
+            },
+            {
+              "name": "ponto",
+              "type": "character varying",
+              "nullable": "NO",
+              "default": false
+            },
+            {
+              "name": "tipo_poste",
+              "type": "character varying",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "modelo_poste",
+              "type": "character varying",
+              "nullable": "YES",
+              "default": false
+            }
+          ]
+        },
+        "postes": {
+          "column_count": 5,
+          "columns": [
+            {
+              "name": "id",
+              "type": "integer",
+              "nullable": "NO",
+              "default": true
+            },
+            {
+              "name": "tipo",
+              "type": "character varying",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "modelo",
+              "type": "character varying",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "altura_m",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "carga_admissivel_dan",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            }
+          ]
+        },
+        "projetos": {
+          "column_count": 12,
+          "columns": [
+            {
+              "name": "id",
+              "type": "uuid",
+              "nullable": "NO",
+              "default": false
+            },
+            {
+              "name": "orgao",
+              "type": "character varying",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "ns",
+              "type": "character varying",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "nome",
+              "type": "character varying",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "endereco",
+              "type": "text",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "estudado_por",
+              "type": "character varying",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "matricula",
+              "type": "character varying",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "data_estudo",
+              "type": "character varying",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "owner_id",
+              "type": "uuid",
+              "nullable": "NO",
+              "default": false
+            },
+            {
+              "name": "criado_em",
+              "type": "timestamp without time zone",
+              "nullable": "NO",
+              "default": true
+            },
+            {
+              "name": "atualizado_em",
+              "type": "timestamp without time zone",
+              "nullable": "NO",
+              "default": true
+            },
+            {
+              "name": "deletado_em",
+              "type": "timestamp without time zone",
+              "nullable": "YES",
+              "default": false
+            }
+          ]
+        },
+        "redes": {
+          "column_count": 3,
+          "columns": [
+            {
+              "name": "id",
+              "type": "integer",
+              "nullable": "NO",
+              "default": true
+            },
+            {
+              "name": "tipo",
+              "type": "character varying",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "descricao",
+              "type": "text",
+              "nullable": "YES",
+              "default": false
+            }
+          ]
+        },
+        "resultados_calculo": {
+          "column_count": 21,
+          "columns": [
+            {
+              "name": "ponto_id",
+              "type": "uuid",
+              "nullable": "NO",
+              "default": false
+            },
+            {
+              "name": "mt1_tracao",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "mt1_angulo",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "mt2_tracao",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "mt2_angulo",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "bt_tracao",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "bt_angulo",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "btz_tracao",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "btz_angulo",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "ral_tracao",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "ral_angulo",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "total_tracao",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "total_angulo",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "poste_ecc",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "texto_mt1",
+              "type": "text",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "texto_mt2",
+              "type": "text",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "texto_bt",
+              "type": "text",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "texto_btz",
+              "type": "text",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "texto_ral",
+              "type": "text",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "texto_total",
+              "type": "text",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "calculado_em",
+              "type": "timestamp without time zone",
+              "nullable": "YES",
+              "default": false
+            }
+          ]
+        },
+        "travessias": {
+          "column_count": 10,
+          "columns": [
+            {
+              "name": "id",
+              "type": "uuid",
+              "nullable": "NO",
+              "default": false
+            },
+            {
+              "name": "nivel_id",
+              "type": "uuid",
+              "nullable": "NO",
+              "default": false
+            },
+            {
+              "name": "posicao",
+              "type": "integer",
+              "nullable": "NO",
+              "default": false
+            },
+            {
+              "name": "tipo_rede",
+              "type": "character varying",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "tipo_cabo",
+              "type": "character varying",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "vao",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "flecha",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "angulo",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "qtd_ligacoes",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            },
+            {
+              "name": "qtd_cabos",
+              "type": "double precision",
+              "nullable": "YES",
+              "default": false
+            }
+          ]
+        }
+      },
+      "indexes": [
+        {
+          "table": "activity_logs",
+          "name": "activity_logs_pkey",
+          "definition": "CREATE UNIQUE INDEX activity_logs_pkey ON public.activity_logs USING btree (id)"
+        },
+        {
+          "table": "activity_logs",
+          "name": "ix_activity_logs_projeto_id",
+          "definition": "CREATE INDEX ix_activity_logs_projeto_id ON public.activity_logs USING btree (projeto_id)"
+        },
+        {
+          "table": "activity_logs",
+          "name": "ix_activity_logs_user_id",
+          "definition": "CREATE INDEX ix_activity_logs_user_id ON public.activity_logs USING btree (user_id)"
+        },
+        {
+          "table": "alembic_version",
+          "name": "alembic_version_pkc",
+          "definition": "CREATE UNIQUE INDEX alembic_version_pkc ON public.alembic_version USING btree (version_num)"
+        },
+        {
+          "table": "cabos",
+          "name": "cabos_nome_key",
+          "definition": "CREATE UNIQUE INDEX cabos_nome_key ON public.cabos USING btree (nome)"
+        },
+        {
+          "table": "cabos",
+          "name": "cabos_pkey",
+          "definition": "CREATE UNIQUE INDEX cabos_pkey ON public.cabos USING btree (id)"
+        },
+        {
+          "table": "niveis_calculo",
+          "name": "_ponto_nivel_uc",
+          "definition": "CREATE UNIQUE INDEX _ponto_nivel_uc ON public.niveis_calculo USING btree (ponto_id, nivel)"
+        },
+        {
+          "table": "niveis_calculo",
+          "name": "niveis_calculo_pkey",
+          "definition": "CREATE UNIQUE INDEX niveis_calculo_pkey ON public.niveis_calculo USING btree (id)"
+        },
+        {
+          "table": "normas_regras",
+          "name": "normas_regras_pkey",
+          "definition": "CREATE UNIQUE INDEX normas_regras_pkey ON public.normas_regras USING btree (id)"
+        },
+        {
+          "table": "pontos",
+          "name": "_projeto_ponto_uc",
+          "definition": "CREATE UNIQUE INDEX _projeto_ponto_uc ON public.pontos USING btree (projeto_id, ponto)"
+        },
+        {
+          "table": "pontos",
+          "name": "pontos_pkey",
+          "definition": "CREATE UNIQUE INDEX pontos_pkey ON public.pontos USING btree (id)"
+        },
+        {
+          "table": "postes",
+          "name": "postes_pkey",
+          "definition": "CREATE UNIQUE INDEX postes_pkey ON public.postes USING btree (id)"
+        },
+        {
+          "table": "projetos",
+          "name": "projetos_pkey",
+          "definition": "CREATE UNIQUE INDEX projetos_pkey ON public.projetos USING btree (id)"
+        },
+        {
+          "table": "redes",
+          "name": "redes_pkey",
+          "definition": "CREATE UNIQUE INDEX redes_pkey ON public.redes USING btree (id)"
+        },
+        {
+          "table": "redes",
+          "name": "redes_tipo_key",
+          "definition": "CREATE UNIQUE INDEX redes_tipo_key ON public.redes USING btree (tipo)"
+        },
+        {
+          "table": "resultados_calculo",
+          "name": "resultados_calculo_pkey",
+          "definition": "CREATE UNIQUE INDEX resultados_calculo_pkey ON public.resultados_calculo USING btree (ponto_id)"
+        },
+        {
+          "table": "travessias",
+          "name": "_nivel_posicao_uc",
+          "definition": "CREATE UNIQUE INDEX _nivel_posicao_uc ON public.travessias USING btree (nivel_id, posicao)"
+        },
+        {
+          "table": "travessias",
+          "name": "travessias_pkey",
+          "definition": "CREATE UNIQUE INDEX travessias_pkey ON public.travessias USING btree (id)"
+        }
+      ],
+      "constraints": [
+        {
+          "table": "activity_logs",
+          "name": "2200_21147_1_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "activity_logs",
+          "name": "2200_21147_4_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "activity_logs",
+          "name": "2200_21147_6_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "activity_logs",
+          "name": "activity_logs_pkey",
+          "type": "PRIMARY KEY"
+        },
+        {
+          "table": "alembic_version",
+          "name": "2200_21049_1_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "alembic_version",
+          "name": "alembic_version_pkc",
+          "type": "PRIMARY KEY"
+        },
+        {
+          "table": "cabos",
+          "name": "2200_21055_1_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "cabos",
+          "name": "2200_21055_2_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "cabos",
+          "name": "cabos_nome_key",
+          "type": "UNIQUE"
+        },
+        {
+          "table": "cabos",
+          "name": "cabos_pkey",
+          "type": "PRIMARY KEY"
+        },
+        {
+          "table": "niveis_calculo",
+          "name": "2200_21111_1_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "niveis_calculo",
+          "name": "2200_21111_2_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "niveis_calculo",
+          "name": "2200_21111_3_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "niveis_calculo",
+          "name": "_ponto_nivel_uc",
+          "type": "UNIQUE"
+        },
+        {
+          "table": "niveis_calculo",
+          "name": "niveis_calculo_pkey",
+          "type": "PRIMARY KEY"
+        },
+        {
+          "table": "niveis_calculo",
+          "name": "niveis_calculo_ponto_id_fkey",
+          "type": "FOREIGN KEY"
+        },
+        {
+          "table": "normas_regras",
+          "name": "2200_21064_1_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "normas_regras",
+          "name": "normas_regras_pkey",
+          "type": "PRIMARY KEY"
+        },
+        {
+          "table": "pontos",
+          "name": "2200_21099_1_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "pontos",
+          "name": "2200_21099_2_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "pontos",
+          "name": "2200_21099_3_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "pontos",
+          "name": "_projeto_ponto_uc",
+          "type": "UNIQUE"
+        },
+        {
+          "table": "pontos",
+          "name": "pontos_pkey",
+          "type": "PRIMARY KEY"
+        },
+        {
+          "table": "pontos",
+          "name": "pontos_projeto_id_fkey",
+          "type": "FOREIGN KEY"
+        },
+        {
+          "table": "postes",
+          "name": "2200_21073_1_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "postes",
+          "name": "postes_pkey",
+          "type": "PRIMARY KEY"
+        },
+        {
+          "table": "projetos",
+          "name": "2200_21079_10_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "projetos",
+          "name": "2200_21079_11_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "projetos",
+          "name": "2200_21079_1_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "projetos",
+          "name": "2200_21079_9_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "projetos",
+          "name": "projetos_pkey",
+          "type": "PRIMARY KEY"
+        },
+        {
+          "table": "redes",
+          "name": "2200_21089_1_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "redes",
+          "name": "redes_pkey",
+          "type": "PRIMARY KEY"
+        },
+        {
+          "table": "redes",
+          "name": "redes_tipo_key",
+          "type": "UNIQUE"
+        },
+        {
+          "table": "resultados_calculo",
+          "name": "2200_21123_1_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "resultados_calculo",
+          "name": "resultados_calculo_pkey",
+          "type": "PRIMARY KEY"
+        },
+        {
+          "table": "resultados_calculo",
+          "name": "resultados_calculo_ponto_id_fkey",
+          "type": "FOREIGN KEY"
+        },
+        {
+          "table": "travessias",
+          "name": "2200_21135_1_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "travessias",
+          "name": "2200_21135_2_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "travessias",
+          "name": "2200_21135_3_not_null",
+          "type": "CHECK"
+        },
+        {
+          "table": "travessias",
+          "name": "_nivel_posicao_uc",
+          "type": "UNIQUE"
+        },
+        {
+          "table": "travessias",
+          "name": "travessias_nivel_id_fkey",
+          "type": "FOREIGN KEY"
+        },
+        {
+          "table": "travessias",
+          "name": "travessias_pkey",
+          "type": "PRIMARY KEY"
+        }
+      ],
+      "warnings": []
+    },
+    "data_volume": {
+      "table_sizes": {
+        "activity_logs": 18,
+        "alembic_version": 1,
+        "cabos": 0,
+        "niveis_calculo": 0,
+        "normas_regras": 0,
+        "pontos": 0,
+        "postes": 0,
+        "projetos": 26,
+        "redes": 0,
+        "resultados_calculo": 0,
+        "travessias": 0
+      },
+      "largest_tables": [
+        [
+          "projetos",
+          26
+        ],
+        [
+          "activity_logs",
+          18
+        ],
+        [
+          "alembic_version",
+          1
+        ],
+        [
+          "cabos",
+          0
+        ],
+        [
+          "niveis_calculo",
+          0
+        ],
+        [
+          "normas_regras",
+          0
+        ],
+        [
+          "pontos",
+          0
+        ],
+        [
+          "postes",
+          0
+        ],
+        [
+          "redes",
+          0
+        ],
+        [
+          "resultados_calculo",
+          0
+        ],
+        [
+          "travessias",
+          0
+        ]
+      ],
+      "empty_tables": [
+        "cabos",
+        "niveis_calculo",
+        "normas_regras",
+        "pontos",
+        "postes",
+        "redes",
+        "resultados_calculo",
+        "travessias"
+      ],
+      "warnings": [
+        "⚠️  8 empty tables: cabos, niveis_calculo, normas_regras, pontos, postes, redes, resultados_calculo, travessias"
+      ]
+    },
+    "referential_integrity": {
+      "orphan_records": {},
+      "relationship_health": {
+        "projeto_pontos_coverage": 0
+      },
+      "warnings": []
+    },
+    "data_completeness": {
+      "null_analysis": {
+        "projetos": {
+          "nome": {
+            "null_count": 0,
+            "total_count": 26,
+            "coverage_pct": 100.0
+          },
+          "orgao": {
+            "null_count": 0,
+            "total_count": 26,
+            "coverage_pct": 100.0
+          },
+          "estudado_por": {
+            "null_count": 0,
+            "total_count": 26,
+            "coverage_pct": 100.0
+          },
+          "criado_em": {
+            "null_count": 0,
+            "total_count": 26,
+            "coverage_pct": 100.0
+          }
+        },
+        "pontos": {
+          "ponto": {
+            "null_count": 0,
+            "total_count": 0,
+            "coverage_pct": 0
+          },
+          "projeto_id": {
+            "null_count": 0,
+            "total_count": 0,
+            "coverage_pct": 0
+          }
+        },
+        "niveis_calculo": {
+          "ponto_id": {
+            "null_count": 0,
+            "total_count": 0,
+            "coverage_pct": 0
+          },
+          "nivel": {
+            "null_count": 0,
+            "total_count": 0,
+            "coverage_pct": 0
+          }
+        },
+        "travessias": {
+          "nivel_id": {
+            "null_count": 0,
+            "total_count": 0,
+            "coverage_pct": 0
+          },
+          "posicao": {
+            "null_count": 0,
+            "total_count": 0,
+            "coverage_pct": 0
+          }
+        }
+      },
+      "field_coverage": {},
+      "warnings": []
+    },
+    "timestamp_consistency": {
+      "timestamp_analysis": {
+        "projetos": {
+          "criado_em": {
+            "total": 26,
+            "populated": 26,
+            "coverage_pct": 100.0,
+            "range": {
+              "min": "2026-03-23 23:10:18.245747",
+              "max": "2026-03-24 21:34:07.564894"
+            }
+          },
+          "atualizado_em": {
+            "total": 26,
+            "populated": 26,
+            "coverage_pct": 100.0,
+            "range": {
+              "min": "2026-03-23 23:10:18.245747",
+              "max": "2026-03-24 21:34:07.564894"
+            }
+          }
+        },
+        "pontos": {},
+        "niveis_calculo": {},
+        "travessias": {}
+      },
+      "warnings": []
+    },
+    "data_quality": {
+      "data_quality_checks": {},
+      "anomalies": [],
+      "warnings": []
+    },
+    "persistence_layer": {
+      "migrations": {
+        "alembic_versions": [
+          "d55ff4ae541f"
+        ]
+      },
+      "schema_version": null,
+      "warnings": []
+    },
+    "performance_hints": {
+      "index_coverage": {},
+      "optimization_hints": {},
+      "warnings": []
+    }
+  }
+}

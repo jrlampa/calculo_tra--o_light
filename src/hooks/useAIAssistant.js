@@ -1,3 +1,10 @@
+/**
+ * The `useAIAssistant` custom hook in JavaScript manages AI assistant functionality such as checking
+ * status, sending messages, analyzing calculations, optimizing projects, and generating technical
+ * reports.
+ * @returns The `useAIAssistant` custom hook is returning an object with the following properties and
+ * methods:
+ */
 import { useState, useEffect, useCallback } from 'react';
 
 export const useAIAssistant = () => {

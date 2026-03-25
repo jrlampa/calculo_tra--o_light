@@ -1,3 +1,16 @@
+/**
+ * The above code provides custom React hooks for optimized callbacks, deep comparison of dependencies,
+ * stable state management, memoization of objects and arrays, throttling of events, and optimized
+ * input handling.
+ * @param fn - `fn` is a function that you want to memoize or optimize for performance. It could be any
+ * callback function that you want to optimize.
+ * @param deps - The `deps` parameter in the custom hooks refers to the dependencies array. This array
+ * contains values that the hook depends on, and it is used to determine when the hook should re-run or
+ * update based on changes in those dependencies. By providing the `deps` array, you can control the
+ * behavior of
+ * @returns The custom hooks are returning optimized and memoized functions or values based on specific
+ * requirements:
+ */
 import { useCallback, useRef } from 'react'
 
 /**

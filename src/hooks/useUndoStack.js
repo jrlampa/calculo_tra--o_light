@@ -1,3 +1,18 @@
+/**
+ * The `useUndoStack` custom hook in JavaScript manages undo and redo functionality with expiration
+ * based on a specified time-to-live (TTL) for actions.
+ * @param pontoId - The `pontoId` parameter in the `useUndoStack` hook is used to identify the specific
+ * instance of the hook. When the `pontoId` changes, the hook will reset its state, clearing the undo
+ * and redo stacks. This can be useful when you have multiple instances of the
+ * @param [maxSize] - The `maxSize` parameter in the `useUndoStack` hook determines the maximum number
+ * of actions that can be stored in the undo stack. When a new action is pushed onto the stack and the
+ * size exceeds `maxSize`, the oldest action is removed to maintain the limit.
+ * @param [ttlMs] - The `ttlMs` parameter in the `useUndoStack` hook stands for "time to live in
+ * milliseconds". It determines the duration for which the undo actions are kept in the stack before
+ * they expire and are cleared. In this case, the default `ttlMs` value is set to 5
+ * @returns The `useUndoStack` custom hook returns an object with the following properties and
+ * functions:
+ */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstrumentation.js'
 

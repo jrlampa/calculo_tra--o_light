@@ -1,3 +1,6 @@
+/* This code snippet is exporting a constant named `TABELA_CARGAS_POSTE` which is an array of objects.
+Each object in the array represents a set of data related to different angles (`alpha`) and
+corresponding load values for two different scenarios (`R300` and `R600`). */
 export const TABELA_CARGAS_POSTE = [
   { alpha: '-', R300: 300, R600: 600 },
   { alpha: 0, R300: 300, R600: 600 },

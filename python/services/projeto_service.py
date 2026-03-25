@@ -130,7 +130,8 @@ class ProjetoService:
         if len(projeto_in.matricula) < 1:
             raise ValidationError("Matrícula não pode ser vazia")
 
-        # Validate study date is not in future
+        # Validate study date is not in future - this is now handled by Pydantic validator
+        # but we keep this for additional safety and custom error messages
         if projeto_in.data_estudo:
             try:
                 # Handle string format (consistent with Pydantic model change)
@@ -138,8 +139,7 @@ class ProjetoService:
                 if dt > datetime.utcnow():
                     raise ValidationError("Data de estudo não pode estar no futuro")
             except (ValueError, TypeError):
-                # If format is invalid or it's already a datetime (fallback)
-                pass
+                raise ValidationError("Formato de data inválido. Use DD/MM/AAAA")
 
     
     async def _check_duplicate_ns(self, ns: str, user_id: UUID) -> bool:

@@ -10,12 +10,12 @@ from pydantic import BaseModel, Field, root_validator, validator
 
 class ProjetoBase(BaseModel):
     """Base schema for projeto."""
-    orgao: str = Field(..., min_length=1, max_length=100)
-    ns: str = Field(..., min_length=1, max_length=20)
-    nome: str = Field(..., min_length=1, max_length=200)
-    endereco: Optional[str] = Field(None, max_length=500)
-    estudado_por: str = Field(..., min_length=1, max_length=100)
-    matricula: str = Field(..., min_length=1, max_length=20)
+    orgao: str = Field(default="", max_length=100)
+    ns: str = Field(default="", max_length=20)
+    nome: str = Field(..., min_length=1, max_length=200)  # Campo obrigatório
+    endereco: Optional[str] = Field(default="", max_length=500)
+    estudado_por: str = Field(default="", max_length=100)
+    matricula: str = Field(default="", max_length=20)
     data_estudo: Optional[str] = None
     
     @validator('data_estudo', pre=True, always=True)
@@ -25,6 +25,25 @@ class ProjetoBase(BaseModel):
         if isinstance(v, datetime):
             return v.strftime("%d/%m/%Y")
         return v
+    
+    @validator('data_estudo')
+    def validate_data_estudo(cls, v):
+        if not v:
+            return v
+        
+        try:
+            # Validar formato da data
+            dt = datetime.strptime(v, "%d/%m/%Y")
+            
+            # Validar que a data não está no futuro
+            if dt > datetime.utcnow():
+                raise ValueError("Data de estudo não pode estar no futuro")
+                
+            return v
+        except ValueError as e:
+            if "future" in str(e):
+                raise ValueError("Data de estudo não pode estar no futuro")
+            raise ValueError("Formato de data inválido. Use DD/MM/AAAA")
 
 
 class ProjetoCreate(ProjetoBase):
