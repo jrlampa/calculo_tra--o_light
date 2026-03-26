@@ -2,6 +2,7 @@
 testing the functionality of a module related to user experience (UX) funnel instrumentation. Here's
 a breakdown of what the code is doing: */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+
 import {
   UX_FUNNEL_EVENTS,
   setUxFunnelEventCallback,

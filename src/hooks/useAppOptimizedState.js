@@ -5,17 +5,20 @@
  * @returns The `useAppOptimizedState` hook returns an object with the following properties:
  */
 import { useMemo, useCallback, useEffect, useRef } from 'react'
-import useCalculo from './useCalculo.js'
-import usePersistenciaCalculo from './usePersistenciaCalculo.js'
-import useUndoStack from './useUndoStack.js'
-import useUndoClear from './useUndoClear.js'
-import { useProjetoState } from './useProjetoState.js'
-import { usePontoState } from './usePontoState.js'
-import { useFormState } from './useFormState.js'
-import { useConfigState } from './useConfigState.js'
+
 import { TABELA_CARGAS_POSTE } from '../constants/tabelaCargasPoste.js'
-import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstrumentation.js'
 import { buildBatchPayload, batchSaveCalculo, listProjetos } from '../services/calculoApi.js'
+import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstrumentation.js'
+
+import useCalculo from './useCalculo.js'
+import { useConfigState } from './useConfigState.js'
+import { useFormState } from './useFormState.js'
+import usePersistenciaCalculo from './usePersistenciaCalculo.js'
+import { usePontoState } from './usePontoState.js'
+import { useProjetoState } from './useProjetoState.js'
+import useUndoClear from './useUndoClear.js'
+import useUndoStack from './useUndoStack.js'
+
 
 export const useAppOptimizedState = () => {
   // Estado particionado
@@ -128,7 +131,7 @@ export const useAppOptimizedState = () => {
 
   // Memoizar vetores de tração
   const vetoresTracao = useMemo(() => {
-    if (!resultado?.vetores) return []
+    if (!resultado?.vetores) {return []}
     const maxF = Math.max(...resultado.vetores.map(v => v.tracao_dan), 1)
     return resultado.vetores.map(v => ({
       angulo: v.angulo_graus,
@@ -139,7 +142,7 @@ export const useAppOptimizedState = () => {
 
   // Memoizar resultante
   const resultante = useMemo(() => {
-    if (!resultado) return { angulo: 0, magnitude: 0 }
+    if (!resultado) {return { angulo: 0, magnitude: 0 }}
     const maxF = Math.max(...(resultado.vetores?.map(v => v.tracao_dan) ?? [1]), 1)
     return {
       angulo: resultado.total_angulo_graus,
@@ -287,7 +290,7 @@ export const useAppOptimizedState = () => {
 
   // Handler para importar do Excel
   const handleImportarExcel = useCallback(async (file) => {
-    if (!file) return
+    if (!file) {return}
 
     const formData = new FormData()
     formData.append('file', file)
@@ -309,14 +312,14 @@ export const useAppOptimizedState = () => {
       // 1. Atualizar Cabecalho
       if (data.cabecalho) {
         Object.entries(data.cabecalho).forEach(([key, val]) => {
-          if (val) projetoState.handlers.handleHeader(key, val)
+          if (val) {projetoState.handlers.handleHeader(key, val)}
         })
       }
 
       // 2. Atualizar Poste
       if (data.poste) {
-        if (data.poste.tipo_poste) pontoState.handlers.handlePoste('tipoPoste', data.poste.tipo_poste)
-        if (data.poste.modelo_poste) pontoState.handlers.handlePoste('modeloPoste', data.poste.modelo_poste)
+        if (data.poste.tipo_poste) {pontoState.handlers.handlePoste('tipoPoste', data.poste.tipo_poste)}
+        if (data.poste.modelo_poste) {pontoState.handlers.handlePoste('modeloPoste', data.poste.modelo_poste)}
       }
 
       // 3. Atualizar Travessias em massa
