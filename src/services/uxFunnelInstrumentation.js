@@ -30,6 +30,9 @@ export const UX_FUNNEL_EVENTS = Object.freeze({
   IMPORT_EXCEL_STARTED: 'import_excel_started',
   IMPORT_EXCEL_SUCCESS: 'import_excel_success',
   IMPORT_EXCEL_FAILED: 'import_excel_failed',
+  CLEAR_STARTED: 'clear_started',
+  CLEAR_COMMITTED: 'clear_committed',
+  CLEAR_UNDONE: 'clear_undone',
 })
 
 const VALID_EVENT_NAMES = new Set(Object.values(UX_FUNNEL_EVENTS))

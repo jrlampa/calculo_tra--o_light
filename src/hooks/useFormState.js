@@ -65,6 +65,16 @@ export const useFormState = () => {
     resetForm()
   }, [resetForm])
 
+  // Restaurar snapshot completo dos dados técnicos
+  const restoreFormSnapshot = useOptimizedCallback((snapshot) => {
+    if (!snapshot) return
+    if (snapshot.mt1) setMT1(snapshot.mt1)
+    if (snapshot.mt2) setMT2(snapshot.mt2)
+    if (snapshot.bt) setBT(snapshot.bt)
+    if (snapshot.btz) setBTZ(snapshot.btz)
+    if (snapshot.ral) setRAL(snapshot.ral)
+  }, [])
+
   // Aplicar dados importados em massa
   const applyImportedData = useOptimizedCallback((data) => {
     if (data.mt1) setMT1(data.mt1)
@@ -119,9 +129,10 @@ export const useFormState = () => {
       handleTravessiaChange,
       resetForm,
       resetFormParaProximoPonto,
+      restoreFormSnapshot,
       applyImportedData
     }
-  }), [formState, mt1, mt2, bt, btz, ral, hasFormData, travessiasPreenchidas, handleTravessiaChange, resetForm, resetFormParaProximoPonto])
+  }), [formState, mt1, mt2, bt, btz, ral, hasFormData, travessiasPreenchidas, handleTravessiaChange, resetForm, resetFormParaProximoPonto, restoreFormSnapshot])
 
   return formStateMemo
 }

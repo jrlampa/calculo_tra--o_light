@@ -9,6 +9,7 @@ import ErrorBoundary from './components/error/ErrorBoundary.jsx'
 import TelaProjetoInicial from './components/projeto/TelaProjetoInicial.jsx'
 import GerenciadorProjetos from './components/projeto/GerenciadorProjetos.jsx'
 import SecaoNivel from './components/secao/SecaoNivel.jsx'
+import UndoToast from './components/ui/UndoToast.jsx'
 import { 
   LazyTabelaCarga, 
   LazyDiagramaPoste, 
@@ -211,6 +212,13 @@ export default function App() {
             )}
           </div>
         </div>
+
+        {/* APAGA undo toast — mounted outside the layout grid so it floats above everything */}
+        <UndoToast
+          clearState={appState.clearState}
+          countdown={appState.countdown}
+          onUndo={appState.undoClear}
+        />
       </div>
     </ErrorBoundary>
   )

@@ -8,6 +8,7 @@ import { useMemo, useCallback, useEffect, useRef } from 'react'
 import useCalculo from './useCalculo.js'
 import usePersistenciaCalculo from './usePersistenciaCalculo.js'
 import useUndoStack from './useUndoStack.js'
+import useUndoClear from './useUndoClear.js'
 import { useProjetoState } from './useProjetoState.js'
 import { usePontoState } from './usePontoState.js'
 import { useFormState } from './useFormState.js'
@@ -143,12 +144,54 @@ export const useAppOptimizedState = () => {
     return { tone: 'idle', message: 'Aguardando envio.' }
   }, [persistencia.error, persistencia.isForbidden, persistencia.status])
 
-  // Handler para apagar dados
+  // Snapshot for APAGA undo: saved before the clear is committed
+  const apagaSnapshotRef = useRef(null)
+
+  // useUndoClear wires the 5-second APAGA undo window
+  const { clearState, countdown, requestClear, undoClear } = useUndoClear({
+    ttlMs: 5000,
+    onCommit: useCallback(() => {
+      // Timeout expired — apply the actual reset
+      formState.handlers.resetForm()
+      pontoState.handlers.resetPonto()
+      resetPersistencia()
+      apagaSnapshotRef.current = null
+      trackUxFunnelEvent(UX_FUNNEL_EVENTS.CLEAR_COMMITTED, {
+        projeto_id: projetoState.projetoAtual?.id ?? null,
+        ponto_id: pontoState.pontoAtual?.id ?? null,
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),  // stable: refs are used inside, no stale-closure risk
+    onUndo: useCallback(() => {
+      // Restore snapshot taken before the clear
+      if (apagaSnapshotRef.current) {
+        formState.handlers.restoreFormSnapshot(apagaSnapshotRef.current)
+        apagaSnapshotRef.current = null
+      }
+      trackUxFunnelEvent(UX_FUNNEL_EVENTS.CLEAR_UNDONE, {
+        projeto_id: projetoState.projetoAtual?.id ?? null,
+        ponto_id: pontoState.pontoAtual?.id ?? null,
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),  // stable: refs are used inside, no stale-closure risk
+  })
+
+  // Handler para apagar dados — opens the 5-second undo window
   const handleApaga = useCallback(() => {
-    formState.handlers.resetForm()
-    pontoState.handlers.resetPonto()
-    resetPersistencia()
-  }, [formState.handlers, pontoState.handlers, resetPersistencia])
+    // Capture snapshot BEFORE any reset
+    apagaSnapshotRef.current = {
+      mt1: formState.travessias.mt1,
+      mt2: formState.travessias.mt2,
+      bt:  formState.travessias.bt,
+      btz: formState.travessias.btz,
+      ral: formState.travessias.ral,
+    }
+    trackUxFunnelEvent(UX_FUNNEL_EVENTS.CLEAR_STARTED, {
+      projeto_id: projetoState.projetoAtual?.id ?? null,
+      ponto_id: pontoState.pontoAtual?.id ?? null,
+    })
+    requestClear()
+  }, [formState.travessias, projetoState.projetoAtual?.id, pontoState.pontoAtual?.id, requestClear])
 
   // Handler mestre para PERSISTÊNCIA EM LOTE (Salvar Tudo)
   const handleSalvarTudo = useCallback(async () => {
@@ -398,6 +441,11 @@ export const useAppOptimizedState = () => {
     vetoresTracao,
     resultante,
     
+    // APAGA undo window
+    clearState,
+    countdown,
+    undoClear,
+    
     // Feedback
     persistenciaFeedback,
     configBanner: configState.configBanner,
@@ -435,6 +483,9 @@ export const useAppOptimizedState = () => {
     persistencia,
     undoStack,
     canUndo,
+    clearState,
+    countdown,
+    undoClear,
     vetoresTracao,
     resultante,
     persistenciaFeedback,

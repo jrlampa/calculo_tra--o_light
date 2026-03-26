@@ -223,7 +223,74 @@
   cursor: not-allowed;
 }
 
-/* ─── Tabela interior de seção ──────────────────────── */
+/* ─── UndoToast — Toast de desfazer APAGA ───────────── */
+.undo-toast {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+  z-index: 1000;
+  animation: undo-toast-in 0.18s ease-out;
+  white-space: nowrap;
+}
+
+@keyframes undo-toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.undo-toast--undo_pending {
+  background: #1e293b;
+  color: #f1f5f9;
+  border: 1px solid #334155;
+}
+
+.undo-toast--undone {
+  background: #14532d;
+  color: #dcfce7;
+  border: 1px solid #166534;
+}
+
+.undo-toast--committed {
+  background: #374151;
+  color: #e5e7eb;
+  border: 1px solid #4b5563;
+}
+
+.undo-toast__message {
+  flex: 1;
+}
+
+.undo-toast__btn {
+  padding: 4px 12px;
+  border-radius: 4px;
+  background: #3b66ad;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.undo-toast__btn:hover {
+  background: #315998;
+}
+
+.undo-toast__btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+
 .sec-table {
   width: 100%;
   border-collapse: collapse;
@@ -796,6 +863,11 @@
 @media (max-width: 960px) {
   .page-wrap {
     padding: 10px;
+  }
+
+  /* FE-25: Reserve space at the bottom so the fixed ActionBar doesn't overlap content */
+  .calc-main-column {
+    padding-bottom: max(4.5rem, calc(env(safe-area-inset-bottom) + 4rem));
   }
 
   .calc-layout {
