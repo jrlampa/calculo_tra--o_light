@@ -42,7 +42,6 @@ const CacheMonitor = () => {
         throw new Error(data.detail || 'Failed to fetch cache health');
       }
     } catch (err) {
-      console.error('Cache health check failed:', err);
     }
   };
 

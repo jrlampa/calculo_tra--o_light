@@ -114,16 +114,16 @@ const Header = ({
 }) => {
   return (
     <div>
-      <table style={{ borderCollapse: 'collapse', marginBottom: 8, width: '100%', tableLayout: 'fixed' }}>
+      <table className="header-data-table">
         <tbody>
-          <tr style={{ height: 22 }}>
+          <tr>
             <Field label="Órgão:" id="orgao" value={dados.orgao} onChange={onChange} readOnly={readOnlyCommon} />
             <Field label="N.S.:" id="ns" value={dados.ns} onChange={onChange} readOnly={readOnlyCommon} />
             <Field label="Projeto:" id="projeto" value={dados.projeto} onChange={onChange} readOnly={readOnlyCommon} />
             <Field label="Ponto:" id="ponto" value={dados.ponto} onChange={onChange} />
           </tr>
 
-          <tr style={{ height: 22 }}>
+          <tr>
             <Field
               label="Endereço:"
               id="endereco"
@@ -136,7 +136,7 @@ const Header = ({
             <Field label="Data:" id="data" value={dados.data} onChange={onChange} readOnly={readOnlyCommon} />
           </tr>
 
-          <tr style={{ height: 22 }}>
+          <tr>
             <Field
               label="Estudado por:"
               id="estudadoPor"
@@ -145,7 +145,7 @@ const Header = ({
               colSpan={3}
               readOnly={readOnlyCommon}
             />
-            <td colSpan={4} style={{ border: '1px solid #999', backgroundColor: '#f9f9f9' }} />
+            <td colSpan={4} className="header-empty-cell" />
           </tr>
         </tbody>
       </table>

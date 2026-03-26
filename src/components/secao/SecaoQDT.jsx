@@ -13,14 +13,14 @@ export default function SecaoQDT({ dados, onChange, resultado }) {
     <div className="sec-panel">
       <div className="sec-title">Queda de Tensão (QDT) %</div>
       
-      <table className="sec-table" style={{ tableLayout: 'fixed' }}>
+      <table className="sec-table sec-table--qdt">
         <colgroup>
-          <col style={{ width: 120 }} />
-          <col style={{ width: 60 }} />
-          <col style={{ width: 25 }} />
-          <col style={{ width: 120 }} />
-          <col style={{ width: 60 }} />
-          <col style={{ width: 25 }} />
+          <col className="col-qdt-lbl" />
+          <col className="col-qdt-in" />
+          <col className="col-qdt-unit" />
+          <col className="col-qdt-lbl" />
+          <col className="col-qdt-in" />
+          <col className="col-qdt-unit" />
         </colgroup>
         <tbody>
           <tr>
@@ -106,8 +106,8 @@ export default function SecaoQDT({ dados, onChange, resultado }) {
         </tbody>
       </table>
 
-      <div style={{ padding: '6px', borderTop: '1px solid #000' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '10px', marginBottom: 4 }}>
+      <div className="qdt-results">
+        <div className="qdt-results-grid">
           <div>
             <strong>MT Inicial:</strong> {resultado?.v_mt_initial?.toFixed(2)} V<br/>
             <strong>MT resultante:</strong> {resultado?.v_mt_node?.toFixed(2)} V

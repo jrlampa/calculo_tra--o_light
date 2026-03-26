@@ -183,7 +183,7 @@ export default function App() {
                 className="btn-importar w-full py-3 px-4 rounded-lg font-bold shadow-lg transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center justify-center gap-3 border-b-4"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <span style={{ fontSize: '1.2rem' }}>📥</span>
+                <span className="btn-icon">📥</span>
                 <span>IMPORTAR PLANILHA LEGADA</span>
               </button>
               

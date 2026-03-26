@@ -111,8 +111,5 @@ async def get_config() -> dict:
             "cabos_por_rede": CABOS_POR_REDE,
         }
     except Exception as e:
-        import traceback
-        logger.error(f"Erro em /api/config: {str(e)}")
-        print("TRACEBACK_CONFIG_ENDPOINT:")
-        traceback.print_exc()
+        logger.exception("Erro em /api/config: %s", e)
         raise HTTPException(status_code=500, detail="Erro interno ao carregar configuracoes")

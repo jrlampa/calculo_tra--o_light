@@ -189,6 +189,11 @@
   transform: scale(0.95);
 }
 
+/* ─── Ícone dentro de botão ────────────────────────── */
+.btn-icon {
+  font-size: 1.2rem;
+}
+
 /* ─── Botão APAGA ───────────────────────────────────── */
 .btn-apaga {
   background: linear-gradient(165deg, var(--btn-orange-start) 0%, var(--btn-orange-end) 100%);
@@ -222,11 +227,64 @@
 .sec-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 .sec-table td, .sec-table th {
   padding: 0 2px;
   font-size: 10px;
   line-height: 17px;
+}
+
+/* ─── SecaoQDT: colunas fixas ──────────────────────── */
+.sec-table.sec-table--qdt .col-qdt-lbl  { width: 120px; }
+.sec-table.sec-table--qdt .col-qdt-in   { width:  60px; }
+.sec-table.sec-table--qdt .col-qdt-unit { width:  25px; }
+
+/* ─── SecaoQDT: área de resultados ──────────────────── */
+.qdt-results {
+  padding: 6px;
+  border-top: 1px solid #000;
+}
+.qdt-results-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  font-size: 10px;
+  margin-bottom: 4px;
+}
+
+/* ─── SecaoNivel: largura fixa da coluna de labels ──── */
+.sec-table .col-lbl {
+  width: 108px;
+}
+/* ─── SecaoNivel: colunas de travessia (input + unidade) */
+.sec-table .col-input {
+  width: 22%;
+}
+.sec-table .col-unit {
+  width: 18px;
+}
+
+/* ─── SecaoNivel: input/select full-width dentro da célula */
+.sec-table .xcell,
+.sec-table select.xcell {
+  width: 100%;
+}
+
+/* ─── Rodapé de seção (resultado + nota) ───────────── */
+.sec-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ─── Nota opcional na seção ───────────────────────── */
+.sec-note {
+  font-size: 9px;
+  color: #444;
+  margin-right: 8px;
+  text-align: right;
+  line-height: 1.4;
 }
 
 /* ─── Caixa verde (aprovação) ───────────────────────── */
@@ -269,6 +327,21 @@
   width: 100%;
   border: none;
   height: 18px;
+}
+
+/* ─── Tabela do cabeçalho principal ───────────────────── */
+.header-data-table {
+  border-collapse: collapse;
+  margin-bottom: 8px;
+  width: 100%;
+  table-layout: fixed;
+}
+.header-data-table tr {
+  height: 22px;
+}
+.header-data-table .header-empty-cell {
+  border: 1px solid #999;
+  background-color: #f9f9f9;
 }
 
 .calc-layout {
@@ -496,10 +569,16 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-top: 10px;
 }
 
 .diagrama-poste-caption {
   text-align: left;
+  font-size: 7.5px;
+  color: #333;
+  line-height: 1.45;
+  max-width: 192px;
+  margin-top: 2px;
 }
 
 .project-screen {

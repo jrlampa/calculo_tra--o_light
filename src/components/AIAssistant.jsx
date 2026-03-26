@@ -36,7 +36,6 @@ const AIAssistant = ({ calculationData, projectData, onOptimizationSuggestion })
         model: data.current_model
       });
     } catch (error) {
-      console.error('Failed to check AI status:', error);
       setAiStatus({ connected: false, model: null });
     }
   };
@@ -82,7 +81,6 @@ const AIAssistant = ({ calculationData, projectData, onOptimizationSuggestion })
         throw new Error(data.detail || 'Failed to send message');
       }
     } catch (error) {
-      console.error('Failed to send message:', error);
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.',
@@ -120,7 +118,6 @@ const AIAssistant = ({ calculationData, projectData, onOptimizationSuggestion })
         throw new Error(data.detail || 'Failed to analyze calculation');
       }
     } catch (error) {
-      console.error('Failed to analyze calculation:', error);
       setAnalysisResult({
         status: 'error',
         error: error.message,
@@ -160,7 +157,6 @@ const AIAssistant = ({ calculationData, projectData, onOptimizationSuggestion })
         throw new Error(data.detail || 'Failed to optimize project');
       }
     } catch (error) {
-      console.error('Failed to optimize project:', error);
       setOptimizationResult({
         status: 'error',
         error: error.message,
@@ -178,7 +174,6 @@ const AIAssistant = ({ calculationData, projectData, onOptimizationSuggestion })
           method: 'DELETE'
         });
       } catch (error) {
-        console.error('Failed to clear conversation:', error);
       }
     }
     
@@ -343,8 +338,8 @@ const AIAssistant = ({ calculationData, projectData, onOptimizationSuggestion })
                       <Bot className="w-4 h-4" />
                       <div className="flex space-x-1">
                         <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.1s]" />
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]" />
                       </div>
                     </div>
                   </div>

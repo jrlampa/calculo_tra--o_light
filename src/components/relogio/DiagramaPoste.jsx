@@ -11,7 +11,7 @@ const DiagramaPoste = memo(() => {
   const captionId = `${safeId}-caption`
 
   return (
-    <figure className="diagrama-poste-figure" style={{ marginTop: 10 }}>
+    <figure className="diagrama-poste-figure">
       <svg width={170} height={145} viewBox="0 0 170 145" role="img" aria-label="Diagrama do poste" aria-describedby={captionId}>
         <defs>
           <marker id={markerDownId} markerWidth="5" markerHeight="5" refX="2.5" refY="5" orient="auto">
@@ -50,7 +50,7 @@ const DiagramaPoste = memo(() => {
       </svg>
 
       {/* Legendas — cópia literal do Excel */}
-      <figcaption id={captionId} className="diagrama-poste-caption" style={{ fontSize: 7.5, color: '#333', lineHeight: 1.45, maxWidth: 192, marginTop: 2 }}>
+      <figcaption id={captionId} className="diagrama-poste-caption">
         <p>C<sub>N</sub> – Carga Nominal do poste, na direção da face de maior resistência.</p>
         <p>R – Carga máxima de utilização do poste na direção do ângulo α.</p>
         <p>α – Ângulo que a carga máxima de utilização faz com a face de maior resistência nominal do poste.</p>

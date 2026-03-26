@@ -15,7 +15,7 @@ export default function GerenciadorProjetos({ onNovo, onAbrir, onEditar, onExclu
       const data = await listProjetos()
       setProjetos(data)
       setError('')
-    } catch {
+    } catch (_err) {
       setError('Erro ao carregar projetos. Verifique a conexão.')
     } finally {
       setLoading(false)

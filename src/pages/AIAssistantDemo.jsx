@@ -61,7 +61,6 @@ const AIAssistantDemo = () => {
       const result = await analyzeCalculation(demoData.calculation, 'comprehensive');
       setAnalysisResult(result);
     } catch (error) {
-      console.error('Analysis failed:', error);
       setAnalysisResult({
         status: 'error',
         error: error.message
@@ -74,7 +73,6 @@ const AIAssistantDemo = () => {
       const result = await optimizeProject(demoData.project, ['cost_reduction', 'safety_improvement', 'efficiency']);
       setOptimizationResult(result);
     } catch (error) {
-      console.error('Optimization failed:', error);
       setOptimizationResult({
         status: 'error',
         error: error.message
@@ -90,7 +88,6 @@ const AIAssistantDemo = () => {
         report
       });
     } catch (error) {
-      console.error('Report generation failed:', error);
       setReportResult({
         status: 'error',
         error: error.message
@@ -106,7 +103,6 @@ const AIAssistantDemo = () => {
         validation
       });
     } catch (error) {
-      console.error('Validation failed:', error);
       setValidationResult({
         status: 'error',
         error: error.message

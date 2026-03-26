@@ -31,7 +31,6 @@ export const useAIAssistant = () => {
         loading: false
       });
     } catch (error) {
-      console.error('Failed to check AI status:', error);
       setAiStatus({
         connected: false,
         model: null,
@@ -50,7 +49,6 @@ export const useAIAssistant = () => {
         setConversations(data.conversations || []);
       }
     } catch (error) {
-      console.error('Failed to load conversations:', error);
     }
   }, []);
 
@@ -88,7 +86,6 @@ export const useAIAssistant = () => {
         timestamp: data.timestamp
       };
     } catch (error) {
-      console.error('Failed to send message:', error);
       throw error;
     } finally {
       setIsProcessing(false);
@@ -173,7 +170,6 @@ export const useAIAssistant = () => {
         done: true
       };
     } catch (error) {
-      console.error('Failed to stream message:', error);
       throw error;
     } finally {
       setIsProcessing(false);
@@ -208,7 +204,6 @@ export const useAIAssistant = () => {
 
       return data;
     } catch (error) {
-      console.error('Failed to analyze calculation:', error);
       throw error;
     } finally {
       setIsProcessing(false);
@@ -243,7 +238,6 @@ export const useAIAssistant = () => {
 
       return data;
     } catch (error) {
-      console.error('Failed to optimize project:', error);
       throw error;
     } finally {
       setIsProcessing(false);
@@ -262,7 +256,6 @@ export const useAIAssistant = () => {
         throw new Error(data.detail || 'Failed to get conversation');
       }
     } catch (error) {
-      console.error('Failed to get conversation:', error);
       throw error;
     }
   }, []);
@@ -288,7 +281,6 @@ export const useAIAssistant = () => {
 
       return true;
     } catch (error) {
-      console.error('Failed to delete conversation:', error);
       throw error;
     }
   }, [activeConversation]);
@@ -326,7 +318,6 @@ Use linguagem técnica profissional e formato estruturado.`;
       const result = await sendMessage(prompt);
       return result.response;
     } catch (error) {
-      console.error('Failed to generate technical report:', error);
       throw error;
     } finally {
       setIsProcessing(false);
@@ -360,7 +351,6 @@ Retorne uma análise detalhada da validação.`;
       const result = await sendMessage(prompt);
       return result.response;
     } catch (error) {
-      console.error('Failed to validate parameters:', error);
       throw error;
     } finally {
       setIsProcessing(false);
