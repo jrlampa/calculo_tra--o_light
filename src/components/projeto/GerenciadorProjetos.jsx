@@ -6,6 +6,8 @@ export default function GerenciadorProjetos({ onNovo, onAbrir, onEditar, onExclu
   const [projetos, setProjetos] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(null) // { id, nome }
+  const [deleteError, setDeleteError] = useState('')
 
   const fetchProjetos = async () => {
     setLoading(true)
@@ -13,9 +15,8 @@ export default function GerenciadorProjetos({ onNovo, onAbrir, onEditar, onExclu
       const data = await listProjetos()
       setProjetos(data)
       setError('')
-    } catch (err) {
+    } catch {
       setError('Erro ao carregar projetos. Verifique a conexão.')
-      console.error(err)
     } finally {
       setLoading(false)
     }
@@ -25,14 +26,20 @@ export default function GerenciadorProjetos({ onNovo, onAbrir, onEditar, onExclu
     fetchProjetos()
   }, [])
 
-  const handleDelete = async (id, nome) => {
-    if (window.confirm(`Tem certeza que deseja excluir o projeto "${nome}"?`)) {
-      try {
-        await onExcluir(id)
-        await fetchProjetos()
-      } catch (err) {
-        alert(err.message || 'Erro ao excluir projeto.')
-      }
+  const handleDeleteCancel = () => {
+    setConfirmDelete(null)
+    setDeleteError('')
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!confirmDelete) return
+    try {
+      await onExcluir(confirmDelete.id)
+      setConfirmDelete(null)
+      setDeleteError('')
+      await fetchProjetos()
+    } catch (err) {
+      setDeleteError(err.message || 'Erro ao excluir projeto.')
     }
   }
 
@@ -91,7 +98,7 @@ export default function GerenciadorProjetos({ onNovo, onAbrir, onEditar, onExclu
                     ✏️ Editar
                   </button>
                   <button 
-                    onClick={() => handleDelete(proj.id, proj.nome)}
+                    onClick={() => setConfirmDelete({ id: proj.id, nome: proj.nome })}
                     className="p-2 hover:bg-red-900/30 text-red-400 rounded transition-colors"
                     title="Excluir Projeto"
                   >
@@ -103,6 +110,45 @@ export default function GerenciadorProjetos({ onNovo, onAbrir, onEditar, onExclu
           </div>
         )}
       </div>
+
+      {/* Confirm Delete Dialog */}
+      {confirmDelete && (
+        <div
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="confirm-delete-title"
+          aria-describedby="confirm-delete-desc"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+        >
+          <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4">
+            <h2 id="confirm-delete-title" className="text-lg font-bold text-white mb-2">
+              Excluir Projeto
+            </h2>
+            <p id="confirm-delete-desc" className="text-gray-300 text-sm mb-4">
+              Tem certeza que deseja excluir o projeto{' '}
+              <strong className="text-white">&ldquo;{confirmDelete.nome}&rdquo;</strong>?
+              Esta ação não pode ser desfeita.
+            </p>
+            {deleteError && (
+              <p className="text-red-400 text-sm mb-3" role="alert">{deleteError}</p>
+            )}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={handleDeleteCancel}
+                className="px-4 py-2 rounded-lg text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-700 hover:bg-red-600 text-white transition-colors"
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

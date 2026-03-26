@@ -180,9 +180,13 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         method=request.method,
         operation_id=getattr(request.state, "operation_id", None),
     )
-    print("VALIDATION_ERROR_DETAILS:")
     for err in safe_errors:
-        print(f"  - {err['loc']}: {err['msg']} (type={err['type']})")
+        logger.debug(
+            "validation_error_detail",
+            loc=err["loc"],
+            msg=err["msg"],
+            type=err["type"],
+        )
     return JSONResponse(
         status_code=422,
         content={
@@ -196,11 +200,6 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Catch-all exception handler for standardized enterprise error responses."""
-    import traceback
-
-    print("CRITICAL_ERROR_TRACEBACK:")
-    traceback.print_exc()
-
     logger.exception(
         "unhandled_exception",
         path=request.url.path,

@@ -14,6 +14,7 @@ import { useFormState } from './useFormState.js'
 import { useConfigState } from './useConfigState.js'
 import { TABELA_CARGAS_POSTE } from '../constants/tabelaCargasPoste.js'
 import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstrumentation.js'
+import { buildBatchPayload, batchSaveCalculo, listProjetos } from '../services/calculoApi.js'
 
 export const useAppOptimizedState = () => {
   // Estado particionado
@@ -79,7 +80,6 @@ export const useAppOptimizedState = () => {
         e.preventDefault()
         const action = undo()
         if (action) {
-          console.log(`Undo: ${action.fieldKey} ← ${action.oldValue}`)
           trackUxFunnelEvent(UX_FUNNEL_EVENTS.UNDO_APPLIED, {
             field_key: action.fieldKey,
           })
@@ -157,18 +157,18 @@ export const useAppOptimizedState = () => {
       
       trackUxFunnelEvent(UX_FUNNEL_EVENTS.BATCH_SAVE_START, { projeto_id: projId })
       
-      const payload = calculoApi.buildBatchPayload(
+      const payload = buildBatchPayload(
         projId,
         formState,
         resultado
       )
 
-      const res = await calculoApi.batchSaveCalculo(payload)
+      const res = await batchSaveCalculo(payload)
 
       // Atualizar estados locais se for um novo projeto
       if (!projId && res.projeto_id) {
         // Buscar detalhes do projeto para o estado
-        const todos = await calculoApi.listProjetos(100, 0)
+        const todos = await listProjetos(100, 0)
         const novo = todos.find(p => p.id === res.projeto_id)
         if (novo) {
           projetoState.handlers.handleAbrirProjeto(novo)
@@ -183,16 +183,10 @@ export const useAppOptimizedState = () => {
       // Mas o mais limpo é o componente saber que terminou.
       return res
     } catch (err) {
-      console.error('Falha no salvamento atômico:', err)
       trackUxFunnelEvent(UX_FUNNEL_EVENTS.BATCH_SAVE_ERROR, { error: err.message })
       throw err
     }
   }, [projetoState.projetoAtual?.id, projetoState.handlers, formState, resultado])
-    } catch (err) {
-      console.error('Erro no Salvar Tudo:', err)
-      trackUxFunnelEvent(UX_FUNNEL_EVENTS.BATCH_SAVE_FAILED, { error: err.message })
-    }
-  }, [projetoState, pontoState, flushPersistQueue])
 
   // Handler para próximo ponto
   const handleProximoPonto = useCallback(() => {
@@ -244,7 +238,6 @@ export const useAppOptimizedState = () => {
       
       trackUxFunnelEvent(UX_FUNNEL_EVENTS.IMPORT_EXCEL_SUCCESS, { filename: file.name })
     } catch (err) {
-      console.error('Erro na importação:', err)
       trackUxFunnelEvent(UX_FUNNEL_EVENTS.IMPORT_EXCEL_FAILED, { error: err.message })
       // O erro será exibido pelo ErrorBoundary ou banner se necessário
     }
@@ -380,6 +373,7 @@ export const useAppOptimizedState = () => {
     persistenciaFeedback,
     handleProximoPonto,
     handleManualPersistRetry,
+    handleSalvarTudo,
     flushPersistQueue
   ])
 

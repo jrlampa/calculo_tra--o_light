@@ -99,7 +99,7 @@ export default function App() {
               ) : null}
 
               <div className="flex items-center gap-2">
-                <span className="poste-lbl font-semibold" style={{ minWidth: '130px' }}>Tipo do Poste</span>
+                <span className="poste-lbl font-semibold">Tipo do Poste</span>
                 <select
                   className="flex-1 p-1 border rounded xcell poste-select"
                   value={appState.dadosParaComponentes.poste.tipoPoste}
@@ -112,7 +112,7 @@ export default function App() {
                 </select>
               </div>
               <div className="flex items-center gap-2">
-                <span className="poste-lbl font-semibold" style={{ minWidth: '130px' }}>Modelo do Poste</span>
+                <span className="poste-lbl font-semibold">Modelo do Poste</span>
                 <select
                   className="flex-1 p-1 border rounded xcell poste-select"
                   value={appState.dadosParaComponentes.poste.modeloPoste}
@@ -181,12 +181,6 @@ export default function App() {
               />
               <button 
                 className="btn-importar w-full py-3 px-4 rounded-lg font-bold shadow-lg transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center justify-center gap-3 border-b-4"
-                style={{ 
-                  backgroundColor: '#1b5e20', 
-                  color: '#e8f5e9',
-                  borderColor: '#113e11',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.1)'
-                }}
                 onClick={() => fileInputRef.current?.click()}
               >
                 <span style={{ fontSize: '1.2rem' }}>📥</span>

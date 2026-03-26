@@ -12,32 +12,17 @@ const Field = React.memo(({ label, id, value, onChange, colSpan = 1, readOnly = 
     <>
       <td 
         id={labelId}
-        className="field-lbl" 
-        style={{ 
-          backgroundColor: '#E2E2E2', 
-          border: '1px solid #999',
-          textAlign: 'right',
-          padding: '2px 4px',
-          width: 80
-        }}
+        className="field-lbl"
       >
         {label}
       </td>
       <td 
         colSpan={colSpan}
-        style={{ 
-          border: '1px solid #999',
-          padding: 0
-        }}
+        className="header-cell"
       >
         <input
           id={id}
           className={`xcell header-input${readOnly ? ' xcell-readonly' : ''}`}
-          style={{ 
-            width: '100%', 
-            border: 'none', 
-            height: 18
-          }}
           value={value ?? ''}
           onChange={readOnly ? undefined : e => onChange(id, e.target.value)}
           readOnly={readOnly}

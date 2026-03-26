@@ -174,6 +174,21 @@
   color: #E07820;
 }
 
+/* ─── Botão IMPORTAR Planilha ───────────────────────── */
+.btn-importar {
+  background-color: #1b5e20;
+  color: #e8f5e9;
+  border-color: #113e11;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+}
+.btn-importar:hover {
+  background-color: #2e7d32;
+}
+.btn-importar:active {
+  background-color: #1b5e20;
+  transform: scale(0.95);
+}
+
 /* ─── Botão APAGA ───────────────────────────────────── */
 .btn-apaga {
   background: linear-gradient(165deg, var(--btn-orange-start) 0%, var(--btn-orange-end) 100%);
@@ -227,6 +242,7 @@
   color: #000;
   font-size: 10px;
   white-space: nowrap;
+  min-width: 130px;
 }
 
 /* ─── Labels de campo (Vão, Flecha, etc.) ─────────────── */
@@ -235,7 +251,24 @@
   font-size: 10px;
   font-weight: normal;
   white-space: nowrap;
-  padding-left: 4px;
+  background-color: #E2E2E2;
+  border: 1px solid #999;
+  text-align: right;
+  padding: 2px 4px;
+  width: 80px;
+}
+
+/* ─── Célula de dado no cabeçalho ──────────────────────── */
+.header-cell {
+  border: 1px solid #999;
+  padding: 0;
+}
+
+/* ─── Input embutido em célula de cabeçalho ────────────── */
+.xcell.header-input {
+  width: 100%;
+  border: none;
+  height: 18px;
 }
 
 .calc-layout {
