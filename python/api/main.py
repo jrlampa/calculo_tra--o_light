@@ -180,13 +180,6 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         method=request.method,
         operation_id=getattr(request.state, "operation_id", None),
     )
-    for err in safe_errors:
-        logger.debug(
-            "validation_error_detail",
-            loc=err["loc"],
-            msg=err["msg"],
-            type=err["type"],
-        )
     return JSONResponse(
         status_code=422,
         content={
