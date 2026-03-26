@@ -74,6 +74,11 @@ export const useAppOptimizedState = () => {
     5 * 60 * 1000
   )
 
+  // Ref keeps the latest handleTravessiaChange available inside the keydown closure
+  // without triggering re-registration of the listener on every render
+  const handleTravessiaChangeRef = useRef(null)
+  handleTravessiaChangeRef.current = formState.handlers.handleTravessiaChange
+
   // Global Ctrl+Z listener para undo
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -84,7 +89,15 @@ export const useAppOptimizedState = () => {
           trackUxFunnelEvent(UX_FUNNEL_EVENTS.UNDO_APPLIED, {
             field_key: action.fieldKey,
           })
-          // TODO: Implementar restauração específica do campo
+          // Restaurar o campo: fieldKey formato "nivel:index:campo"
+          const parts = action.fieldKey.split(':')
+          if (parts.length === 3) {
+            const [nivel, idxStr, campo] = parts
+            const index = Number(idxStr)
+            if (!Number.isNaN(index)) {
+              handleTravessiaChangeRef.current?.(nivel, index, campo, action.oldValue)
+            }
+          }
         }
       }
     }
@@ -92,6 +105,20 @@ export const useAppOptimizedState = () => {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [undo])
+
+  // Wrapper de handleTravessiaChange que registra a alteração no undo stack antes de aplicá-la
+  const handleTravessiaChangeWithUndo = useCallback((nivel, index, campo, valor) => {
+    // Capturar valor anterior do estado atual
+    const nivelData = formState.travessias[nivel]
+    const oldValue = nivelData?.[index]?.[campo] ?? ''
+
+    // Só registrar no undo se o valor realmente mudou
+    if (oldValue !== valor) {
+      pushUndo(`${nivel}:${index}:${campo}`, oldValue, valor)
+    }
+
+    formState.handlers.handleTravessiaChange(nivel, index, campo, valor)
+  }, [formState.travessias, formState.handlers, pushUndo])
 
   // Memoizar vetores de tração
   const vetoresTracao = useMemo(() => {
@@ -147,33 +174,43 @@ export const useAppOptimizedState = () => {
   // Snapshot for APAGA undo: saved before the clear is committed
   const apagaSnapshotRef = useRef(null)
 
+  // Refs that keep the latest handlers for the useUndoClear callbacks.
+  // This prevents stale closures across the 5-second undo window.
+  const clearCommitFnsRef = useRef(null)
+  clearCommitFnsRef.current = {
+    resetForm:            formState.handlers.resetForm,
+    resetPonto:           pontoState.handlers.resetPonto,
+    restoreFormSnapshot:  formState.handlers.restoreFormSnapshot,
+    resetPersistencia,
+    projetoId: projetoState.projetoAtual?.id ?? null,
+    pontoId:   pontoState.pontoAtual?.id ?? null,
+  }
+
   // useUndoClear wires the 5-second APAGA undo window
   const { clearState, countdown, requestClear, undoClear } = useUndoClear({
     ttlMs: 5000,
     onCommit: useCallback(() => {
-      // Timeout expired — apply the actual reset
-      formState.handlers.resetForm()
-      pontoState.handlers.resetPonto()
-      resetPersistencia()
+      // Timeout expired — apply the actual reset via the latest handler refs
+      clearCommitFnsRef.current.resetForm()
+      clearCommitFnsRef.current.resetPonto()
+      clearCommitFnsRef.current.resetPersistencia()
       apagaSnapshotRef.current = null
       trackUxFunnelEvent(UX_FUNNEL_EVENTS.CLEAR_COMMITTED, {
-        projeto_id: projetoState.projetoAtual?.id ?? null,
-        ponto_id: pontoState.pontoAtual?.id ?? null,
+        projeto_id: clearCommitFnsRef.current.projetoId,
+        ponto_id:   clearCommitFnsRef.current.pontoId,
       })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []),  // stable: refs are used inside, no stale-closure risk
+    }, []),  // stable: all dependencies accessed via clearCommitFnsRef
     onUndo: useCallback(() => {
-      // Restore snapshot taken before the clear
+      // Restore snapshot taken before the clear via the latest handler refs
       if (apagaSnapshotRef.current) {
-        formState.handlers.restoreFormSnapshot(apagaSnapshotRef.current)
+        clearCommitFnsRef.current.restoreFormSnapshot(apagaSnapshotRef.current)
         apagaSnapshotRef.current = null
       }
       trackUxFunnelEvent(UX_FUNNEL_EVENTS.CLEAR_UNDONE, {
-        projeto_id: projetoState.projetoAtual?.id ?? null,
-        ponto_id: pontoState.pontoAtual?.id ?? null,
+        projeto_id: clearCommitFnsRef.current.projetoId,
+        ponto_id:   clearCommitFnsRef.current.pontoId,
       })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []),  // stable: refs are used inside, no stale-closure risk
+    }, []),  // stable: all dependencies accessed via clearCommitFnsRef
   })
 
   // Handler para apagar dados — opens the 5-second undo window
@@ -342,7 +379,7 @@ export const useAppOptimizedState = () => {
         titulo: 'MT - 1º Nível',
         labelResultado: resultado?.mt1?.texto || 'TRAÇÃO MT 1° NÍVEL (100 mm do topo):  daN °',
         travessias: formState.travessias.mt1,
-        onChangeTravessia: (i, c, v) => formState.handlers.handleTravessiaChange('mt1', i, c, v),
+        onChangeTravessia: (i, c, v) => handleTravessiaChangeWithUndo('mt1', i, c, v),
         campos: 'CAMPOS_MT', // Será importado
         config: configState.config,
       },
@@ -350,7 +387,7 @@ export const useAppOptimizedState = () => {
         titulo: 'MT - 2º Nível',
         labelResultado: resultado?.mt2?.texto || 'TRAÇÃO MT 2° NÍVEL (100 mm do topo):  daN °',
         travessias: formState.travessias.mt2,
-        onChangeTravessia: (i, c, v) => formState.handlers.handleTravessiaChange('mt2', i, c, v),
+        onChangeTravessia: (i, c, v) => handleTravessiaChangeWithUndo('mt2', i, c, v),
         campos: 'CAMPOS_MT',
         config: configState.config,
       },
@@ -358,7 +395,7 @@ export const useAppOptimizedState = () => {
         titulo: 'BT',
         labelResultado: resultado?.bt?.texto || 'TRAÇÃO BT (100 mm do topo):  daN °',
         travessias: formState.travessias.bt,
-        onChangeTravessia: (i, c, v) => formState.handlers.handleTravessiaChange('bt', i, c, v),
+        onChangeTravessia: (i, c, v) => handleTravessiaChangeWithUndo('bt', i, c, v),
         campos: 'CAMPOS_BT',
         config: configState.config,
       },
@@ -366,7 +403,7 @@ export const useAppOptimizedState = () => {
         titulo: 'Ramais BTZero',
         labelResultado: resultado?.btz?.texto || 'TRAÇÃO RAMAIS BTZERO (100 mm do topo):  daN °',
         travessias: formState.travessias.btz,
-        onChangeTravessia: (i, c, v) => formState.handlers.handleTravessiaChange('btz', i, c, v),
+        onChangeTravessia: (i, c, v) => handleTravessiaChangeWithUndo('btz', i, c, v),
         campos: 'CAMPOS_BTZ',
         config: configState.config,
         nota: '(*) - Considerar: monofásico = 1 ligação; trifásico = 3 ligações',
@@ -375,7 +412,7 @@ export const useAppOptimizedState = () => {
         titulo: 'Ramais de ligação',
         labelResultado: resultado?.ral?.texto || 'TRAÇÃO RAMAIS DE LIGAÇÃO (100 mm do topo):  daN °',
         travessias: formState.travessias.ral,
-        onChangeTravessia: (i, c, v) => formState.handlers.handleTravessiaChange('ral', i, c, v),
+        onChangeTravessia: (i, c, v) => handleTravessiaChangeWithUndo('ral', i, c, v),
         campos: 'CAMPOS_RAL',
         config: configState.config,
       },
@@ -417,6 +454,7 @@ export const useAppOptimizedState = () => {
     handleProximoPonto,
     handleManualPersistRetry,
     handleSalvarTudo,
+    handleTravessiaChangeWithUndo,
     flushPersistQueue
   ])
 

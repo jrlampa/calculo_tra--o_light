@@ -34,8 +34,8 @@ describe('UndoToast', () => {
     expect(screen.queryByRole('button', { name: /desfazer/i })).not.toBeInTheDocument()
   })
 
-  it('has alertdialog role for accessibility', () => {
+  it('has alert role for accessibility', () => {
     render(<UndoToast clearState="undo_pending" countdown={5} onUndo={() => {}} />)
-    expect(screen.getByRole('alertdialog')).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toBeInTheDocument()
   })
 })

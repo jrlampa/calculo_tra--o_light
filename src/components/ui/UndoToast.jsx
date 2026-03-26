@@ -49,8 +49,7 @@ const UndoToast = ({
   return (
     <div
       className={`undo-toast undo-toast--${clearState}`}
-      role="alertdialog"
-      aria-modal="false"
+      role="alert"
       aria-live="assertive"
       aria-atomic="true"
       aria-label="Confirmação de limpeza de dados"

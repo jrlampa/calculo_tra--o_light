@@ -41,6 +41,14 @@ export default {
         'tracao-blue': '#4472C4',
         'tracao-green': '#538135',
         'tracao-dark': '#1F1F1F',
+        result: {
+          ok:                '#538135',
+          'ok-bg':           '#ecf8ec',
+          tolerancia:        '#E07820',
+          'tolerancia-bg':   '#fff4e8',
+          error:             '#C00000',
+          'error-bg':        '#ffecec',
+        },
       },
       boxShadow: {
         glass: '0 10px 28px rgba(23, 46, 90, 0.14)',
@@ -51,6 +59,21 @@ export default {
         panel: '10px',
         card: '12px',
         soft: '8px',
+      },
+      transitionDuration: {
+        fast: '160ms',
+        base: '200ms',
+        slow: '280ms',
+      },
+      transitionTimingFunction: {
+        'snappy': 'cubic-bezier(0.3, 0, 0.1, 1)',
+        'ease-out-smooth': 'cubic-bezier(0, 0, 0.2, 1)',
+      },
+      fontSize: {
+        'calc-result':   ['14px', { lineHeight: '1.4', fontWeight: '700' }],
+        'calc-label':    ['12px', { lineHeight: '1.3', fontWeight: '600' }],
+        'calc-field':    ['10px', { lineHeight: '1.2', fontWeight: '400' }],
+        'calc-table':    ['9px',  { lineHeight: '1.2', fontWeight: '400' }],
       },
     },
   },
