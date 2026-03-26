@@ -79,6 +79,11 @@ export const useAppOptimizedState = () => {
   const handleTravessiaChangeRef = useRef(null)
   handleTravessiaChangeRef.current = formState.handlers.handleTravessiaChange
 
+  // Ref to always read the latest travessias snapshot in handleTravessiaChangeWithUndo
+  // without adding formState.travessias to the useCallback dependency array
+  const travessiasRef = useRef(formState.travessias)
+  travessiasRef.current = formState.travessias
+
   // Global Ctrl+Z listener para undo
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -108,8 +113,8 @@ export const useAppOptimizedState = () => {
 
   // Wrapper de handleTravessiaChange que registra a alteração no undo stack antes de aplicá-la
   const handleTravessiaChangeWithUndo = useCallback((nivel, index, campo, valor) => {
-    // Capturar valor anterior do estado atual
-    const nivelData = formState.travessias[nivel]
+    // Capturar valor anterior via ref — evita recriar o callback a cada mudança de campo
+    const nivelData = travessiasRef.current[nivel]
     const oldValue = nivelData?.[index]?.[campo] ?? ''
 
     // Só registrar no undo se o valor realmente mudou
@@ -117,8 +122,9 @@ export const useAppOptimizedState = () => {
       pushUndo(`${nivel}:${index}:${campo}`, oldValue, valor)
     }
 
-    formState.handlers.handleTravessiaChange(nivel, index, campo, valor)
-  }, [formState.travessias, formState.handlers, pushUndo])
+    // Despachar para o handler real via ref (sempre atualizado, sem stale closure)
+    handleTravessiaChangeRef.current?.(nivel, index, campo, valor)
+  }, [pushUndo])  // travessiasRef e handleTravessiaChangeRef são refs, nunca entram no array
 
   // Memoizar vetores de tração
   const vetoresTracao = useMemo(() => {

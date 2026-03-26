@@ -28,6 +28,8 @@
   --btn-orange-end: #bc5a17;
   --btn-orange-hover-start: #c86921;
   --btn-orange-hover-end: #a84b11;
+  /* ActionBar fixa: altura usada pelo UndoToast e pelo padding do conteúdo */
+  --action-bar-height: 80px;
 }
 
 /* ─── Reset & Base ────────────────────────────────────── */
@@ -226,7 +228,7 @@
 /* ─── UndoToast — Toast de desfazer APAGA ───────────── */
 .undo-toast {
   position: fixed;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--action-bar-height));
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -865,9 +867,10 @@
     padding: 10px;
   }
 
-  /* FE-25: Reserve space at the bottom so the fixed ActionBar doesn't overlap content */
+  /* FE-25: Reserve space at the bottom so the fixed ActionBar doesn't overlap content.
+     Uses --action-bar-height (80px) consistent with the UndoToast bottom offset. */
   .calc-main-column {
-    padding-bottom: max(4.5rem, calc(env(safe-area-inset-bottom) + 4rem));
+    padding-bottom: max(var(--action-bar-height), calc(env(safe-area-inset-bottom) + var(--action-bar-height)));
   }
 
   .calc-layout {

@@ -15,6 +15,7 @@ export const UX_FUNNEL_EVENTS = Object.freeze({
   POINT_CONFIRMED: 'point_confirmed',
   CALCULATION_SUCCEEDED: 'calculation_succeeded',
   PERSISTENCE_SAVED: 'persistence_saved',
+  CALCULATION_PERSISTED: 'calculation_persisted',
   PERSISTENCE_FAILED: 'persistence_failed',
   PERSIST_RETRY_MANUAL: 'persist_retry_manual',
   NEXT_POINT_CLICKED: 'next_point_clicked',

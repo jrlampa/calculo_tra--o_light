@@ -106,6 +106,10 @@ export default function usePersistenciaCalculo({ pontoId, lastPayload, resultado
         operation_id: operationId || null,
         has_queue: Boolean(pendingPersistRef.current),
       })
+      trackUxFunnelEvent(UX_FUNNEL_EVENTS.CALCULATION_PERSISTED, {
+        ponto_id: nextPersist.pontoId,
+        operation_id: operationId || null,
+      })
     } catch (err) {
       // Detectar erro de autorização (403, FORBIDDEN, permission denied)
       const isForbidden = err.status === 403 || err.isForbidden || err.code === 'FORBIDDEN'

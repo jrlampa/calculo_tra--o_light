@@ -102,3 +102,38 @@
 - [ ] Gate 3 - Domínio crítico: bloqueio automático de liberação se houver falha sem mitigação validada em cálculo/persistência.
 - [ ] Gate 4 - Uso assistido: operação em produção inicial liberada somente em modo assistido por responsável técnico.
 - [ ] Gate 5 - Go/No-Go: decisão final registrada com aprovador, data, escopo e pendências remanescentes.
+
+## 11) Smoke mobile físico (FE-28)
+
+Objetivo: validar os três elementos de interação crítica em dispositivo físico ou emulador de alta fidelidade (não apenas Playwright). Evidência registrada em `docs/analises/` com data, dispositivo e observações.
+
+### 11.1 Stepper condensado (mobile ≤ 767 px)
+- [ ] Stepper renderiza no modo condensado (2 chips: etapa atual + próxima) em Android e iPhone.
+- [ ] Chips refletem estado correto: Projeto (feito) → Ponto (ativo) → Cálculo (ativo) → Persistido.
+- [ ] Chips são legíveis sem sobreposição em viewport de 375 × 667 px (iPhone SE) e 360 × 800 px (Android).
+- [ ] Toque no chip "Próximo ponto" só aparece após persistência `saved` e dispara navegação sem bug de scroll.
+- [ ] Sem conteúdo oculto pelo header fixo ou pelos chips do stepper.
+
+### 11.2 ActionBar fixa no rodapé (mobile)
+- [ ] ActionBar fixa aparece acima do teclado virtual em iOS e Android sem ocultar campos.
+- [ ] padding-bottom do conteúdo principal compensa a altura da ActionBar + safe-area-inset-bottom.
+- [ ] Botões CONFIRMAR, APAGA e PRÓXIMO PONTO têm alvo mínimo de 44 × 44 px.
+- [ ] Em iPhone com notch/Dynamic Island, a ActionBar respeita env(safe-area-inset-bottom).
+- [ ] Em Android com gesture navigation bar, o conteúdo não fica coberto pela barra de gesto.
+- [ ] Rolagem do formulário funciona normalmente sem travamento na área da ActionBar.
+
+### 11.3 APAGA com desfazer (UndoToast)
+- [ ] Tocar em APAGA abre UndoToast com mensagem "Dados tecnicos serao apagados em 5 s.".
+- [ ] Countdown atualiza a cada 1 s de forma visível sem travar interação com o formulário.
+- [ ] UndoToast aparece acima da ActionBar fixa e não é ocultado por ela.
+- [ ] Foco (VoiceOver/TalkBack) vai para botão "Desfazer" ao abrir o toast.
+- [ ] Toque em "Desfazer" dentro da janela de 5 s restaura os dados técnicos corretamente.
+- [ ] Após timeout sem desfazer, campos técnicos são limpos e UndoToast fecha.
+- [ ] Sem recarregamento de página em nenhuma transição do fluxo APAGA.
+
+### 11.4 Evidência e critérios de saída do smoke mobile
+- [ ] Smoke executado em pelo menos 1 dispositivo físico iOS (ou emulador XCode ≥ 15).
+- [ ] Smoke executado em pelo menos 1 dispositivo físico Android (ou emulador Android Studio ≥ 34).
+- [ ] Sem bloqueio de usabilidade crítica (tap ignorado, conteúdo inacessível, loop de estado).
+- [ ] Evidências (screenshots ou gravação de tela) registradas em `docs/analises/mobile-smoke-<data>.md`.
+- [ ] Responsável técnico assinou o checklist de evidência antes do merge para main.

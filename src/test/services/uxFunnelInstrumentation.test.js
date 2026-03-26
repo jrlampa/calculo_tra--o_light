@@ -50,6 +50,19 @@ describe('uxFunnelInstrumentation', () => {
     )
   })
 
+  it('CALCULATION_PERSISTED is a valid event and carries ponto_id', () => {
+    const pontoId = '44444444-4444-4444-4444-444444444444'
+    const event = buildUxFunnelEvent(UX_FUNNEL_EVENTS.CALCULATION_PERSISTED, {
+      ponto_id: pontoId,
+      operation_id: 'op-001',
+    })
+
+    expect(event).toBeTruthy()
+    expect(event.name).toBe('calculation_persisted')
+    expect(event.properties.ponto_id).toBe(pontoId)
+    expect(event.properties.operation_id).toBe('op-001')
+  })
+
   it('ignores unknown event names', () => {
     const event = trackUxFunnelEvent('not_allowed_event', { foo: 'bar' })
 
