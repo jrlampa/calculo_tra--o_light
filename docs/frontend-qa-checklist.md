@@ -6,17 +6,17 @@
 - Premissa: sem alteração de fórmula; paridade funcional com workbook permanece.
 
 ## 1) Acessibilidade
-- [ ] Campo Projeto recebe foco inicial ao abrir a tela de cadastro.
-- [ ] Enter submete formulário inicial sem limpar os dados já digitados.
-- [ ] Em erro de validação/submissão do projeto, o input Projeto fica com aria-invalid=true.
-- [ ] Mensagem de erro do projeto está associada ao input via aria-describedby.
-- [ ] Em caso de erro no cadastro, o foco retorna automaticamente para Projeto.
-- [ ] Inputs do cabeçalho possuem nome acessível programático por associação label + input.
-- [ ] Mensagem de status do cabeçalho possui id estável e pode ser referenciada.
-- [ ] Inputs/selects das seções técnicas leem nome composto: campo + travessia + seção.
-- [ ] Inputs textuais das seções técnicas usam inputMode decimal.
-- [ ] Canvas do relógio mantém aria-label e apresenta resumo textual equivalente em pt-BR.
-- [ ] Diagrama do poste está em estrutura semântica figure/figcaption com descrição vinculada.
+- [x] Campo Projeto recebe foco inicial ao abrir a tela de cadastro.
+- [x] Enter submete formulário inicial sem limpar os dados já digitados.
+- [x] Em erro de validação/submissão do projeto, o input Projeto fica com aria-invalid=true.
+- [x] Mensagem de erro do projeto está associada ao input via aria-describedby.
+- [x] Em caso de erro no cadastro, o foco retorna automaticamente para Projeto.
+- [x] Inputs do cabeçalho possuem nome acessível programático por associação label + input.
+- [x] Mensagem de status do cabeçalho possui id estável e pode ser referenciada.
+- [x] Inputs/selects das seções técnicas leem nome composto: campo + travessia + seção.
+- [x] Inputs textuais das seções técnicas usam inputMode decimal.
+- [x] Canvas do relógio mantém aria-label e apresenta resumo textual equivalente em pt-BR.
+- [x] Diagrama do poste está em estrutura semântica figure/figcaption com descrição vinculada.
 - [x] `FlowStepper` é navegável por teclado e anuncia etapa atual para tecnologias assistivas.
 - [x] `HeaderStatusDuplo` expõe dois `role=status` independentes (vínculo e persistência).
 - [x] Botão "Tentar novamente" da persistência é acionável por teclado e leitor de tela.
@@ -31,12 +31,12 @@
 - [ ] `UndoToast` aparece acima da `ActionBar` fixa e não bloqueia campos críticos.
 
 ## 3) Estados de UI
-- [ ] Config inicia em idle e transita para loading automaticamente ao montar App.
-- [ ] Banner de loading de config aparece acima dos selects de poste.
-- [ ] Em erro de config, banner visível mostra mensagem em pt-BR e botão Tentar novamente.
-- [ ] Retry de config executa nova tentativa sem limpar último config válido.
-- [ ] Se tipo do poste mudar, modelo é limpo imediatamente.
-- [ ] Helper text de Modelo do Poste está visível e associado por aria-describedby.
+- [x] Config inicia em idle e transita para loading automaticamente ao montar App.
+- [x] Banner de loading de config aparece acima dos selects de poste.
+- [x] Em erro de config, banner visível mostra mensagem em pt-BR e botão Tentar novamente.
+- [x] Retry de config executa nova tentativa sem limpar último config válido.
+- [x] Se tipo do poste mudar, modelo é limpo imediatamente.
+- [x] Helper text de Modelo do Poste está visível e associado por aria-describedby.
 - [x] Estados de persistência cobrem explicitamente `saving`, `queued`, `saved`, `error_transient` e `error_permission`.
 - [x] Em `saving`, chip mostra exatamente "Salvando..." e não exibe CTA de retry.
 - [x] Em `queued`, chip mostra "Na fila. Tentando em Xs..." e CTA "Reenviar".
@@ -47,24 +47,24 @@
 - [x] Em `403/42501`, estado vira `error_permission`, sem retry automático, com mensagem de acesso/ownership.
 - [x] Em `error_permission`, CTA "Reconfirmar projeto" fica visível e navegável por teclado.
 - [ ] Erro 422 de domínio aparece no campo específico (não apenas em banner global).
-- [ ] Stepper reflete transição correta: Projeto -> Ponto -> Cálculo -> Persistido.
-- [ ] Após persistência `saved`, CTA "Próximo ponto" fica disponível sem recarregar contexto do projeto.
+- [x] Stepper reflete transição correta: Projeto -> Ponto -> Cálculo -> Persistido.
+- [x] Após persistência `saved`, CTA "Próximo ponto" fica disponível sem recarregar contexto do projeto.
 
 ## 4) APAGA com desfazer
-- [ ] Acionar APAGA abre `UndoToast` com janela de 5s e mensagem "Dados tecnicos serao apagados em 5 s.".
-- [ ] `UndoToast` exibe countdown "Apagando em Xs" atualizado a cada 1s.
-- [ ] Ao abrir `UndoToast`, foco vai para botão "Desfazer".
-- [ ] Durante `undo_pending`, valores técnicos exibidos ainda correspondem ao snapshot anterior.
-- [ ] Clicar "Desfazer" dentro da janela restaura estado técnico integral do ponto atual.
-- [ ] Após clicar "Desfazer", foco retorna ao último campo técnico ativo (ou primeiro campo técnico editável se indisponível).
-- [ ] Após timeout sem desfazer, limpeza afeta apenas dados técnicos do ponto atual (não limpa dados do projeto).
-- [ ] Após timeout sem desfazer, foco vai para o primeiro campo técnico editável.
+- [x] Acionar APAGA abre `UndoToast` com janela de 5s e mensagem "Dados técnicos serão apagados em 5 s.".
+- [x] `UndoToast` exibe countdown "Apagando em Xs" atualizado a cada 1s.
+- [x] Ao abrir `UndoToast`, foco vai para botão "Desfazer".
+- [x] Durante `undo_pending`, valores técnicos exibidos ainda correspondem ao snapshot anterior.
+- [x] Clicar "Desfazer" dentro da janela restaura estado técnico integral do ponto atual.
+- [x] Após clicar "Desfazer", foco retorna ao último campo técnico ativo (ou primeiro campo técnico editável se indisponível).
+- [x] Após timeout sem desfazer, limpeza afeta apenas dados técnicos do ponto atual (não limpa dados do projeto).
+- [x] Após timeout sem desfazer, foco vai para o primeiro campo técnico editável.
 
 ## 5) Fallback de /api/config
-- [ ] Cenário sucesso inicial: selects populam com dados normalizados.
-- [ ] Cenário payload parcial/inválido: app não quebra e aplica arrays/objetos vazios com segurança.
-- [ ] Cenário falha após sucesso: UI mantém dados válidos anteriores e apenas atualiza status para erro.
-- [ ] Cenário retry bem-sucedido: status retorna para success e mantém continuidade do fluxo.
+- [x] Cenário sucesso inicial: selects populam com dados normalizados.
+- [x] Cenário payload parcial/inválido: app não quebra e aplica arrays/objetos vazios com segurança.
+- [x] Cenário falha após sucesso: UI mantém dados válidos anteriores e apenas atualiza status para erro.
+- [x] Cenário retry bem-sucedido: status retorna para success e mantém continuidade do fluxo.
 
 ## 6) Regressão visual
 - [ ] Visual Excel-like e 2.5D permanece consistente em painel, header, tabelas e botões.
@@ -78,16 +78,16 @@
 - [ ] Usuário preenche ponto + tipo/modelo, confirma ponto e recebe status claro.
 - [ ] Usuário altera ponto/tipo/modelo e vínculo anterior é invalidado corretamente.
 - [ ] Resultado total e seções atualizam sem perda de foco involuntária.
-- [ ] Persistência comunica saving/queued/saved/error sem silêncio de falha.
-- [ ] Persistência diferencia erro transitório de erro de autorização sem colapsar ambos no mesmo texto.
+- [x] Persistência comunica saving/queued/saved/error sem silêncio de falha.
+- [x] Persistência diferencia erro transitório de erro de autorização sem colapsar ambos no mesmo texto.
 - [ ] Loop operacional funciona: salvar ponto atual -> avançar para "Próximo ponto" mantendo contexto do projeto.
 
 ## 8) Critérios de saída da QA
 - [x] Sem erros de diagnóstico estático nos arquivos alterados (0 erros ESLint – ver `docs/analises/relatorios/fe-30-diagnostico-estatico-2026-03-26.md`).
 - [x] Sem regressão funcional nos testes E2E críticos existentes (106/106 testes unitários passam).
 - [x] E2E sem mocks do backend disponível via `e2e/ui-critical-flow-real.spec.js` (FE-27); auto-skip quando backend indisponível.
-- [ ] Não há bloqueio A11y de severidade alta no fluxo crítico.
-- [ ] Sem bloqueio de fallback para indisponibilidade de /api/config.
+- [x] Não há bloqueio A11y de severidade alta no fluxo crítico.
+- [x] Sem bloqueio de fallback para indisponibilidade de /api/config.
 
 ## 9) Conformidade normativa operacional (calculo/persistencia)
 - [ ] Evidência de paridade LIGHT anexada para o fluxo crítico (entrada, resultado e persistência) em cenário representativo.

@@ -778,6 +778,18 @@
   line-height: 1.4;
 }
 
+/* Error message element for Projeto field — always in DOM, empty when no error */
+.project-error-message {
+  font-size: 11px;
+  color: var(--color-error, #e53e3e);
+  min-height: 1em;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+.project-error-message:empty {
+  display: none;
+}
+
 .project-form-actions {
   display: flex;
   align-items: center;

@@ -59,8 +59,18 @@ export default function TelaProjetoInicial({ dados, onChange, onConfirm, onGuest
                 autoFocus={id === 'projeto'}
                 ref={id === 'projeto' ? projetoInputRef : undefined}
                 aria-invalid={id === 'projeto' && hasProjetoError ? true : undefined}
-                aria-describedby={id === 'projeto' && hasProjetoError ? projetoErrorId : undefined}
+                aria-describedby={id === 'projeto' ? projetoErrorId : undefined}
               />
+              {id === 'projeto' && (
+                <p
+                  id={projetoErrorId}
+                  className="project-error-message"
+                  role="alert"
+                  aria-live="assertive"
+                >
+                  {error || ''}
+                </p>
+              )}
             </div>
           ))}
 

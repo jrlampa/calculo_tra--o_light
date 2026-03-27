@@ -100,11 +100,13 @@ export default function App() {
               ) : null}
 
               <div className="flex items-center gap-2">
-                <span className="poste-lbl font-semibold">Tipo do Poste</span>
+                <label htmlFor="tipo-poste-select" className="poste-lbl font-semibold">Tipo do Poste</label>
                 <select
+                  id="tipo-poste-select"
                   className="flex-1 p-1 border rounded xcell poste-select"
                   value={appState.dadosParaComponentes.poste.tipoPoste}
                   onChange={e => appState.dadosParaComponentes.poste.onTipoChange(e.target.value)}
+                  aria-describedby="modelo-poste-helper"
                 >
                   <option value="">Selecione...</option>
                   {appState.dadosParaComponentes.poste.tiposDisponiveis.map(t => (
@@ -113,8 +115,9 @@ export default function App() {
                 </select>
               </div>
               <div className="flex items-center gap-2">
-                <span className="poste-lbl font-semibold">Modelo do Poste</span>
+                <label htmlFor="modelo-poste-select" className="poste-lbl font-semibold">Modelo do Poste</label>
                 <select
+                  id="modelo-poste-select"
                   className="flex-1 p-1 border rounded xcell poste-select"
                   value={appState.dadosParaComponentes.poste.modeloPoste}
                   onChange={e => appState.dadosParaComponentes.poste.onModeloChange(e.target.value)}
@@ -127,7 +130,7 @@ export default function App() {
                 </select>
               </div>
               <p id="modelo-poste-helper" className="poste-helper-text">
-                Dica: Ao alterar o tipo ou modelo do poste, as travessias e dados de cálculo sçúo preservados para re-cálculo automático.
+                Dica: Ao alterar o tipo ou modelo do poste, as travessias e dados de cálculo são preservados para re-cálculo automático.
               </p>
             </div>
 
