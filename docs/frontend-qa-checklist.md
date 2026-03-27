@@ -92,13 +92,13 @@
 ## 9) Conformidade normativa operacional (calculo/persistencia)
 - [ ] Evidência de paridade LIGHT anexada para o fluxo crítico (entrada, resultado e persistência) em cenário representativo.
 - [ ] Resultado calculado em domínio crítico confere com workbook LIGHT dentro do critério definido pelo time técnico.
-- [ ] Logs/evidências de rastreabilidade disponíveis por operação: projeto, ponto, timestamp, status de cálculo e status de persistência.
+- [x] Logs/evidências de rastreabilidade disponíveis por operação: projeto, ponto, timestamp, status de cálculo e status de persistência.
 - [ ] Erro de domínio crítico (422/403/42501 ou divergência de paridade) está classificado com causa e ação corretiva registrada.
 - [ ] Nenhuma decisão de exceção operacional foi aplicada sem registro formal de responsável técnico.
 
 ## 10) Gate de liberacao (fluxo operacional)
 - [ ] Gate 1 - Paridade: aprovado apenas com evidência objetiva de paridade LIGHT no fluxo Projeto -> Ponto -> Cálculo -> Persistência.
-- [ ] Gate 2 - Rastreabilidade: aprovado apenas com trilha mínima auditável de eventos e estados por ponto.
+- [x] Gate 2 - Rastreabilidade: aprovado apenas com trilha mínima auditável de eventos e estados por ponto.
 - [ ] Gate 3 - Domínio crítico: bloqueio automático de liberação se houver falha sem mitigação validada em cálculo/persistência.
 - [ ] Gate 4 - Uso assistido: operação em produção inicial liberada somente em modo assistido por responsável técnico.
 - [ ] Gate 5 - Go/No-Go: decisão final registrada com aprovador, data, escopo e pendências remanescentes.
@@ -108,11 +108,11 @@
 Objetivo: validar os três elementos de interação crítica em dispositivo físico ou emulador de alta fidelidade (não apenas Playwright). Evidência registrada em `docs/analises/` com data, dispositivo e observações.
 
 ### 11.1 Stepper condensado (mobile ≤ 767 px)
-- [ ] Stepper renderiza no modo condensado (2 chips: etapa atual + próxima) em Android e iPhone.
-- [ ] Chips refletem estado correto: Projeto (feito) → Ponto (ativo) → Cálculo (ativo) → Persistido.
-- [ ] Chips são legíveis sem sobreposição em viewport de 375 × 667 px (iPhone SE) e 360 × 800 px (Android).
-- [ ] Toque no chip "Próximo ponto" só aparece após persistência `saved` e dispara navegação sem bug de scroll.
-- [ ] Sem conteúdo oculto pelo header fixo ou pelos chips do stepper.
+- [x] Stepper renderiza no modo condensado (2 chips: etapa atual + próxima) em Android e iPhone.
+- [x] Chips refletem estado correto: Projeto (feito) → Ponto (ativo) → Cálculo (ativo) → Persistido.
+- [x] Chips são legíveis sem sobreposição em viewport de 375 × 667 px (iPhone SE) e 360 × 800 px (Android).
+- [x] Toque no chip "Próximo ponto" só aparece após persistência `saved` e dispara navegação sem bug de scroll.
+- [x] Sem conteúdo oculto pelo header fixo ou pelos chips do stepper.
 
 ### 11.2 ActionBar fixa no rodapé (mobile)
 - [x] ActionBar fixa aparece acima do teclado virtual em iOS e Android sem ocultar campos.

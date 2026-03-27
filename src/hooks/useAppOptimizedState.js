@@ -13,6 +13,7 @@ import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstru
 import useCalculo from './useCalculo.js'
 import { useConfigState } from './useConfigState.js'
 import { useFormState } from './useFormState.js'
+import { useIsMobile } from './useIsMobile.js'
 import usePersistenciaCalculo from './usePersistenciaCalculo.js'
 import { usePontoState } from './usePontoState.js'
 import { useProjetoState } from './useProjetoState.js'
@@ -21,6 +22,9 @@ import useUndoStack from './useUndoStack.js'
 
 
 export const useAppOptimizedState = () => {
+  // Viewport detection (drives FlowStepper condensed mode)
+  const isMobile = useIsMobile()
+
   // Estado particionado
   const projetoState = useProjetoState()
   const formState = useFormState()
@@ -373,7 +377,7 @@ export const useAppOptimizedState = () => {
       resultado,
       statusPersistencia: persistencia.status,
       onNextPonto: persistencia.status === 'saved' ? handleProximoPonto : null,
-      condensed: false,
+      condensed: isMobile,
     },
     
     // Poste selects
@@ -466,6 +470,7 @@ export const useAppOptimizedState = () => {
     configState,
     resultado,
     fieldErrors,
+    isMobile,
     persistencia,
     vetoresTracao,
     resultante,

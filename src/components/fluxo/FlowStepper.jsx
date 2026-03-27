@@ -67,36 +67,72 @@ const FlowStepper = ({
   const canShowNextPointButton = statusPersistencia === 'saved' && onNextPonto
 
   if (condensed) {
-    // Modo mobile: dois chips lado a lado (etapa atual + próxima)
-    const labelEtapaAtual = etapas[idxEtapa] || 'inicio'
-    const labelProxima = etapas[idxEtapa + 1] || 'fim'
+    // Modo mobile: chips estado-cientes (etapa atual + próxima)
+    const LABELS = {
+      projeto: 'Projeto',
+      ponto: 'Ponto',
+      calculo: 'Cálculo',
+      persistido: 'Persistido',
+    }
+    const STATUSES = {
+      projeto: statusProjeto,
+      ponto: statusPonto,
+      calculo: statusCalculo,
+      persistido: statusPersistido,
+    }
+
+    const keyAtual = etapas[idxEtapa] || 'projeto'
+    const keyProxima = etapas[idxEtapa + 1] || null
+    const statusAtual = STATUSES[keyAtual] || 'idle'
+    const statusProxima = keyProxima ? (STATUSES[keyProxima] || 'idle') : null
+
+    const statusModifier = (s) => {
+      if (s === 'done') { return ' stepper-chip--done' }
+      if (s === 'error') { return ' stepper-chip--error' }
+      if (s === 'active') { return ' stepper-chip--active' }
+      return ''
+    }
+
+    const statusIcon = (s) => {
+      if (s === 'done') { return '✓ ' }
+      if (s === 'error') { return '✕ ' }
+      return ''
+    }
 
     return (
       <nav className="stepper-container--mobile" aria-label="Progresso do fluxo">
         <ol className="stepper-chips-row" role="list">
           <li
-            className="stepper-chip stepper-chip--current"
+            className={`stepper-chip stepper-chip--current${statusModifier(statusAtual)}`}
             role="listitem"
             aria-current="step"
-            aria-label={`Etapa atual: ${labelEtapaAtual}`}
+            aria-label={`Etapa atual: ${LABELS[keyAtual]}${statusAtual === 'done' ? ' (concluída)' : statusAtual === 'error' ? ' (erro)' : statusAtual === 'active' ? ' (em andamento)' : ''}`}
           >
-            <span className="stepper-chip-label">{labelEtapaAtual}</span>
+            <span className="stepper-chip-label" aria-hidden="true">
+              {statusIcon(statusAtual)}{LABELS[keyAtual]}
+            </span>
           </li>
-          <li aria-hidden="true" className="stepper-chip-arrow">→</li>
-          <li
-            className="stepper-chip stepper-chip--next"
-            role="listitem"
-            aria-label={`Próxima etapa: ${labelProxima}`}
-          >
-            <span className="stepper-chip-label">{labelProxima}</span>
-          </li>
+          {keyProxima && (
+            <>
+              <li aria-hidden="true" className="stepper-chip-arrow">→</li>
+              <li
+                className={`stepper-chip stepper-chip--next${statusModifier(statusProxima)}`}
+                role="listitem"
+                aria-label={`Próxima etapa: ${LABELS[keyProxima]}`}
+              >
+                <span className="stepper-chip-label" aria-hidden="true">
+                  {statusIcon(statusProxima)}{LABELS[keyProxima]}
+                </span>
+              </li>
+            </>
+          )}
         </ol>
         {canShowNextPointButton && (
           <button
             type="button"
             className="stepper-next-point-btn"
             onClick={onNextPonto}
-            aria-label="Confirmar ponto e continuar para o próximo"
+            aria-label="Confirmar ponto e continuar para o próximo ponto"
           >
             Próximo ponto
           </button>

@@ -40,11 +40,37 @@ const VALID_EVENT_NAMES = new Set(Object.values(UX_FUNNEL_EVENTS))
 
 let localEventCallback = null
 
+// In-memory ring-buffer of the last MAX_LOG_ENTRIES events for audit/traceability.
+// 200 entries covers a full working session (project → N points × 4 events each)
+// without imposing noticeable memory pressure on mobile devices.
+// Exposed via getTraceabilityLog() so callers can collect evidence without a
+// persistent backend.
+const MAX_LOG_ENTRIES = 200
+const _eventLog = []
+
 export function setUxFunnelEventCallback(callback) {
   localEventCallback = typeof callback === 'function' ? callback : null
   return () => {
     localEventCallback = null
   }
+}
+
+/**
+ * Returns a snapshot of the most recent UX funnel events (up to MAX_LOG_ENTRIES).
+ * Each entry has the shape: { name, ts, properties }.
+ *
+ * Useful for producing an in-session audit trail that maps to sections 9 and 10
+ * of the QA checklist (rastreabilidade por operação).
+ *
+ * @returns {Array<{name: string, ts: string, properties: object}>}
+ */
+export function getTraceabilityLog() {
+  return _eventLog.slice()
+}
+
+/** Clears the in-memory event log (intended for use in tests). */
+export function clearTraceabilityLog() {
+  _eventLog.length = 0
 }
 
 function normalizeProperties(properties) {
@@ -82,6 +108,10 @@ export function trackUxFunnelEvent(eventName, properties = {}) {
   if (!event) {
     return null
   }
+
+  // Append to ring-buffer (trim oldest when full)
+  _eventLog.push(event)
+  if (_eventLog.length > MAX_LOG_ENTRIES) { _eventLog.shift() }
 
   console.info('[ux-funnel]', event)
 
