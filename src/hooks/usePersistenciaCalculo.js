@@ -191,6 +191,7 @@ export default function usePersistenciaCalculo({ pontoId, lastPayload, resultado
     const waitMs = Math.max(PERSIST_WINDOW_MS - elapsedMs, 0)
 
     if (waitMs > 0) {
+      startRetryCountdown(waitMs)
       setPersistencia(prevState => ({ 
         ...prevState, 
         status: 'queued', 

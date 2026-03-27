@@ -153,18 +153,19 @@ export const useAppOptimizedState = () => {
   // Memoizar feedback de persistência
   const persistenciaFeedback = useMemo(() => {
     if (persistencia.status === 'saving') {
-      return { tone: 'saving', message: 'Salvando cálculo...' }
+      return { tone: 'saving', message: 'Salvando...' }
     }
 
     if (persistencia.status === 'queued') {
-      return { tone: 'saving', message: 'Na fila. Salvando em instantes.' }
+      const secs = persistencia.retryInSeconds > 0 ? persistencia.retryInSeconds : '…'
+      return { tone: 'saving', message: `Na fila. Tentando em ${secs}s...` }
     }
 
     if (persistencia.status === 'error') {
       if (persistencia.isForbidden) {
         return {
           tone: 'error',
-          message: 'Sem permissão para salvar este ponto. Reconfirme o projeto.',
+          message: 'Acesso negado: verifique o proprietário do projeto.',
         }
       }
       return {
@@ -174,11 +175,11 @@ export const useAppOptimizedState = () => {
     }
 
     if (persistencia.status === 'saved') {
-      return { tone: 'saved', message: 'Cálculo salvo.' }
+      return { tone: 'saved', message: 'Salvo' }
     }
 
     return { tone: 'idle', message: 'Aguardando envio.' }
-  }, [persistencia.error, persistencia.isForbidden, persistencia.status])
+  }, [persistencia.error, persistencia.isForbidden, persistencia.retryInSeconds, persistencia.status])
 
   // Snapshot for APAGA undo: saved before the clear is committed
   const apagaSnapshotRef = useRef(null)
@@ -356,10 +357,13 @@ export const useAppOptimizedState = () => {
       persistenciaMensagem: persistenciaFeedback.message,
       persistenciaWillRetry: persistencia.willRetry,
       persistenciaRetryInSeconds: persistencia.retryInSeconds,
+      persistenciaIsForbidden: persistencia.isForbidden,
       canConfirmPonto: pontoState.canConfirmPonto,
-      onRetryPersistencia: persistencia.status === 'error' && !persistencia.isForbidden && persistencia.canRetry
-        ? handleManualPersistRetry
-        : undefined,
+      onRetryPersistencia: (
+        (persistencia.status === 'error' && !persistencia.isForbidden && persistencia.canRetry) ||
+        persistencia.status === 'queued'
+      ) ? handleManualPersistRetry : undefined,
+      onReconfirmProjeto: persistencia.isForbidden ? () => pontoState.handlers.handleConfirmPonto() : undefined,
     },
     
     // FlowStepper

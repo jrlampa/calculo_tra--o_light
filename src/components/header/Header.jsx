@@ -37,9 +37,9 @@ const Field = React.memo(({ label, id, value, onChange, colSpan = 1, readOnly = 
 // StatusChip separado para vínculo/ponto
 const VinculoChip = React.memo(({ status = 'idle', message = '' }) => {
   const toneClass = (() => {
-    if (status === 'error' || status === 'invalidated') return 'saving'
-    if (status === 'saved') return 'saved'
-    if (status === 'saving') return 'saving'
+    if (status === 'error' || status === 'invalidated') {return 'saving'}
+    if (status === 'saved') {return 'saved'}
+    if (status === 'saving') {return 'saving'}
     return 'idle'
   })()
 
@@ -55,33 +55,54 @@ const VinculoChip = React.memo(({ status = 'idle', message = '' }) => {
   )
 })
 
-// StatusChip para persistência com countdown opcional
-const PersistenciaChip = React.memo(({ status = 'idle', message = '', willRetry = false, retryInSeconds = 0, onRetry = null }) => {
+// StatusChip para persistência com contrato completo de estados
+const PersistenciaChip = React.memo(({
+  status = 'idle',
+  message = '',
+  willRetry = false,
+  isForbidden = false,
+  onRetry = null,
+  onReconfirmProjeto = null,
+}) => {
   const toneClass = (() => {
-    if (status === 'error') return 'error'
-    if (status === 'saved') return 'saved'
-    if (status === 'saving' || status === 'queued') return 'saving'
+    if (status === 'error') {return 'error'}
+    if (status === 'saved') {return 'saved'}
+    if (status === 'saving' || status === 'queued') {return 'saving'}
     return 'idle'
   })()
 
-  const displayMessage = willRetry
-    ? `Nova tentativa em ${retryInSeconds}s...`
-    : message || 'Aguardando envio.'
+  // Compute which CTA to show
+  // queued → "Reenviar"
+  // error + !willRetry + !isForbidden → "Tentar novamente"
+  // error + isForbidden → "Reconfirmar projeto"
+  const showReenviar = status === 'queued' && onRetry
+  const showTentarNovamente = status === 'error' && !willRetry && !isForbidden && onRetry
+  const showReconfirmar = status === 'error' && isForbidden && onReconfirmProjeto
 
   return (
     <div
-      className={`persistencia-chip-wrapper${willRetry ? ' willretry' : ''}`}
+      className={`persistencia-chip-wrapper${willRetry ? ' willretry' : ''}${isForbidden ? ' forbidden' : ''}`}
     >
       <span
         className={`persistencia-chip header-status header-status--${toneClass}`}
         role="status"
-        aria-live="assertive"
+        aria-live="polite"
         aria-atomic="true"
         id="header-persistencia-status"
       >
-        {displayMessage}
+        {message || 'Aguardando envio.'}
       </span>
-      {onRetry && status === 'error' && !willRetry && (
+      {showReenviar && (
+        <button
+          type="button"
+          className="header-retry-button"
+          onClick={onRetry}
+          aria-label="Reenviar cálculo imediatamente"
+        >
+          Reenviar
+        </button>
+      )}
+      {showTentarNovamente && (
         <button
           type="button"
           className="header-retry-button"
@@ -89,6 +110,16 @@ const PersistenciaChip = React.memo(({ status = 'idle', message = '', willRetry 
           aria-label="Tentar novamente a persistência do cálculo"
         >
           Tentar novamente
+        </button>
+      )}
+      {showReconfirmar && (
+        <button
+          type="button"
+          className="header-reconfirm-button"
+          onClick={onReconfirmProjeto}
+          aria-label="Reconfirmar projeto para tentar salvar novamente"
+        >
+          Reconfirmar projeto
         </button>
       )}
     </div>
@@ -109,8 +140,9 @@ const Header = ({
   persistenciaStatus = 'idle',
   persistenciaMensagem = '',
   persistenciaWillRetry = false,
-  persistenciaRetryInSeconds = 0,
+  persistenciaIsForbidden = false,
   onRetryPersistencia = null,
+  onReconfirmProjeto = null,
 }) => {
   return (
     <div>
@@ -159,8 +191,9 @@ const Header = ({
               status={persistenciaStatus}
               message={persistenciaMensagem}
               willRetry={persistenciaWillRetry}
-              retryInSeconds={persistenciaRetryInSeconds}
+              isForbidden={persistenciaIsForbidden}
               onRetry={onRetryPersistencia}
+              onReconfirmProjeto={onReconfirmProjeto}
             />
             <button
               type="button"
@@ -192,7 +225,8 @@ export default React.memo(Header, (prevProps, nextProps) => {
     prevProps.persistenciaStatus === nextProps.persistenciaStatus &&
     prevProps.persistenciaMensagem === nextProps.persistenciaMensagem &&
     prevProps.persistenciaWillRetry === nextProps.persistenciaWillRetry &&
-    prevProps.persistenciaRetryInSeconds === nextProps.persistenciaRetryInSeconds &&
-    prevProps.onRetryPersistencia === nextProps.onRetryPersistencia
+    prevProps.persistenciaIsForbidden === nextProps.persistenciaIsForbidden &&
+    prevProps.onRetryPersistencia === nextProps.onRetryPersistencia &&
+    prevProps.onReconfirmProjeto === nextProps.onReconfirmProjeto
   )
 })

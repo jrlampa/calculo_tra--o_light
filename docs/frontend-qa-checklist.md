@@ -17,9 +17,9 @@
 - [ ] Inputs textuais das seções técnicas usam inputMode decimal.
 - [ ] Canvas do relógio mantém aria-label e apresenta resumo textual equivalente em pt-BR.
 - [ ] Diagrama do poste está em estrutura semântica figure/figcaption com descrição vinculada.
-- [ ] `FlowStepper` é navegável por teclado e anuncia etapa atual para tecnologias assistivas.
-- [ ] `HeaderStatusDuplo` expõe dois `role=status` independentes (vínculo e persistência).
-- [ ] Botão "Tentar novamente" da persistência é acionável por teclado e leitor de tela.
+- [x] `FlowStepper` é navegável por teclado e anuncia etapa atual para tecnologias assistivas.
+- [x] `HeaderStatusDuplo` expõe dois `role=status` independentes (vínculo e persistência).
+- [x] Botão "Tentar novamente" da persistência é acionável por teclado e leitor de tela.
 
 ## 2) Responsividade e toque
 - [ ] Desktop >= 961px mantém layout em duas colunas sem quebra visual.
@@ -37,15 +37,15 @@
 - [ ] Retry de config executa nova tentativa sem limpar último config válido.
 - [ ] Se tipo do poste mudar, modelo é limpo imediatamente.
 - [ ] Helper text de Modelo do Poste está visível e associado por aria-describedby.
-- [ ] Estados de persistência cobrem explicitamente `saving`, `queued`, `saved`, `error_transient` e `error_permission`.
-- [ ] Em `saving`, chip mostra exatamente "Salvando..." e não exibe CTA de retry.
-- [ ] Em `queued`, chip mostra "Na fila. Tentando em Xs..." e CTA "Reenviar".
-- [ ] Countdown de `queued` atualiza em passos de 1s sem travar interação no formulário.
-- [ ] Em `saved`, chip mostra "Salvo" e CTA "Próximo ponto" fica habilitado.
-- [ ] Em `error_transient`, chip mostra falha com retry automático e CTA "Tentar novamente".
-- [ ] Após esgotar retries automáticos, estado continua `error_transient` com mensagem estável de falha e CTA manual.
-- [ ] Em `403/42501`, estado vira `error_permission`, sem retry automático, com mensagem de acesso/ownership.
-- [ ] Em `error_permission`, CTA "Reconfirmar projeto" fica visível e navegável por teclado.
+- [x] Estados de persistência cobrem explicitamente `saving`, `queued`, `saved`, `error_transient` e `error_permission`.
+- [x] Em `saving`, chip mostra exatamente "Salvando..." e não exibe CTA de retry.
+- [x] Em `queued`, chip mostra "Na fila. Tentando em Xs..." e CTA "Reenviar".
+- [x] Countdown de `queued` atualiza em passos de 1s sem travar interação no formulário.
+- [x] Em `saved`, chip mostra "Salvo" e CTA "Próximo ponto" fica habilitado.
+- [x] Em `error_transient`, chip mostra falha com retry automático e CTA "Tentar novamente".
+- [x] Após esgotar retries automáticos, estado continua `error_transient` com mensagem estável de falha e CTA manual.
+- [x] Em `403/42501`, estado vira `error_permission`, sem retry automático, com mensagem de acesso/ownership.
+- [x] Em `error_permission`, CTA "Reconfirmar projeto" fica visível e navegável por teclado.
 - [ ] Erro 422 de domínio aparece no campo específico (não apenas em banner global).
 - [ ] Stepper reflete transição correta: Projeto -> Ponto -> Cálculo -> Persistido.
 - [ ] Após persistência `saved`, CTA "Próximo ponto" fica disponível sem recarregar contexto do projeto.
@@ -123,7 +123,7 @@ Objetivo: validar os três elementos de interação crítica em dispositivo fís
 - [ ] Rolagem do formulário funciona normalmente sem travamento na área da ActionBar.
 
 ### 11.3 APAGA com desfazer (UndoToast)
-- [ ] Tocar em APAGA abre UndoToast com mensagem "Dados tecnicos serao apagados em 5 s.".
+- [ ] Tocar em APAGA abre UndoToast com mensagem "Dados técnicos serão apagados em 5 s.".
 - [ ] Countdown atualiza a cada 1 s de forma visível sem travar interação com o formulário.
 - [ ] UndoToast aparece acima da ActionBar fixa e não é ocultado por ela.
 - [ ] Foco (VoiceOver/TalkBack) vai para botão "Desfazer" ao abrir o toast.
