@@ -23,32 +23,34 @@
  * endpoint and returns the computed resultado.
  */
 import { useState, useEffect, useRef } from 'react'
-import { buildCalculoRequest } from '../services/calculoApi.js'
+import { buildCalculoRequest, extractSectionErrors } from '../services/calculoApi.js'
 import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstrumentation.js'
 
 export default function useCalculo(formState, debounceMs = 600, enabled = true) {
   const [resultado, setResultado] = useState(null)
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState(null)
+  const [fieldErrors, setFieldErrors] = useState(null)
   const [lastPayload, setLastPayload] = useState(null)
   const timerRef = useRef(null)
   const abortRef = useRef(null)
 
   useEffect(() => {
     if (!enabled) {
-      if (timerRef.current) clearTimeout(timerRef.current)
-      if (abortRef.current) abortRef.current.abort()
+      if (timerRef.current) { clearTimeout(timerRef.current) }
+      if (abortRef.current) { abortRef.current.abort() }
       setLoading(false)
       setError(null)
+      setFieldErrors(null)
       setResultado(null)
       setLastPayload(null)
       return undefined
     }
 
-    if (timerRef.current) clearTimeout(timerRef.current)
+    if (timerRef.current) { clearTimeout(timerRef.current) }
 
     timerRef.current = setTimeout(async () => {
-      if (abortRef.current) abortRef.current.abort()
+      if (abortRef.current) { abortRef.current.abort() }
       const controller = new AbortController()
       abortRef.current = controller
       
@@ -58,6 +60,7 @@ export default function useCalculo(formState, debounceMs = 600, enabled = true) 
           payload = buildCalculoRequest(formState)
         } catch (vErr) {
           setError(vErr.message)
+          setFieldErrors(null)
           setLoading(false)
           return
         }
@@ -65,6 +68,7 @@ export default function useCalculo(formState, debounceMs = 600, enabled = true) 
         
         setLoading(true)
         setError(null)
+        setFieldErrors(null)
 
         const response = await fetch('/api/calcular', {
           method:  'POST',
@@ -75,7 +79,21 @@ export default function useCalculo(formState, debounceMs = 600, enabled = true) 
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}))
-          throw new Error(errorData.detail || `Traction API error: ${response.status}`)
+          // For 422: extract section-level field errors (Pydantic validation)
+          if (response.status === 422) {
+            const sectionErrors = extractSectionErrors(errorData.detail)
+            if (sectionErrors) {
+              setFieldErrors(sectionErrors)
+              // Provide a concise general message too
+              setError('Verifique os campos indicados em vermelho.')
+              setLoading(false)
+              return
+            }
+          }
+          const detail = typeof errorData.detail === 'string'
+            ? errorData.detail
+            : `Traction API error: ${response.status}`
+          throw new Error(detail)
         }
 
         const data = await response.json()
@@ -89,6 +107,7 @@ export default function useCalculo(formState, debounceMs = 600, enabled = true) 
       } catch (err) {
         if (err.name !== 'AbortError') {
           setError(err.message)
+          setFieldErrors(null)
         }
       } finally {
         setLoading(false)
@@ -96,10 +115,10 @@ export default function useCalculo(formState, debounceMs = 600, enabled = true) 
     }, debounceMs)
 
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current)
-      if (abortRef.current) abortRef.current.abort()
+      if (timerRef.current) { clearTimeout(timerRef.current) }
+      if (abortRef.current) { abortRef.current.abort() }
     }
   }, [debounceMs, enabled, formState])
 
-  return { resultado, loading, error, lastPayload }
+  return { resultado, loading, error, fieldErrors, lastPayload }
 }

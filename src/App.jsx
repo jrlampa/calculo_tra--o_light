@@ -164,6 +164,7 @@ export default function App() {
                   campos={campos}
                   config={secao.config}
                   nota={secao.nota}
+                  sectionError={secao.sectionError}
                 />
               )
             })}

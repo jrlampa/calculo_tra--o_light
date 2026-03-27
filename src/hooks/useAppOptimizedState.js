@@ -52,7 +52,7 @@ export const useAppOptimizedState = () => {
   }), [projetoState.cabecalho, pontoState.poste, formState.formState])
 
   // 3. Motor de Cálculo
-  const { resultado, loading, error, lastPayload } = useCalculo(
+  const { resultado, loading, error, fieldErrors, lastPayload } = useCalculo(
     fullFormState,
     600,
     projetoState.etapa === 'calculo'
@@ -395,6 +395,7 @@ export const useAppOptimizedState = () => {
         onChangeTravessia: (i, c, v) => handleTravessiaChangeWithUndo('mt1', i, c, v),
         campos: 'CAMPOS_MT', // Será importado
         config: configState.config,
+        sectionError: fieldErrors?.mt1 || null,
       },
       {
         titulo: 'MT - 2º Nível',
@@ -403,6 +404,7 @@ export const useAppOptimizedState = () => {
         onChangeTravessia: (i, c, v) => handleTravessiaChangeWithUndo('mt2', i, c, v),
         campos: 'CAMPOS_MT',
         config: configState.config,
+        sectionError: fieldErrors?.mt2 || null,
       },
       {
         titulo: 'BT',
@@ -411,6 +413,7 @@ export const useAppOptimizedState = () => {
         onChangeTravessia: (i, c, v) => handleTravessiaChangeWithUndo('bt', i, c, v),
         campos: 'CAMPOS_BT',
         config: configState.config,
+        sectionError: fieldErrors?.bt || null,
       },
       {
         titulo: 'Ramais BTZero',
@@ -420,6 +423,7 @@ export const useAppOptimizedState = () => {
         campos: 'CAMPOS_BTZ',
         config: configState.config,
         nota: '(*) - Considerar: monofásico = 1 ligação; trifásico = 3 ligações',
+        sectionError: fieldErrors?.btz || null,
       },
       {
         titulo: 'Ramais de ligação',
@@ -428,6 +432,7 @@ export const useAppOptimizedState = () => {
         onChangeTravessia: (i, c, v) => handleTravessiaChangeWithUndo('ral', i, c, v),
         campos: 'CAMPOS_RAL',
         config: configState.config,
+        sectionError: fieldErrors?.ral || null,
       },
     ],
     
@@ -460,6 +465,7 @@ export const useAppOptimizedState = () => {
     formState,
     configState,
     resultado,
+    fieldErrors,
     persistencia,
     vetoresTracao,
     resultante,

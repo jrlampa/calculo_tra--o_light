@@ -13,8 +13,9 @@ import React from 'react'
  * @param {Function} props.onChangeTravessia - callback(idx, campo, valor)
  * @param {Array}    props.campos         - [{campo, label, unidade}]
  * @param {string}   props.nota           - node opcional ex: "(*) - Considerar..."
+ * @param {string}   props.sectionError   - mensagem de erro 422 de validação para esta seção (opcional)
  */
-const SecaoNivel = ({ titulo, labelResultado, travessias, onChangeTravessia, campos, nota, config }) => {
+const SecaoNivel = ({ titulo, labelResultado, travessias, onChangeTravessia, campos, nota, config, sectionError }) => {
   const buildAccessibleName = (fieldLabel, travessiaIndex) => (
     `${fieldLabel}, travessia ${travessiaIndex + 1}, ${titulo}`
   )
@@ -125,6 +126,11 @@ const SecaoNivel = ({ titulo, labelResultado, travessias, onChangeTravessia, cam
             {nota}
           </span>
         )}
+        {sectionError && (
+          <p className="sec-field-error" role="alert" aria-live="polite">
+            {sectionError}
+          </p>
+        )}
       </div>
     </div>
   )
@@ -140,6 +146,7 @@ export default React.memo(SecaoNivel, (prevProps, nextProps) => {
     prevProps.onChangeTravessia === nextProps.onChangeTravessia &&
     prevProps.campos === nextProps.campos &&
     prevProps.nota === nextProps.nota &&
-    prevProps.config === nextProps.config
+    prevProps.config === nextProps.config &&
+    prevProps.sectionError === nextProps.sectionError
   )
 })

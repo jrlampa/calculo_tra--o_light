@@ -345,6 +345,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 /* ─── Nota opcional na seção ───────────────────────── */
@@ -353,6 +355,15 @@
   color: #444;
   margin-right: 8px;
   text-align: right;
+  line-height: 1.4;
+}
+
+/* ─── Erro de validação 422 por seção ──────────────── */
+.sec-field-error {
+  font-size: 10px;
+  color: var(--color-error, #e53e3e);
+  width: 100%;
+  margin-top: 2px;
   line-height: 1.4;
 }
 

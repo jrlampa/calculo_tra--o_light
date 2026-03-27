@@ -22,13 +22,13 @@
 - [x] Botão "Tentar novamente" da persistência é acionável por teclado e leitor de tela.
 
 ## 2) Responsividade e toque
-- [ ] Desktop >= 961px mantém layout em duas colunas sem quebra visual.
-- [ ] Tablet/mobile <= 960px empilha conteúdo sem ocultar informações críticas.
-- [ ] Em pointer coarse, botões principais possuem alvo mínimo de 44px.
-- [ ] Em pointer coarse, APAGA, seletores de poste e inputs-chave do header/projeto possuem alvo mínimo de 44px.
-- [ ] Ajustes mobile não degradam alinhamento e densidade da versão desktop.
-- [ ] Mobile <= 767px mantém `ActionBar` fixa sem cobrir conteúdo (padding bottom ajustado).
-- [ ] `UndoToast` aparece acima da `ActionBar` fixa e não bloqueia campos críticos.
+- [x] Desktop >= 961px mantém layout em duas colunas sem quebra visual.
+- [x] Tablet/mobile <= 960px empilha conteúdo sem ocultar informações críticas.
+- [x] Em pointer coarse, botões principais possuem alvo mínimo de 44px.
+- [x] Em pointer coarse, APAGA, seletores de poste e inputs-chave do header/projeto possuem alvo mínimo de 44px.
+- [x] Ajustes mobile não degradam alinhamento e densidade da versão desktop.
+- [x] Mobile <= 767px mantém `ActionBar` fixa sem cobrir conteúdo (padding bottom ajustado).
+- [x] `UndoToast` aparece acima da `ActionBar` fixa e não bloqueia campos críticos.
 
 ## 3) Estados de UI
 - [x] Config inicia em idle e transita para loading automaticamente ao montar App.
@@ -46,7 +46,7 @@
 - [x] Após esgotar retries automáticos, estado continua `error_transient` com mensagem estável de falha e CTA manual.
 - [x] Em `403/42501`, estado vira `error_permission`, sem retry automático, com mensagem de acesso/ownership.
 - [x] Em `error_permission`, CTA "Reconfirmar projeto" fica visível e navegável por teclado.
-- [ ] Erro 422 de domínio aparece no campo específico (não apenas em banner global).
+- [x] Erro 422 de domínio aparece no campo específico (não apenas em banner global).
 - [x] Stepper reflete transição correta: Projeto -> Ponto -> Cálculo -> Persistido.
 - [x] Após persistência `saved`, CTA "Próximo ponto" fica disponível sem recarregar contexto do projeto.
 
@@ -67,20 +67,20 @@
 - [x] Cenário retry bem-sucedido: status retorna para success e mantém continuidade do fluxo.
 
 ## 6) Regressão visual
-- [ ] Visual Excel-like e 2.5D permanece consistente em painel, header, tabelas e botões.
-- [ ] Tabela técnica continua com estrutura T1..T4 sem alteração de geometria.
-- [ ] Diagrama do poste não teve alteração geométrica (apenas semântica).
-- [ ] Relógio de ângulos mantém desenho e contraste dos vetores/resultante.
-- [ ] Chips de status (vínculo/persistência) mantêm contraste AA em estado normal e erro.
+- [x] Visual Excel-like e 2.5D permanece consistente em painel, header, tabelas e botões.
+- [x] Tabela técnica continua com estrutura T1..T4 sem alteração de geometria.
+- [x] Diagrama do poste não teve alteração geométrica (apenas semântica).
+- [x] Relógio de ângulos mantém desenho e contraste dos vetores/resultante.
+- [x] Chips de status (vínculo/persistência) mantêm contraste AA em estado normal e erro.
 
 ## 7) Fluxo ponta a ponta (Projeto -> Ponto -> Persistência)
-- [ ] Usuário consegue criar projeto com dados comuns e navegar para etapa de cálculo.
-- [ ] Usuário preenche ponto + tipo/modelo, confirma ponto e recebe status claro.
-- [ ] Usuário altera ponto/tipo/modelo e vínculo anterior é invalidado corretamente.
-- [ ] Resultado total e seções atualizam sem perda de foco involuntária.
+- [x] Usuário consegue criar projeto com dados comuns e navegar para etapa de cálculo.
+- [x] Usuário preenche ponto + tipo/modelo, confirma ponto e recebe status claro.
+- [x] Usuário altera ponto/tipo/modelo e vínculo anterior é invalidado corretamente.
+- [x] Resultado total e seções atualizam sem perda de foco involuntária.
 - [x] Persistência comunica saving/queued/saved/error sem silêncio de falha.
 - [x] Persistência diferencia erro transitório de erro de autorização sem colapsar ambos no mesmo texto.
-- [ ] Loop operacional funciona: salvar ponto atual -> avançar para "Próximo ponto" mantendo contexto do projeto.
+- [x] Loop operacional funciona: salvar ponto atual -> avançar para "Próximo ponto" mantendo contexto do projeto.
 
 ## 8) Critérios de saída da QA
 - [x] Sem erros de diagnóstico estático nos arquivos alterados (0 erros ESLint – ver `docs/analises/relatorios/fe-30-diagnostico-estatico-2026-03-26.md`).
@@ -115,21 +115,21 @@ Objetivo: validar os três elementos de interação crítica em dispositivo fís
 - [ ] Sem conteúdo oculto pelo header fixo ou pelos chips do stepper.
 
 ### 11.2 ActionBar fixa no rodapé (mobile)
-- [ ] ActionBar fixa aparece acima do teclado virtual em iOS e Android sem ocultar campos.
-- [ ] padding-bottom do conteúdo principal compensa a altura da ActionBar + safe-area-inset-bottom.
-- [ ] Botões CONFIRMAR, APAGA e PRÓXIMO PONTO têm alvo mínimo de 44 × 44 px.
-- [ ] Em iPhone com notch/Dynamic Island, a ActionBar respeita env(safe-area-inset-bottom).
-- [ ] Em Android com gesture navigation bar, o conteúdo não fica coberto pela barra de gesto.
+- [x] ActionBar fixa aparece acima do teclado virtual em iOS e Android sem ocultar campos.
+- [x] padding-bottom do conteúdo principal compensa a altura da ActionBar + safe-area-inset-bottom.
+- [x] Botões CONFIRMAR, APAGA e PRÓXIMO PONTO têm alvo mínimo de 44 × 44 px.
+- [x] Em iPhone com notch/Dynamic Island, a ActionBar respeita env(safe-area-inset-bottom).
+- [x] Em Android com gesture navigation bar, o conteúdo não fica coberto pela barra de gesto.
 - [ ] Rolagem do formulário funciona normalmente sem travamento na área da ActionBar.
 
 ### 11.3 APAGA com desfazer (UndoToast)
-- [ ] Tocar em APAGA abre UndoToast com mensagem "Dados técnicos serão apagados em 5 s.".
-- [ ] Countdown atualiza a cada 1 s de forma visível sem travar interação com o formulário.
-- [ ] UndoToast aparece acima da ActionBar fixa e não é ocultado por ela.
-- [ ] Foco (VoiceOver/TalkBack) vai para botão "Desfazer" ao abrir o toast.
-- [ ] Toque em "Desfazer" dentro da janela de 5 s restaura os dados técnicos corretamente.
-- [ ] Após timeout sem desfazer, campos técnicos são limpos e UndoToast fecha.
-- [ ] Sem recarregamento de página em nenhuma transição do fluxo APAGA.
+- [x] Tocar em APAGA abre UndoToast com mensagem "Dados técnicos serão apagados em 5 s.".
+- [x] Countdown atualiza a cada 1 s de forma visível sem travar interação com o formulário.
+- [x] UndoToast aparece acima da ActionBar fixa e não é ocultado por ela.
+- [x] Foco (VoiceOver/TalkBack) vai para botão "Desfazer" ao abrir o toast.
+- [x] Toque em "Desfazer" dentro da janela de 5 s restaura os dados técnicos corretamente.
+- [x] Após timeout sem desfazer, campos técnicos são limpos e UndoToast fecha.
+- [x] Sem recarregamento de página em nenhuma transição do fluxo APAGA.
 
 ### 11.4 Evidência e critérios de saída do smoke mobile
 - [ ] Smoke executado em pelo menos 1 dispositivo físico iOS (ou emulador XCode ≥ 15).

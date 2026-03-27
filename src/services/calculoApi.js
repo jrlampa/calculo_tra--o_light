@@ -41,6 +41,34 @@ function toFloat(value) {
   return Number.isNaN(parsedValue) ? null : parsedValue
 }
 
+// Section keys as returned by the /calcular endpoint's Pydantic model
+const SECAO_KEYS = new Set(['mt1', 'mt2', 'bt', 'btz', 'ral'])
+
+/**
+ * Parses a FastAPI Pydantic 422 `detail` array and groups error messages by
+ * section key (mt1, mt2, bt, btz, ral). Returns null when no field-level
+ * information is available (e.g. a plain string detail).
+ *
+ * @param {unknown} detail - The `detail` value from the 422 JSON body.
+ * @returns {Record<string,string>|null} Map of section → joined error messages,
+ *   or null if not a Pydantic-style validation error.
+ */
+export function extractSectionErrors(detail) {
+  if (!Array.isArray(detail) || detail.length === 0) { return null }
+
+  const bySection = {}
+  for (const item of detail) {
+    if (!item || !Array.isArray(item.loc) || item.loc.length < 2) { continue }
+    // FastAPI loc format: ["body", "<field>", ...] or ["body", "<section>", <idx>, "<field>", ...]
+    const rawKey = String(item.loc[1] || '').toLowerCase()
+    if (!SECAO_KEYS.has(rawKey)) { continue }
+    const msg = item.msg || 'Erro de validação'
+    bySection[rawKey] = bySection[rawKey] ? `${bySection[rawKey]}; ${msg}` : msg
+  }
+
+  return Object.keys(bySection).length > 0 ? bySection : null
+}
+
 async function parseErrorMessage(response, fallbackMessage) {
   try {
     const payload = await response.json()

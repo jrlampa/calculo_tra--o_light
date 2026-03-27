@@ -1,5 +1,6 @@
 /* Tests for the pure helper functions exported from calculoApi.js:
- * buildCalculoRequest, buildBatchPayload, buildSalvarCalculoPayload
+ * buildCalculoRequest, buildBatchPayload, buildSalvarCalculoPayload,
+ * extractSectionErrors
  * The private toFloat helper is indirectly exercised through these.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -8,6 +9,7 @@ import {
   buildBatchPayload,
   buildSalvarCalculoPayload,
   getLastRequestContext,
+  extractSectionErrors,
 } from '@/services/calculoApi'
 
 // ─── minimal form-state factory ──────────────────────────────────────────────
@@ -287,5 +289,77 @@ describe('getLastRequestContext', () => {
     expect(ctx.method).toBeNull()
     expect(ctx.url).toBeNull()
     expect(ctx.status).toBeNull()
+  })
+})
+
+// ─── extractSectionErrors ─────────────────────────────────────────────────────
+describe('extractSectionErrors', () => {
+  it('returns null for non-array detail (string)', () => {
+    expect(extractSectionErrors('Entrada fora do domínio')).toBeNull()
+  })
+
+  it('returns null for null/undefined', () => {
+    expect(extractSectionErrors(null)).toBeNull()
+    expect(extractSectionErrors(undefined)).toBeNull()
+  })
+
+  it('returns null for empty array', () => {
+    expect(extractSectionErrors([])).toBeNull()
+  })
+
+  it('extracts mt1 error from Pydantic loc array', () => {
+    const detail = [
+      { loc: ['body', 'mt1', 0, 'vao'], msg: 'field required', type: 'value_error.missing' },
+    ]
+    const result = extractSectionErrors(detail)
+    expect(result).toEqual({ mt1: 'field required' })
+  })
+
+  it('extracts errors for multiple sections', () => {
+    const detail = [
+      { loc: ['body', 'mt1', 0, 'vao'], msg: 'value is not a valid float' },
+      { loc: ['body', 'bt', 1, 'flecha'], msg: 'field required' },
+    ]
+    const result = extractSectionErrors(detail)
+    expect(result).toEqual({ mt1: 'value is not a valid float', bt: 'field required' })
+  })
+
+  it('joins multiple errors for the same section with semicolon', () => {
+    const detail = [
+      { loc: ['body', 'mt1', 0, 'vao'], msg: 'too small' },
+      { loc: ['body', 'mt1', 1, 'flecha'], msg: 'too large' },
+    ]
+    const result = extractSectionErrors(detail)
+    expect(result).toEqual({ mt1: 'too small; too large' })
+  })
+
+  it('ignores entries with unknown section keys', () => {
+    const detail = [
+      { loc: ['body', 'poste', 'tipo'], msg: 'invalid' },
+    ]
+    expect(extractSectionErrors(detail)).toBeNull()
+  })
+
+  it('ignores entries without loc array', () => {
+    const detail = [
+      { msg: 'some error' },
+      { loc: 'not-an-array', msg: 'other error' },
+    ]
+    expect(extractSectionErrors(detail)).toBeNull()
+  })
+
+  it('is case-insensitive for section keys', () => {
+    const detail = [
+      { loc: ['body', 'MT1', 0, 'vao'], msg: 'error' },
+    ]
+    const result = extractSectionErrors(detail)
+    expect(result).toEqual({ mt1: 'error' })
+  })
+
+  it('recognises all five section keys: mt1 mt2 bt btz ral', () => {
+    const sections = ['mt1', 'mt2', 'bt', 'btz', 'ral']
+    const detail = sections.map(s => ({ loc: ['body', s, 0, 'vao'], msg: `${s} error` }))
+    const result = extractSectionErrors(detail)
+    expect(Object.keys(result).sort()).toEqual(sections.sort())
   })
 })
