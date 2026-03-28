@@ -1,39 +1,23 @@
 """Router para endpoints de cálculo de tração.
 
-    This Python script defines a FastAPI router with endpoints for calculating voltage drop (QDT) and
-    performing a specific type of pole calculation, as well as importing data from an Excel file.
-    
-    :param inp: The `inp` parameter in the provided code refers to the input data required for
-    performing calculations related to the traction of electrical lines. It is used in various endpoint
-    functions within the FastAPI router for calculating different aspects of the electrical system
-    :type inp: QDTInput
-    :return: The code snippet defines a FastAPI router with endpoints for calculating voltage drop (QDT)
-    and performing a specific type of calculation related to pole structures.
+Thin router: validates input via Pydantic, delegates computation to the
+service layer, and returns the structured response.  Business logic
+(input mapping, domain assembly) lives in ``services.calculo_service``.
 """
 from __future__ import annotations
 
 import logging
-import math
-from typing import Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from services.excel_import import extract_excel_to_input
 
 from api.schemas import (
     CalculoInput,
     CalculoOutput,
-    LevelResultOut,
-    VetorOut,
     QDTInput,
     QDTOutput,
 )
-from translated.ponto_blocks import (
-    BTTraversalInput,
-    BTZeroTraversalInput,
-    MTTraversalInput,
-    RamaisTraversalInput,
-    calcular_polo,
-)
 from translated.qdt_blocks import calcular_qdt, QDTInput as QDTLogicInput
+from services.calculo_service import calculo_service
 from api.auth_standard import (
     WriteUser,
     validate_write_endpoint,
@@ -88,118 +72,8 @@ async def importar_excel(file: UploadFile = File(...)) -> CalculoInput:
 @router.post("", response_model=CalculoOutput)
 def calcular(inp: CalculoInput) -> CalculoOutput:
     """Run the Ponto (1) calculation and return structured results."""
-    # Convert Pydantic input to dataclasses used by ponto_blocks
-    mt1 = [
-        MTTraversalInput(
-            tipo_rede=t.tipo_rede, tipo_cabo=t.tipo_cabo,
-            vao=t.vao, flecha=t.flecha, angulo=t.angulo,
-            altura_poste=t.altura_poste, altura_ancoragem=t.altura_ancoragem,
-        )
-        for t in inp.mt1
-    ]
-    mt2 = [
-        MTTraversalInput(
-            tipo_rede=t.tipo_rede, tipo_cabo=t.tipo_cabo,
-            vao=t.vao, flecha=t.flecha, angulo=t.angulo,
-            altura_poste=t.altura_poste, altura_ancoragem=t.altura_ancoragem,
-        )
-        for t in inp.mt2
-    ]
-    bt = [
-        BTTraversalInput(
-            tipo_rede=t.tipo_rede, tipo_cabo=t.tipo_cabo,
-            vao=t.vao, flecha=t.flecha, angulo=t.angulo,
-            altura_poste=t.altura_poste, altura_ancoragem=t.altura_ancoragem,
-        )
-        for t in inp.bt
-    ]
-    btz = [
-        BTZeroTraversalInput(
-            qtd_ligacoes=t.qtd_ligacoes,
-            vao=t.vao, flecha=t.flecha, angulo=t.angulo,
-            altura_poste=t.altura_poste, altura_ancoragem=t.altura_ancoragem,
-        )
-        for t in inp.btz
-    ]
-    ral = [
-        RamaisTraversalInput(
-            tipo_cabo=t.tipo_cabo, qtd_cabos=t.qtd_cabos,
-            vao=t.vao, flecha=t.flecha, angulo=t.angulo,
-            altura_poste=t.altura_poste, altura_ancoragem=t.altura_ancoragem,
-        )
-        for t in inp.ral
-    ]
-
     try:
-        result = calcular_polo(
-            mt1_inputs=mt1,
-            mt2_inputs=mt2,
-            bt_inputs=bt,
-            btz_inputs=btz,
-            ral_inputs=ral,
-            tipo_poste=inp.poste.tipo_poste,
-            modelo_poste=inp.poste.modelo_poste,
-        )
-
-        # Build vector list for clock diagram
-        level_defs = [
-            ("MT1", result.mt1.f_tip, result.mt1.angulo),
-            ("MT2", result.mt2.f_tip, result.mt2.angulo),
-            ("BT",  result.bt.f_tip,  result.bt.angulo),
-            ("BTZ", result.btz.f_tip, result.btz.angulo),
-            ("RAL", result.ral.f_tip, result.ral.angulo),
-        ]
-        vetores = [
-            VetorOut(
-                label=label,
-                tracao_dan=f,
-                angulo_graus=a,
-                comp_x=f * math.cos(a * math.pi / 180),
-                comp_y=f * math.sin(a * math.pi / 180),
-            )
-            for label, f, a in level_defs
-            if f != 0
-        ]
-
-        return CalculoOutput(
-            mt1=LevelResultOut(
-                tracao_dan=result.mt1.f_tip,
-                angulo_graus=result.mt1.angulo,
-                resultante_raw=result.mt1.resultante,
-                texto=result.texto_mt1,
-            ),
-            mt2=LevelResultOut(
-                tracao_dan=result.mt2.f_tip,
-                angulo_graus=result.mt2.angulo,
-                resultante_raw=result.mt2.resultante,
-                texto=result.texto_mt2,
-            ),
-            bt=LevelResultOut(
-                tracao_dan=result.bt.f_tip,
-                angulo_graus=result.bt.angulo,
-                resultante_raw=result.bt.resultante,
-                texto=result.texto_bt,
-            ),
-            btz=LevelResultOut(
-                tracao_dan=result.btz.f_tip,
-                angulo_graus=result.btz.angulo,
-                resultante_raw=result.btz.resultante,
-                texto=result.texto_btz,
-            ),
-            ral=LevelResultOut(
-                tracao_dan=result.ral.f_tip,
-                angulo_graus=result.ral.angulo,
-                resultante_raw=result.ral.resultante,
-                texto=result.texto_ral,
-            ),
-            total_tracao_dan=result.total_tracao,
-            total_angulo_graus=result.total_angulo,
-            texto_total=result.texto_total,
-            vetores=vetores,
-            poste_ecc_dan=result.poste_ecc,
-            status_poste=result.status_poste,
-            resistencia_nominal=result.resistencia_nominal,
-        )
+        return calculo_service.calcular(inp)
     except (ValueError, ZeroDivisionError, ArithmeticError) as domain_err:
         logger.warning("Entrada inválida em /calcular: %s", domain_err)
         raise HTTPException(

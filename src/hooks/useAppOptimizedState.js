@@ -19,6 +19,7 @@ import { usePontoState } from './usePontoState.js'
 import { useProjetoState } from './useProjetoState.js'
 import useUndoClear from './useUndoClear.js'
 import useUndoStack from './useUndoStack.js'
+import { CAMPOS_MT, CAMPOS_BT, CAMPOS_BTZ, CAMPOS_RAL } from '../features/calculo/formConfig.js'
 
 
 export const useAppOptimizedState = () => {
@@ -397,7 +398,7 @@ export const useAppOptimizedState = () => {
         labelResultado: resultado?.mt1?.texto || 'TRAÇÃO MT 1° NÍVEL (100 mm do topo):  daN °',
         travessias: formState.travessias.mt1,
         onChangeTravessia: (i, c, v) => handleTravessiaChangeWithUndo('mt1', i, c, v),
-        campos: 'CAMPOS_MT', // Será importado
+        campos: CAMPOS_MT,
         config: configState.config,
         sectionError: fieldErrors?.mt1 || null,
       },
@@ -406,7 +407,7 @@ export const useAppOptimizedState = () => {
         labelResultado: resultado?.mt2?.texto || 'TRAÇÃO MT 2° NÍVEL (100 mm do topo):  daN °',
         travessias: formState.travessias.mt2,
         onChangeTravessia: (i, c, v) => handleTravessiaChangeWithUndo('mt2', i, c, v),
-        campos: 'CAMPOS_MT',
+        campos: CAMPOS_MT,
         config: configState.config,
         sectionError: fieldErrors?.mt2 || null,
       },
@@ -415,7 +416,7 @@ export const useAppOptimizedState = () => {
         labelResultado: resultado?.bt?.texto || 'TRAÇÃO BT (100 mm do topo):  daN °',
         travessias: formState.travessias.bt,
         onChangeTravessia: (i, c, v) => handleTravessiaChangeWithUndo('bt', i, c, v),
-        campos: 'CAMPOS_BT',
+        campos: CAMPOS_BT,
         config: configState.config,
         sectionError: fieldErrors?.bt || null,
       },
@@ -424,7 +425,7 @@ export const useAppOptimizedState = () => {
         labelResultado: resultado?.btz?.texto || 'TRAÇÃO RAMAIS BTZERO (100 mm do topo):  daN °',
         travessias: formState.travessias.btz,
         onChangeTravessia: (i, c, v) => handleTravessiaChangeWithUndo('btz', i, c, v),
-        campos: 'CAMPOS_BTZ',
+        campos: CAMPOS_BTZ,
         config: configState.config,
         nota: '(*) - Considerar: monofásico = 1 ligação; trifásico = 3 ligações',
         sectionError: fieldErrors?.btz || null,
@@ -434,7 +435,7 @@ export const useAppOptimizedState = () => {
         labelResultado: resultado?.ral?.texto || 'TRAÇÃO RAMAIS DE LIGAÇÃO (100 mm do topo):  daN °',
         travessias: formState.travessias.ral,
         onChangeTravessia: (i, c, v) => handleTravessiaChangeWithUndo('ral', i, c, v),
-        campos: 'CAMPOS_RAL',
+        campos: CAMPOS_RAL,
         config: configState.config,
         sectionError: fieldErrors?.ral || null,
       },

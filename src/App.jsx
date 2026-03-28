@@ -17,7 +17,6 @@ import {
   LazyMobileActionBar,
   preloadAllComponents 
 } from './components/lazy/LazyComponents.jsx'
-import { CAMPOS_MT, CAMPOS_BT, CAMPOS_BTZ, CAMPOS_RAL } from './features/calculo/formConfig.js'
 
 // Preload components quando a aplicação iniciar
 preloadAllComponents()
@@ -135,39 +134,19 @@ export default function App() {
             </div>
 
             {/* Renderizar seções de nível dinamicamente */}
-            {appState.dadosParaComponentes.secoes.map((secao, index) => {
-              let campos
-              switch (secao.campos) {
-                case 'CAMPOS_MT':
-                  campos = CAMPOS_MT
-                  break
-                case 'CAMPOS_BT':
-                  campos = CAMPOS_BT
-                  break
-                case 'CAMPOS_BTZ':
-                  campos = CAMPOS_BTZ
-                  break
-                case 'CAMPOS_RAL':
-                  campos = CAMPOS_RAL
-                  break
-                default:
-                  campos = CAMPOS_MT
-              }
-
-              return (
-                <SecaoNivel
-                  key={index}
-                  titulo={secao.titulo}
-                  labelResultado={secao.labelResultado}
-                  travessias={secao.travessias}
-                  onChangeTravessia={secao.onChangeTravessia}
-                  campos={campos}
-                  config={secao.config}
-                  nota={secao.nota}
-                  sectionError={secao.sectionError}
-                />
-              )
-            })}
+            {appState.dadosParaComponentes.secoes.map((secao, index) => (
+              <SecaoNivel
+                key={index}
+                titulo={secao.titulo}
+                labelResultado={secao.labelResultado}
+                travessias={secao.travessias}
+                onChangeTravessia={secao.onChangeTravessia}
+                campos={secao.campos}
+                config={secao.config}
+                nota={secao.nota}
+                sectionError={secao.sectionError}
+              />
+            ))}
           </div>
 
           <div className="calc-side-column">
