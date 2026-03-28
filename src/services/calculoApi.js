@@ -69,20 +69,34 @@ export function extractSectionErrors(detail) {
   return Object.keys(bySection).length > 0 ? bySection : null
 }
 
-async function parseErrorMessage(response, fallbackMessage) {
+/** Parse a non-OK response body once, returning message text and the raw
+ *  PostgreSQL/Supabase error code (e.g. '42501') when present.
+ *  Supports FastAPI validation format (`detail`) and
+ *  Supabase/PostgREST format (`message` + `code`).
+ */
+async function parseErrorBody(response, fallbackMessage) {
   try {
     const payload = await response.json()
+    // FastAPI: { detail: "string" }
     if (typeof payload?.detail === 'string' && payload.detail) {
-      return payload.detail
+      return { message: payload.detail, errorCode: payload?.code ?? null }
     }
+    // FastAPI: { detail: [{msg, loc}] }
     if (Array.isArray(payload?.detail) && payload.detail.length > 0) {
-      return payload.detail.map(item => item?.msg || 'Erro de validação').join(', ')
+      return {
+        message: payload.detail.map(item => item?.msg || 'Erro de validação').join(', '),
+        errorCode: null,
+      }
+    }
+    // Supabase/PostgREST: { message: "...", code: "42501" }
+    if (typeof payload?.message === 'string' && payload.message) {
+      return { message: payload.message, errorCode: payload?.code ?? null }
     }
   } catch {
-    return fallbackMessage
+    return { message: fallbackMessage, errorCode: null }
   }
 
-  return fallbackMessage
+  return { message: fallbackMessage, errorCode: null }
 }
 
 async function requestJson(url, options = {}, fallbackMessage) {
@@ -99,13 +113,18 @@ async function requestJson(url, options = {}, fallbackMessage) {
   storeRequestContext(response, url, method)
 
   if (!response.ok) {
-    const message = await parseErrorMessage(response, fallbackMessage)
+    const { message, errorCode } = await parseErrorBody(response, fallbackMessage)
     // Criar erro com status capturado (importante para diferenciar erros de autorização)
     const err = new Error(message)
     err.status = response.status
     err.statusText = response.statusText
-    // Detectar código de autorização via mensagem de erro ou status
-    if (response.status === 403 || message?.includes('permission') || message?.includes('authorized')) {
+    // Detectar código de autorização via status HTTP, código PostgreSQL 42501 ou mensagem
+    if (
+      response.status === 403 ||
+      errorCode === '42501' ||
+      message?.includes('permission') ||
+      message?.includes('authorized')
+    ) {
       err.code = 'FORBIDDEN'
       err.isForbidden = true
     }

@@ -1,6 +1,7 @@
 /* Tests for the pure helper functions exported from calculoApi.js:
  * buildCalculoRequest, buildBatchPayload, buildSalvarCalculoPayload,
  * extractSectionErrors
+ * Also covers HTTP error parsing (403, 42501, Supabase format) via persistCalculo.
  * The private toFloat helper is indirectly exercised through these.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -10,6 +11,7 @@ import {
   buildSalvarCalculoPayload,
   getLastRequestContext,
   extractSectionErrors,
+  persistCalculo,
 } from '@/services/calculoApi'
 
 // ─── minimal form-state factory ──────────────────────────────────────────────
@@ -361,5 +363,69 @@ describe('extractSectionErrors', () => {
     const detail = sections.map(s => ({ loc: ['body', s, 0, 'vao'], msg: `${s} error` }))
     const result = extractSectionErrors(detail)
     expect(Object.keys(result).sort()).toEqual(sections.sort())
+  })
+})
+
+// ─── HTTP error parsing — 403 / 42501 / Supabase format ──────────────────────
+describe('requestJson error parsing (via persistCalculo)', () => {
+  const MOCK_URL = '/api/postes/1/calculo'
+
+  function mockFetchResponse(status, body) {
+    return vi.fn().mockResolvedValue({
+      ok: false,
+      status,
+      statusText: 'Error',
+      json: () => Promise.resolve(body),
+      headers: { get: () => null },
+      url: MOCK_URL,
+    })
+  }
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', mockFetchResponse(500, { detail: 'server error' }))
+    // Provide the localStorage stub required by requestJson
+    vi.stubGlobal('localStorage', { getItem: () => null })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('marks isForbidden for HTTP 403', async () => {
+    vi.stubGlobal('fetch', mockFetchResponse(403, { detail: 'Forbidden' }))
+    await expect(persistCalculo('1', {})).rejects.toMatchObject({
+      status: 403,
+      isForbidden: true,
+      code: 'FORBIDDEN',
+    })
+  })
+
+  it('marks isForbidden for Supabase 42501 code with HTTP 400', async () => {
+    // Supabase/PostgREST may surface 42501 as a 400 with code in body
+    vi.stubGlobal(
+      'fetch',
+      mockFetchResponse(400, { message: 'permission denied for table calculos', code: '42501' }),
+    )
+    await expect(persistCalculo('1', {})).rejects.toMatchObject({
+      isForbidden: true,
+      code: 'FORBIDDEN',
+    })
+  })
+
+  it('extracts message from Supabase format (payload.message)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      mockFetchResponse(403, { message: 'new row violates row-level security policy', code: '42501' }),
+    )
+    const err = await persistCalculo('1', {}).catch(e => e)
+    expect(err.message).toBe('new row violates row-level security policy')
+    expect(err.isForbidden).toBe(true)
+  })
+
+  it('does NOT mark isForbidden for unrelated 400 errors', async () => {
+    vi.stubGlobal('fetch', mockFetchResponse(400, { detail: 'Bad request' }))
+    const err = await persistCalculo('1', {}).catch(e => e)
+    expect(err.isForbidden).toBeUndefined()
+    expect(err.status).toBe(400)
   })
 })
