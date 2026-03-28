@@ -9,6 +9,16 @@ export default {
       fontFamily: {
         sans: ['Calibri', 'Arial', 'sans-serif'],
       },
+      fontWeight: {
+        regular:  '400',
+        semibold: '600',
+        bold:     '700',
+      },
+      lineHeight: {
+        tight:  '1.2',
+        snug:   '1.3',
+        normal: '1.4',
+      },
       colors: {
         surface: {
           glass: 'rgba(255, 255, 255, 0.72)',
@@ -35,6 +45,8 @@ export default {
           soft: 'rgba(132, 154, 188, 0.46)',
           strong: 'rgba(112, 137, 176, 0.62)',
           focus: '#2f66c1',
+          // Focus ring used for box-shadow glow (rgba counterpart of focus border)
+          'focus-ring': 'rgba(46, 105, 196, 0.35)',
         },
         'tracao-orange': '#E07820',
         'tracao-red': '#C00000',
@@ -74,6 +86,33 @@ export default {
         'calc-label':    ['12px', { lineHeight: '1.3', fontWeight: '600' }],
         'calc-field':    ['10px', { lineHeight: '1.2', fontWeight: '400' }],
         'calc-table':    ['9px',  { lineHeight: '1.2', fontWeight: '400' }],
+      },
+      // ─── Motion tokens ─────────────────────────────────────────────────────
+      // These mirror the keyframes already defined in src/index.css so they are
+      // also usable as Tailwind utility classes (animate-persist-pulse, etc.)
+      animation: {
+        'persist-pulse':  'persist-pulse 1s ease-in-out infinite',
+        'glass-fade-up':  'glass-fade-up 280ms cubic-bezier(0,0,0.2,1) both',
+        'undo-toast-in':  'undo-toast-in 0.18s ease-out',
+        'spin':           'spin 1s linear infinite',
+      },
+      keyframes: {
+        'persist-pulse': {
+          '0%, 100%': { opacity: '1' },
+          '50%':      { opacity: '0.7' },
+        },
+        'glass-fade-up': {
+          from: { opacity: '0', transform: 'translateY(4px)' },
+          to:   { opacity: '1', transform: 'translateY(0)' },
+        },
+        'undo-toast-in': {
+          from: { opacity: '0', transform: 'translateX(-50%) translateY(12px)' },
+          to:   { opacity: '1', transform: 'translateX(-50%) translateY(0)' },
+        },
+        spin: {
+          from: { transform: 'rotate(0deg)' },
+          to:   { transform: 'rotate(360deg)' },
+        },
       },
     },
   },
