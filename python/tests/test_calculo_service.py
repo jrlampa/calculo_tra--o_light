@@ -5,6 +5,8 @@ Tests verify that the service layer:
 2. Returns a well-formed CalculoOutput for a valid minimal input.
 3. Propagates domain errors (ValueError) without wrapping them.
 4. Builds the vetores list only for non-zero traction levels.
+5. calcular_com_resultado returns (CalculoOutput, CalculoResultado).
+6. calcular_qdt maps inputs and returns a valid QDTOutput.
 """
 import sys
 import os
@@ -23,8 +25,10 @@ from api.schemas import (
     CabecalhoIn,
     MTTraversalIn,
     PosteCalculoIn,
+    QDTInput,
     RamaisTraversalIn,
 )
+from domain.value_objects import CalculoResultado
 from services.calculo_service import CalculoService, _map_mt, _map_bt, _map_btz, _map_ral, _build_vetores
 
 
@@ -98,13 +102,13 @@ class TestInputMappers:
         assert dst.tipo_cabo == "16mm2"
 
 
-# ── CalculoService integration ────────────────────────────────────────────────
+# ── CalculoService.calcular ───────────────────────────────────────────────────
 
 class TestCalculoService:
     service = CalculoService()
 
     def test_calcular_minimal_input_returns_output(self):
-        """All-zero input must return a valid CalculoOutput (status_poste ok)."""
+        """All-zero input must return a valid CalculoOutput."""
         result = self.service.calcular(_minimal_input())
         assert result.total_tracao_dan == 0.0
         assert result.status_poste in ("OK", "TOLERANCIA", "SOBRECARGA", "")
@@ -136,3 +140,55 @@ class TestCalculoService:
     def test_calcular_texto_total_is_string(self):
         result = self.service.calcular(_minimal_input())
         assert isinstance(result.texto_total, str)
+
+
+# ── CalculoService.calcular_com_resultado ─────────────────────────────────────
+
+class TestCalcularComResultado:
+    service = CalculoService()
+
+    def test_returns_tuple_of_output_and_resultado(self):
+        """calcular_com_resultado must return (CalculoOutput, CalculoResultado)."""
+        from api.schemas import CalculoOutput
+        output, resultado = self.service.calcular_com_resultado(_minimal_input())
+        assert isinstance(output, CalculoOutput)
+        assert isinstance(resultado, CalculoResultado)
+
+    def test_output_and_resultado_totals_agree(self):
+        """The totals in CalculoOutput and CalculoResultado must be consistent."""
+        output, resultado = self.service.calcular_com_resultado(_minimal_input())
+        assert output.total_tracao_dan == resultado.total_tracao
+        assert output.total_angulo_graus == resultado.total_angulo
+
+    def test_resultado_has_all_level_fields(self):
+        _, resultado = self.service.calcular_com_resultado(_minimal_input())
+        for field in ("mt1_tracao", "mt2_tracao", "bt_tracao", "btz_tracao", "ral_tracao"):
+            assert hasattr(resultado, field)
+
+
+# ── CalculoService.calcular_qdt ──────────────────────────────────────────────
+
+class TestCalcularQDT:
+    service = CalculoService()
+
+    def test_calcular_qdt_returns_output(self):
+        """Default QDTInput should return a valid QDTOutput with finite voltages."""
+        from api.schemas import QDTOutput
+        inp = QDTInput()
+        result = self.service.calcular_qdt(inp)
+        assert isinstance(result, QDTOutput)
+        assert result.v_mt_initial > 0
+        assert result.v_bt_start > 0
+
+    def test_calcular_qdt_drop_total_is_float(self):
+        result = self.service.calcular_qdt(QDTInput())
+        assert isinstance(result.drop_total_pct, float)
+
+    def test_calcular_qdt_zero_drops_produces_no_voltage_loss(self):
+        """With all drop percentages at zero the node voltages equal initial voltages."""
+        inp = QDTInput(drop_mt_pct=0.0, drop_trafo_pct=0.0,
+                       drop_bt1_pct=0.0, drop_bt2_pct=0.0)
+        result = self.service.calcular_qdt(inp)
+        # With no distribution drops the MT node voltage equals MT initial voltage
+        assert result.v_mt_initial == result.v_mt_node
+

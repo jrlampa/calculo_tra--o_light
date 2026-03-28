@@ -16,13 +16,7 @@ from api.schemas import (
     QDTInput,
     QDTOutput,
 )
-from translated.qdt_blocks import calcular_qdt, QDTInput as QDTLogicInput
 from services.calculo_service import calculo_service
-from api.auth_standard import (
-    WriteUser,
-    validate_write_endpoint,
-    log_auth_attempt,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -32,26 +26,7 @@ router = APIRouter(prefix="/calcular", tags=["Cálculo"])
 @router.post("/qdt", response_model=QDTOutput)
 def calculate_qdt(inp: QDTInput) -> QDTOutput:
     """Run the Voltage Drop (QDT) calculation."""
-    # Map Pydantic to Logic Input
-    logic_in = QDTLogicInput(
-        v_nominal_mt=inp.v_nominal_mt,
-        v_nominal_bt=inp.v_nominal_bt,
-        coef_perda=inp.coef_perda,
-        reg_mt=inp.reg_mt,
-        drop_mt_pct=inp.drop_mt_pct,
-        drop_trafo_pct=inp.drop_trafo_pct,
-        drop_bt1_pct=inp.drop_bt1_pct,
-        drop_bt2_pct=inp.drop_bt2_pct,
-    )
-    res = calcular_qdt(logic_in)
-    return QDTOutput(
-        v_mt_initial=res.v_mt_initial,
-        v_mt_node=res.v_mt_node,
-        v_bt_start=res.v_bt_start,
-        v_bt_node1=res.v_bt_node1,
-        v_bt_node2=res.v_bt_node2,
-        drop_total_pct=res.drop_total_pct,
-    )
+    return calculo_service.calcular_qdt(inp)
 
 
 @router.post("/importar-excel", response_model=CalculoInput, tags=["Importação"])
