@@ -1,13 +1,15 @@
 /* The above code is a React component named `App` that serves as the main application for calculating
 traction in an electrical network. Here is a breakdown of what the code is doing: */
 // App.jsx — Aplicação principal de Cálculo de Tração de Rede Elétrica (Otimizado)
-import React, { useRef } from 'react'
+import React, { useRef, useState } from 'react'
 import { useAppOptimizedState } from './hooks/useAppOptimizedState.js'
 import Header from './components/header/Header.jsx'
 import FlowStepper from './components/fluxo/FlowStepper.jsx'
 import ErrorBoundary from './components/error/ErrorBoundary.jsx'
 import TelaProjetoInicial from './components/projeto/TelaProjetoInicial.jsx'
 import GerenciadorProjetos from './components/projeto/GerenciadorProjetos.jsx'
+import ClonePosteModal from './components/projeto/ClonePosteModal.jsx'
+import LineageChip from './components/projeto/LineageChip.jsx'
 import SecaoNivel from './components/secao/SecaoNivel.jsx'
 import UndoToast from './components/ui/UndoToast.jsx'
 import { 
@@ -24,6 +26,7 @@ preloadAllComponents()
 export default function App() {
   const appState = useAppOptimizedState()
   const fileInputRef = useRef(null)
+  const [showCloneModal, setShowCloneModal] = useState(false)
 
   // Etapa inicial: Dashboard
   if (appState.etapa === 'home') {
@@ -98,36 +101,42 @@ export default function App() {
                 </div>
               ) : null}
 
-              <div className="flex items-center gap-2">
-                <label htmlFor="tipo-poste-select" className="poste-lbl font-semibold">Tipo do Poste</label>
-                <select
-                  id="tipo-poste-select"
-                  className="flex-1 p-1 border rounded xcell poste-select"
-                  value={appState.dadosParaComponentes.poste.tipoPoste}
-                  onChange={e => appState.dadosParaComponentes.poste.onTipoChange(e.target.value)}
-                  aria-describedby="modelo-poste-helper"
-                >
-                  <option value="">Selecione...</option>
-                  {appState.dadosParaComponentes.poste.tiposDisponiveis.map(t => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex items-center gap-2">
-                <label htmlFor="modelo-poste-select" className="poste-lbl font-semibold">Modelo do Poste</label>
-                <select
-                  id="modelo-poste-select"
-                  className="flex-1 p-1 border rounded xcell poste-select"
-                  value={appState.dadosParaComponentes.poste.modeloPoste}
-                  onChange={e => appState.dadosParaComponentes.poste.onModeloChange(e.target.value)}
-                  aria-describedby="modelo-poste-helper"
-                >
-                  <option value="">Selecione...</option>
-                  {appState.dadosParaComponentes.poste.modelosDisponiveis.map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
-              </div>
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <label htmlFor="tipo-poste-select" className="poste-lbl font-semibold">Tipo do Poste</label>
+              {appState.pontoState.origemId && (
+                <LineageChip
+                  posteId={appState.pontoState.pontoAtual?.id}
+                  origemId={appState.pontoState.origemId}
+                />
+              )}
+              <select
+                id="tipo-poste-select"
+                className="flex-1 p-1 border rounded xcell poste-select"
+                value={appState.dadosParaComponentes.poste.tipoPoste}
+                onChange={e => appState.dadosParaComponentes.poste.onTipoChange(e.target.value)}
+                aria-describedby="modelo-poste-helper"
+              >
+                <option value="">Selecione...</option>
+                {appState.dadosParaComponentes.poste.tiposDisponiveis.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <label htmlFor="modelo-poste-select" className="poste-lbl font-semibold">Modelo do Poste</label>
+              <select
+                id="modelo-poste-select"
+                className="flex-1 p-1 border rounded xcell poste-select"
+                value={appState.dadosParaComponentes.poste.modeloPoste}
+                onChange={e => appState.dadosParaComponentes.poste.onModeloChange(e.target.value)}
+                aria-describedby="modelo-poste-helper"
+              >
+                <option value="">Selecione...</option>
+                {appState.dadosParaComponentes.poste.modelosDisponiveis.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
               <p id="modelo-poste-helper" className="poste-helper-text">
                 Dica: Ao alterar o tipo ou modelo do poste, as travessias e dados de cálculo são preservados para re-cálculo automático.
               </p>
@@ -177,6 +186,18 @@ export default function App() {
               >
                 🗑️ LIMPAR TUDO
               </button>
+
+              {/* Clone poste from another project — only available when a project is open */}
+              {appState.projetoState.projetoAtual?.id && (
+                <button
+                  type="button"
+                  className="btn-importar w-full py-2 px-4 rounded-lg font-bold shadow-md transition-all hover:opacity-90 flex items-center justify-center gap-2 border-b-4 bg-blue-900/80 border-blue-700 text-blue-200"
+                  onClick={() => setShowCloneModal(true)}
+                  title="Clonar um poste de outro projeto para este projeto"
+                >
+                  🔀 CLONAR POSTE DE OUTRO PROJETO
+                </button>
+              )}
             </div>
 
             <LazyRelogioAngulos {...appState.dadosParaComponentes.visualizacoes.relogioAngulos} />
@@ -202,6 +223,16 @@ export default function App() {
           countdown={appState.countdown}
           onUndo={appState.undoClear}
         />
+
+        {/* Clone Poste modal — available during calculo stage when a project is open */}
+        {showCloneModal && appState.projetoState.projetoAtual?.id && (
+          <ClonePosteModal
+            onClone={appState.pontoState.handlers.handleClonarDeOutroProjeto}
+            onClose={() => setShowCloneModal(false)}
+            listProjetos={appState.projetoState.handlers.listProjetos}
+            projetoAtualId={appState.projetoState.projetoAtual.id}
+          />
+        )}
       </div>
     </ErrorBoundary>
   )

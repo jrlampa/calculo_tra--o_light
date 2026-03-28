@@ -2,7 +2,7 @@
 project manager interface. Here's a breakdown of what the code is doing: */
 import React, { useState, useEffect } from 'react'
 
-export default function GerenciadorProjetos({ onNovo, onAbrir, onEditar, onExcluir, listProjetos }) {
+export default function GerenciadorProjetos({ onNovo, onAbrir, onEditar, onExcluir, listProjetos, onClonarPoste }) {
   const [projetos, setProjetos] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -51,12 +51,23 @@ export default function GerenciadorProjetos({ onNovo, onAbrir, onEditar, onExclu
             <span className="project-kicker">Dashboard</span>
             <h1 className="project-title">Meus Projetos</h1>
           </div>
-          <button 
-            onClick={onNovo}
-            className="project-submit px-6 py-2 h-auto text-sm"
-          >
-            + NOVO PROJETO
-          </button>
+          <div className="flex gap-2">
+            {onClonarPoste && (
+              <button
+                onClick={onClonarPoste}
+                className="project-submit px-4 py-2 h-auto text-sm bg-blue-800 hover:bg-blue-700 border-blue-600"
+                title="Clonar um poste de outro projeto para um novo projeto"
+              >
+                🔀 Clonar Poste
+              </button>
+            )}
+            <button 
+              onClick={onNovo}
+              className="project-submit px-6 py-2 h-auto text-sm"
+            >
+              + NOVO PROJETO
+            </button>
+          </div>
         </div>
 
         {error && <div className="project-error mb-4">{error}</div>}

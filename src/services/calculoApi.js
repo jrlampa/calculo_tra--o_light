@@ -394,6 +394,21 @@ export async function batchSaveCalculo(payload) {
     'Erro ao realizar salvamento atômico'
   )
 }
+/**
+ * Lista os postes (pontos) de um projeto existente.
+ * Usado pelo ClonePosteModal para mostrar quais postes podem ser clonados.
+ *
+ * @param {string} projetoId UUID do Projeto
+ * @returns {Promise<Array>} Lista de Postes com id, numero, tipo_poste, modelo_poste, origem_id
+ */
+export async function listPostes(projetoId) {
+  return requestJson(
+    `/api/postes/projeto/${projetoId}`,
+    { method: 'GET', headers: JSON_HEADERS },
+    'Erro ao listar postes do projeto'
+  )
+}
+
 // ─── Linhagem cross-projeto ────────────────────────────────────────────────
 
 /**
