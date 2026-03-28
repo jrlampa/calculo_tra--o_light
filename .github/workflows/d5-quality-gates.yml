@@ -371,6 +371,50 @@ jobs:
               body,
             });
 
+  # Gate 3 — Critical domain error blocking (QA checklist section 10)
+  # Runs the usePersistenciaCalculo critical-path unit tests that prove:
+  #   * 403/FORBIDDEN errors set isForbidden=true and block canNextPoint.
+  #   * MAX_RETRIES exhausted enters a terminal error state and blocks canNextPoint.
+  #   * Manual retry (canRetry=true) is available after both error classes.
+  # This gate blocks the release automatically when any critical-domain-error
+  # test fails, implementing Gate 3 of the QA checklist without human intervention.
+  critical-domain-error-gate:
+    name: Gate 3 — Critical Domain Error Blocking
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run critical domain error tests (Gate 3)
+        run: >
+          npx vitest run
+          src/test/hooks/usePersistenciaCalculo.test.js
+          --reporter=verbose
+
+      - name: Fail if any critical domain error test is missing or skipped
+        run: |
+          # Ensure the test file was actually found and executed (not 0 tests).
+          count=$(npx vitest run src/test/hooks/usePersistenciaCalculo.test.js \
+                    --reporter=json 2>/dev/null \
+                  | python3 -c "import sys,json; d=json.load(sys.stdin); \
+                    print(sum(f['numPassedTests'] for f in d.get('testResults',[])))" \
+                  2>/dev/null || echo 0)
+          echo "Critical domain error tests executed: $count"
+          [[ "$count" -ge 10 ]] || { echo "Expected ≥ 10 critical tests; found $count"; exit 1; }
+
   d5-quality-gate:
     name: D5 Quality Gate (Required)
     runs-on: ubuntu-latest
@@ -380,6 +424,7 @@ jobs:
       - security-c1-c2-c3-gate
       - schema-check-gate
       - governance-evidence-gate
+      - critical-domain-error-gate
 
     steps:
       - name: Enforce all D+5 must-have checks
@@ -388,10 +433,12 @@ jobs:
           echo "security-c1-c2-c3-gate=${{ needs.security-c1-c2-c3-gate.result }}"
           echo "schema-check-gate=${{ needs.schema-check-gate.result }}"
           echo "governance-evidence-gate=${{ needs.governance-evidence-gate.result }}"
+          echo "critical-domain-error-gate=${{ needs.critical-domain-error-gate.result }}"
 
           [[ "${{ needs.contract-snapshot-gate.result }}" == "success" ]] || exit 1
           [[ "${{ needs.security-c1-c2-c3-gate.result }}" == "success" ]] || exit 1
           [[ "${{ needs.schema-check-gate.result }}" == "success" ]] || exit 1
           [[ "${{ needs.governance-evidence-gate.result }}" == "success" ]] || exit 1
+          [[ "${{ needs.critical-domain-error-gate.result }}" == "success" ]] || exit 1
 
           echo "D+5 must-have quality gates passed."

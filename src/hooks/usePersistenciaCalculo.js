@@ -184,8 +184,14 @@ export default function usePersistenciaCalculo({ pontoId, lastPayload, resultado
       persistInFlightRef.current = false
     }
 
-    // Schedule queued flush outside the finally block to avoid no-unsafe-finally
+    // Schedule queued flush outside the finally block to avoid no-unsafe-finally.
+    // Only flush if a NEW item was enqueued while this request was in-flight
+    // (i.e. the pending item is different from the one we just processed).
+    // If it's the same item (failure path — cleared only on success), return here
+    // because the catch block already scheduled the appropriate retry or the
+    // 403 handler intentionally suppresses further auto-retries.
     if (!pendingPersistRef.current) {return}
+    if (pendingPersistRef.current === nextPersist) {return}
 
     const elapsedMs = Date.now() - lastPersistAtRef.current
     const waitMs = Math.max(PERSIST_WINDOW_MS - elapsedMs, 0)

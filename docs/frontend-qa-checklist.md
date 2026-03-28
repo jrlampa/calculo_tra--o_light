@@ -99,7 +99,7 @@
 ## 10) Gate de liberacao (fluxo operacional)
 - [ ] Gate 1 - Paridade: aprovado apenas com evidência objetiva de paridade LIGHT no fluxo Projeto -> Ponto -> Cálculo -> Persistência.
 - [x] Gate 2 - Rastreabilidade: aprovado apenas com trilha mínima auditável de eventos e estados por ponto.
-- [ ] Gate 3 - Domínio crítico: bloqueio automático de liberação se houver falha sem mitigação validada em cálculo/persistência.
+- [x] Gate 3 - Domínio crítico: bloqueio automático de liberação se houver falha sem mitigação validada em cálculo/persistência.
 - [ ] Gate 4 - Uso assistido: operação em produção inicial liberada somente em modo assistido por responsável técnico.
 - [ ] Gate 5 - Go/No-Go: decisão final registrada com aprovador, data, escopo e pendências remanescentes.
 
