@@ -69,5 +69,5 @@ async def get_config() -> dict:
             "cabos_por_rede": CABOS_POR_REDE,
         }
     except Exception as e:
-        logger.exception("Erro em /api/config: %s", e)
+        logger.exception("Erro em /api/config")
         raise HTTPException(status_code=500, detail="Erro interno ao carregar configuracoes")

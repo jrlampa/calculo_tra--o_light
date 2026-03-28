@@ -7,6 +7,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from api.dependencies import get_supabase_dependency, ensure_supabase_available, run_supabase_lookup
+from api.schemas import CaboIn, AdminPosteIn
 
 from api.auth import (
     CurrentUser,
@@ -27,29 +28,17 @@ async def list_admin_cabos(
     return await run_supabase_lookup(supabase, supabase.fetch_cabos)
 
 
-@router.post("/cabos")
+@router.post("/cabos", status_code=201)
 async def create_cabo(
-    nome: str,
-    diametro: float,
-    peso: float,
+    inp: CaboIn,
     _: CurrentUser = Depends(require_admin),
     supabase: object = Depends(get_supabase_dependency),
 ):
     """Cria um novo cabo."""
-    await ensure_supabase_available(supabase)
-    try:
-        result = await supabase.insert_cabo(nome, diametro, peso)
-    except Exception:
-        logger.exception("Erro ao inserir cabo no Supabase")
-        raise HTTPException(
-            status_code=503,
-            detail="Supabase indisponivel no momento. Tente novamente em instantes.",
-        )
-
-    if result == {}:
-        raise HTTPException(status_code=500, detail="Falha ao criar cabo")
-
-    return result
+    return await run_supabase_lookup(
+        supabase,
+        lambda: supabase.insert_cabo(inp.nome, inp.diametro, inp.peso),
+    )
 
 
 @router.delete("/cabos/{cable_id}")
@@ -84,30 +73,19 @@ async def list_admin_postes(
     return await run_supabase_lookup(supabase, supabase.fetch_postes)
 
 
-@router.post("/postes")
+@router.post("/postes", status_code=201)
 async def create_poste(
-    tipo: str,
-    modelo: str,
-    altura_m: float,
-    carga_admissivel_dan: float,
+    inp: AdminPosteIn,
     _: CurrentUser = Depends(require_admin),
     supabase: object = Depends(get_supabase_dependency),
 ):
     """Cria um novo poste."""
-    await ensure_supabase_available(supabase)
-    try:
-        result = await supabase.insert_poste(tipo, modelo, altura_m, carga_admissivel_dan)
-    except Exception:
-        logger.exception("Erro ao inserir poste no Supabase")
-        raise HTTPException(
-            status_code=503,
-            detail="Supabase indisponivel no momento. Tente novamente em instantes.",
-        )
-
-    if result == {}:
-        raise HTTPException(status_code=500, detail="Falha ao criar poste")
-
-    return result
+    return await run_supabase_lookup(
+        supabase,
+        lambda: supabase.insert_poste(
+            inp.tipo, inp.modelo, inp.altura_m, inp.carga_admissivel_dan
+        ),
+    )
 
 
 @router.delete("/postes/{poste_id}")

@@ -215,6 +215,28 @@ class QDTOutput(BaseModel):
     drop_total_pct: float
 
 
+# ── Admin create models ───────────────────────────────────────────────────
+
+
+class CaboIn(BaseModel):
+    """Request body for POST /admin/cabos."""
+
+    nome: str = Field(..., min_length=1, max_length=200)
+    diametro: float = Field(..., gt=0, description="Diâmetro do cabo em mm")
+    peso: float = Field(..., gt=0, description="Peso do cabo em kg/m")
+
+
+class AdminPosteIn(BaseModel):
+    """Request body for POST /admin/postes."""
+
+    tipo: str = Field(..., min_length=1, max_length=100)
+    modelo: str = Field(..., min_length=1, max_length=200)
+    altura_m: float = Field(..., gt=0, description="Altura do poste em metros")
+    carga_admissivel_dan: float = Field(
+        ..., gt=0, description="Carga admissível em daN"
+    )
+
+
 # ── Projeto / Ponto transactional models ─────────────────────────────────
 
 
