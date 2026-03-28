@@ -338,6 +338,25 @@ class PosteVincularIn(BaseModel):
     )
 
 
+class ClonarPosteIn(BaseModel):
+    """Request body for POST /postes/{id}/clonar-para-projeto.
+
+    Clones a Poste from one project into another.  The clone gets a new UUID,
+    inherits all Niveis/Travessias configuration from the source, and has
+    ``origem_id`` pre-set so the lineage is established automatically.
+
+    Use this when Project Y starts from a physical pole already studied in
+    Project X.  The clone can then be modified freely in Project Y without
+    affecting Project X data.
+    """
+
+    projeto_id: str = Field(
+        min_length=36,
+        max_length=36,
+        description="UUID do Projeto de destino onde o Poste clonado será criado.",
+    )
+
+
 class LinhagemEntry(BaseModel):
     """A single node in the cross-project lineage chain."""
 

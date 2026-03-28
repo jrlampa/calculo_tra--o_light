@@ -254,6 +254,49 @@ class Poste:
             "ultimo_calculo": ultimo.resumo() if ultimo else None,
         }
 
+    def clonar_para_projeto(self, projeto_destino_id: ProjetoId) -> "Poste":
+        """Create a deep copy of this Poste for a different project.
+
+        The clone gets a new UUID, belongs to ``projeto_destino_id``, and has
+        ``origem_id`` pre-set to this Poste's ID.  All Niveis and Travessias
+        are deep-copied so modifications to the clone never touch the original.
+
+        This is the canonical entry point for "Project Y starts from the
+        physical pole already studied in Project X":
+
+        1. Call this method on the Project-X Poste.
+        2. Persist the returned clone via ``PosteRepository.salvar()``.
+        3. The ``origem_id`` link is already in place — no extra call needed.
+
+        The clone starts with a fresh timestamp (``criado_em``/``atualizado_em``)
+        so it is immediately recognised as more recent than its ancestor.
+
+        Raises:
+            ValueError: If ``projeto_destino_id`` equals this Poste's own
+                ``projeto_id`` (cloning within the same project is not allowed).
+        """
+        if projeto_destino_id.value == self.projeto_id.value:
+            raise ValueError(
+                "clonar_para_projeto: projeto destino deve ser diferente do projeto de origem"
+            )
+
+        # Deep-copy Niveis and their Travessias
+        from copy import deepcopy
+
+        niveis_clone = deepcopy(self.niveis)
+
+        clone = Poste(
+            projeto_id=projeto_destino_id,
+            numero=self.numero,
+            tipo_poste=self.tipo_poste,
+            modelo_poste=self.modelo_poste,
+            niveis=niveis_clone,
+            geometria=deepcopy(self.geometria),
+            # Lineage: this clone continues from the original
+            origem_id=PosteId(value=self.id.value),
+        )
+        return clone
+
     def deletar(self, razao: str = "user requested") -> None:
         """Soft-delete this Poste (mark as deleted, not removed)."""
         self.deletado_em = _utc_now()

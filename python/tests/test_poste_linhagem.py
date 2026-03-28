@@ -269,3 +269,145 @@ class TestPosteServiceLinhagem:
         svc, _ = self._build_service(p)
         result = svc.obter_linhagem(p.id.value)
         assert isinstance(result, list)
+
+
+# ── Domain: clonar_para_projeto() ────────────────────────────────────────────
+
+class TestClonarParaProjeto:
+
+    def test_clone_is_new_aggregate(self):
+        p = _poste("7", ProjetoId())
+        destino = ProjetoId()
+        clone = p.clonar_para_projeto(destino)
+        assert clone.id.value != p.id.value, "clone must have a new UUID"
+        assert clone.projeto_id.value == destino.value
+
+    def test_clone_preserves_numero_and_structure(self):
+        p = _poste("7", ProjetoId())
+        destino = ProjetoId()
+        clone = p.clonar_para_projeto(destino)
+        assert clone.numero == "7"
+        assert clone.tipo_poste == p.tipo_poste
+        assert clone.modelo_poste == p.modelo_poste
+        assert len(clone.niveis) == 5
+        for n_orig, n_clone in zip(p.niveis, clone.niveis):
+            assert n_clone.nivel_enum == n_orig.nivel_enum
+            assert len(n_clone.travessias) == 4
+
+    def test_clone_has_origem_id_set(self):
+        p = _poste("7", ProjetoId())
+        destino = ProjetoId()
+        clone = p.clonar_para_projeto(destino)
+        assert clone.origem_id is not None
+        assert clone.origem_id.value == p.id.value
+
+    def test_clone_modification_does_not_affect_original(self):
+        p = _poste("7", ProjetoId())
+        destino = ProjetoId()
+        clone = p.clonar_para_projeto(destino)
+        # Niveis in clone are separate objects (deepcopy), not the same instances
+        assert clone.niveis[0] is not p.niveis[0]
+        assert clone.niveis[0].travessias[0] is not p.niveis[0].travessias[0]
+        # Geometria objects are immutable (frozen Pydantic) — independence is guaranteed
+        # by the fact that clone niveis are different objects from origin niveis
+        assert id(clone.niveis[0].travessias[0].geometria) != id(p.niveis[0].travessias[0].geometria)
+
+    def test_clone_same_project_raises(self):
+        projeto = ProjetoId()
+        p = _poste("7", projeto)
+        with pytest.raises(ValueError, match="projeto destino deve ser diferente"):
+            p.clonar_para_projeto(projeto)
+
+    def test_clone_passes_validar(self):
+        p = _poste("7", ProjetoId())
+        destino = ProjetoId()
+        clone = p.clonar_para_projeto(destino)
+        clone.validar()  # must not raise
+
+    def test_clone_has_fresh_timestamp(self):
+        import time
+        p = _poste("7", ProjetoId())
+        before = p.criado_em
+        time.sleep(0.001)
+        destino = ProjetoId()
+        clone = p.clonar_para_projeto(destino)
+        assert clone.criado_em >= before
+
+
+# ── Service: clonar_para_projeto() ───────────────────────────────────────────
+
+class _StubRepoClone(_StubRepo):
+    """Extends _StubRepo with save tracking."""
+
+    def salvar(self, poste):
+        self._postes[str(poste.id.value)] = poste
+        return poste
+
+
+class TestPosteServiceClonar:
+
+    def _build_service(self, *postes):
+        repo = _StubRepoClone()
+        for p in postes:
+            repo._postes[str(p.id.value)] = p
+        return PosteService(repo), repo
+
+    def test_clone_same_project_raises(self):
+        projeto = ProjetoId()
+        p = _poste("1", projeto)
+        svc, _ = self._build_service(p)
+        with pytest.raises(ValueError, match="projeto destino deve ser diferente"):
+            svc.clonar_para_projeto(p.id.value, projeto.value)
+
+    def test_clone_unknown_origem_raises(self):
+        svc, _ = self._build_service()
+        with pytest.raises(ValueError, match="não encontrado"):
+            svc.clonar_para_projeto(uuid4(), uuid4())
+
+    def test_clone_creates_new_poste_in_repo(self):
+        p = _poste("3", ProjetoId())
+        destino = ProjetoId()
+        svc, repo = self._build_service(p)
+        clone = svc.clonar_para_projeto(p.id.value, destino.value)
+        assert clone.id.value != p.id.value
+        assert clone.projeto_id.value == destino.value
+        assert clone.origem_id.value == p.id.value
+        # Clone was saved in repo
+        assert str(clone.id.value) in repo._postes
+
+    def test_clone_inherits_numero(self):
+        p = _poste("3", ProjetoId())
+        destino = ProjetoId()
+        svc, _ = self._build_service(p)
+        clone = svc.clonar_para_projeto(p.id.value, destino.value)
+        assert clone.numero == "3"
+
+    def test_clone_deleted_origem_raises(self):
+        p = _poste("1", ProjetoId())
+        p.deletar()
+        destino = ProjetoId()
+        svc, _ = self._build_service(p)
+        with pytest.raises(ValueError, match="deletado"):
+            svc.clonar_para_projeto(p.id.value, destino.value)
+
+
+# ── API: ClonarPosteIn schema ─────────────────────────────────────────────────
+
+class TestClonarPosteIn:
+    from api.schemas import ClonarPosteIn
+
+    def test_valid_uuid_accepted(self):
+        from api.schemas import ClonarPosteIn
+        uid = str(uuid4())
+        inp = ClonarPosteIn(projeto_id=uid)
+        assert inp.projeto_id == uid
+
+    def test_empty_projeto_id_rejected(self):
+        from api.schemas import ClonarPosteIn
+        with pytest.raises(ValidationError):
+            ClonarPosteIn(projeto_id="")
+
+    def test_missing_projeto_id_rejected(self):
+        from api.schemas import ClonarPosteIn
+        with pytest.raises(ValidationError):
+            ClonarPosteIn()

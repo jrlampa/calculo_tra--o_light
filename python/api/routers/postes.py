@@ -10,6 +10,7 @@ from api.dependencies import get_poste_service
 from api.schemas import (
     CalculoInput,
     CalculoOutput,
+    ClonarPosteIn,
     CondutorOut,
     LinhagemEntry,
     PosteIn,
@@ -340,3 +341,36 @@ async def obter_linhagem(
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@router.post("/{poste_id}/clonar-para-projeto", response_model=PosteOut, status_code=201)
+async def clonar_para_projeto(
+    poste_id: UUID,
+    inp: ClonarPosteIn,
+    _user: CurrentUser = Depends(require_mutation_identity),
+    service: PosteService = Depends(get_poste_service),
+) -> PosteOut:
+    """Clona um Poste para outro Projeto, estabelecendo o elo de linhagem.
+
+    Use este endpoint quando o Projeto Y herda um poste físico que já foi
+    estudado no Projeto X:
+
+    1. O Poste de origem (``poste_id``, no Projeto X) é carregado.
+    2. Toda a configuração (Niveis, Travessias, tipo/modelo) é copiada.
+    3. O clone é criado no ``projeto_id`` informado (Projeto Y).
+    4. ``clone.origem_id`` é automaticamente definido como ``poste_id``.
+    5. O clone tem timestamp recente — é imediatamente reconhecido como o
+       dado mais atual para aquele poste físico (política timestamp-wins).
+
+    O clone pode ser modificado livremente no Projeto Y sem afetar os
+    dados do Projeto X.
+    """
+    try:
+        projeto_destino_uuid = UUID(inp.projeto_id)
+        clone = service.clonar_para_projeto(poste_id, projeto_destino_uuid)
+        return PosteFactory.to_response_dict(clone)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        logger.error("Erro ao clonar Poste: %s", e)
+        raise HTTPException(status_code=500, detail="Erro ao clonar Poste") from e

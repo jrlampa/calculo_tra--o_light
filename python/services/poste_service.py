@@ -304,6 +304,58 @@ class PosteService:
         if not poste:
             raise ValueError(f"Poste {poste_id} não encontrado")
         return self.repo.obter_linhagem(poste_id)
+
+    def clonar_para_projeto(
+        self,
+        poste_origem_id: UUID,
+        projeto_destino_id: UUID,
+    ) -> PosteAggregate:
+        """Clone a Poste from one project into another, establishing the lineage link.
+
+        This is the canonical implementation of "Project Y starts from the
+        physical pole already in Project X":
+
+        1. Loads the origin Poste (must exist, not deleted).
+        2. Deep-copies its entire configuration (Niveis, Travessias, geometry).
+        3. Assigns the clone to ``projeto_destino_id``.
+        4. Pre-sets ``clone.origem_id = poste_origem_id`` (lineage).
+        5. Persists and returns the new Poste.
+
+        The clone starts with a fresh timestamp so it is immediately
+        recognised as the most-recent data for this physical pole
+        (timestamp-wins policy).
+
+        Both projects must be **different**.  The clone can then be freely
+        modified in Project Y without affecting Project X's data.
+
+        Returns the newly created Poste aggregate (clone in Project Y).
+        """
+        origem = self.repo.obter_por_id(poste_origem_id)
+        if not origem:
+            raise ValueError(f"Poste origem {poste_origem_id} não encontrado")
+        if origem.esta_deletado():
+            raise ValueError(f"Poste origem {poste_origem_id} está deletado")
+
+        if origem.projeto_id.value == projeto_destino_id:
+            raise ValueError(
+                "clonar_para_projeto: projeto destino deve ser diferente do projeto de origem"
+            )
+
+        # Use aggregate domain method to create the clone
+        clone = origem.clonar_para_projeto(ProjetoId(value=projeto_destino_id))
+
+        # Persist the clone (salvar also validates invariants)
+        clone = self.repo.salvar(clone)
+
+        logger.info(
+            "Poste '%s' clonado de projeto %s para projeto %s (novo id=%s, origem_id=%s)",
+            clone.numero,
+            origem.projeto_id.value,
+            projeto_destino_id,
+            clone.id.value,
+            clone.origem_id.value if clone.origem_id else None,
+        )
+        return clone
     
     # ─────────────────────── HELPERS ──────────────────────────────────
     

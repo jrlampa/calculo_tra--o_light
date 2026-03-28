@@ -394,3 +394,70 @@ export async function batchSaveCalculo(payload) {
     'Erro ao realizar salvamento atômico'
   )
 }
+// ─── Linhagem cross-projeto ────────────────────────────────────────────────
+
+/**
+ * Vincula um Poste ao seu ancestral físico em outro Projeto.
+ *
+ * Use quando o Projeto Y herda um poste físico que já foi estudado no Projeto X.
+ * O par (posteId, origemId) estabelece o elo de linhagem.  Os dados do Projeto Y
+ * (mais recente) têm prioridade sobre o Projeto X (política timestamp-wins).
+ *
+ * @param {string} posteId  UUID do Poste descendente (no Projeto Y)
+ * @param {string} origemId UUID do Poste ancestral (no Projeto X)
+ * @returns {Promise<object>} Poste atualizado com `origem_id` preenchido
+ */
+export async function vincularOrigem(posteId, origemId) {
+  return requestJson(
+    `/api/postes/${posteId}/vincular-origem`,
+    {
+      method: 'PUT',
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ origem_id: origemId }),
+    },
+    'Erro ao vincular origem do Poste'
+  )
+}
+
+/**
+ * Retorna a cadeia completa de linhagem cross-projeto de um Poste.
+ *
+ * A cadeia é ordenada do ancestral mais antigo (índice 0) ao Poste atual
+ * (último elemento).  Use `atualizado_em` para determinar qual projeto tem
+ * os dados mais recentes (política timestamp-wins).
+ *
+ * @param {string} posteId UUID do Poste
+ * @returns {Promise<{poste_id: string, chain: Array, profundidade: number}>}
+ */
+export async function obterLinhagem(posteId) {
+  return requestJson(
+    `/api/postes/${posteId}/linhagem`,
+    { method: 'GET', headers: JSON_HEADERS },
+    'Erro ao obter linhagem do Poste'
+  )
+}
+
+/**
+ * Clona um Poste de um Projeto para outro, estabelecendo o elo de linhagem.
+ *
+ * Implementa o fluxo "Projeto Y herda poste físico do Projeto X":
+ * - Copia toda a configuração (Niveis, Travessias) do Poste de origem.
+ * - Cria o clone no projeto de destino com `origem_id` já definido.
+ * - O clone tem timestamp recente — é imediatamente o dado mais atual.
+ * - Pode ser modificado livremente no Projeto Y sem afetar o Projeto X.
+ *
+ * @param {string} posteOrigemId    UUID do Poste no Projeto X (origem)
+ * @param {string} projetoDestinoId UUID do Projeto Y (destino do clone)
+ * @returns {Promise<object>} Novo Poste criado no Projeto Y
+ */
+export async function clonarPosteDeProjeto(posteOrigemId, projetoDestinoId) {
+  return requestJson(
+    `/api/postes/${posteOrigemId}/clonar-para-projeto`,
+    {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ projeto_id: projetoDestinoId }),
+    },
+    'Erro ao clonar Poste para outro projeto'
+  )
+}
