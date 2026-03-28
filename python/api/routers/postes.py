@@ -10,8 +10,10 @@ from api.dependencies import get_poste_service
 from api.schemas import (
     CalculoInput,
     CalculoOutput,
+    CondutorOut,
     PosteIn,
     PosteOut,
+    TravessiaUpdateIn,
 )
 from domain.factories import PosteFactory
 from domain.value_objects import NivelEnum
@@ -120,11 +122,7 @@ async def atualizar_travessia(
     poste_id: UUID,
     nivel: str,
     posicao: int,
-    tipo_rede: str,
-    tipo_cabo: str,
-    vao: float,
-    flecha: float,
-    angulo: float,
+    inp: TravessiaUpdateIn,
     _user: CurrentUser = Depends(require_mutation_identity),
     service: PosteService = Depends(get_poste_service),
 ) -> PosteOut:
@@ -145,11 +143,11 @@ async def atualizar_travessia(
             poste_id=poste_id,
             nivel_enum=nivel_enum,
             posicao=posicao,
-            tipo_rede=tipo_rede,
-            tipo_cabo=tipo_cabo,
-            vao=vao,
-            flecha=flecha,
-            angulo=angulo
+            tipo_rede=inp.tipo_rede,
+            tipo_cabo=inp.tipo_cabo,
+            vao=inp.vao,
+            flecha=inp.flecha,
+            angulo=inp.angulo,
         )
         return PosteFactory.to_response_dict(poste)
     except ValueError as e:
@@ -157,6 +155,47 @@ async def atualizar_travessia(
     except Exception as e:
         logger.error("Erro ao atualizar Travessia: %s", e)
         raise HTTPException(status_code=500, detail="Erro ao atualizar Travessia") from e
+
+
+# ─────────────────────── NAVEGAÇÃO (O QUE ESTÁ NO POSTE) ─────────────────
+
+@router.get("/projeto/{projeto_id}/numero/{numero}", response_model=PosteOut)
+async def obter_poste_por_numero(
+    projeto_id: UUID,
+    numero: str,
+    _user: CurrentUser = Depends(require_mutation_identity),
+    service: PosteService = Depends(get_poste_service),
+) -> PosteOut:
+    """Localiza um Poste pelo número dentro do projeto (chave natural).
+
+    Use este endpoint para resolver "Poste 1 do Projeto X" sem precisar
+    do UUID do poste.  O par (projeto_id, numero) é único.
+    """
+    poste = service.obter_poste_por_numero(projeto_id, numero)
+    if not poste:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Poste '{numero}' não encontrado no projeto {projeto_id}",
+        )
+    return PosteFactory.to_response_dict(poste)
+
+
+@router.get("/{poste_id}/condutores", response_model=list[CondutorOut])
+async def listar_condutores_poste(
+    poste_id: UUID,
+    _user: CurrentUser = Depends(require_mutation_identity),
+    service: PosteService = Depends(get_poste_service),
+) -> list[CondutorOut]:
+    """Lista todos os condutores (cabos) instalados neste Poste.
+
+    Percorre todos os Niveis × Travessias e devolve cada condutor com sua
+    geometria.  Este é o endpoint canônico para responder "o que está
+    pendurado no Poste?".
+    """
+    poste = service.obter_poste(poste_id)
+    if not poste:
+        raise HTTPException(status_code=404, detail="Poste não encontrado")
+    return poste.obter_condutores()
 
 
 # ─────────────────────── CÁLCULOS ────────────────────────────────

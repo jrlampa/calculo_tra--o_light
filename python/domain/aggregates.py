@@ -185,6 +185,48 @@ class Poste:
         """Get all calculation snapshots in chronological order."""
         return sorted(self.calculos, key=lambda c: c.calculado_em)
 
+    def obter_condutores(self) -> List[dict]:
+        """Return all conductors across every nivel and travessia.
+
+        Each entry maps the nivel + position back to its conductor and geometry
+        so callers can answer "what is hanging on this Poste?" without knowing
+        the internal Nivel→Travessia hierarchy.
+        """
+        result = []
+        for n in self.niveis:
+            for t in n.travessias:
+                result.append({
+                    "nivel": n.nivel_enum.value,
+                    "posicao": t.posicao,
+                    "tipo_rede": t.condutor.tipo_rede.value,
+                    "tipo_cabo": t.condutor.tipo_cabo.value,
+                    "vao": t.geometria.vao,
+                    "flecha": t.geometria.flecha,
+                    "angulo": t.geometria.angulo,
+                })
+        return result
+
+    def perfil(self) -> dict:
+        """Human-readable summary of the physical items attached to this Poste.
+
+        Returns identification, structural data, active spans (vao > 0), and
+        the last saved calculation if available.  Use this to answer the
+        question "what is on Poste N?" from any context.
+        """
+        ultimo = self.obter_ultimo_calculo_salvo()
+        condutores_ativos = [
+            c for c in self.obter_condutores() if c["vao"] > 0
+        ]
+        return {
+            "id": str(self.id.value),
+            "numero": self.numero,
+            "tipo_poste": self.tipo_poste,
+            "modelo_poste": self.modelo_poste,
+            "projeto_id": str(self.projeto_id.value),
+            "condutores_ativos": condutores_ativos,
+            "ultimo_calculo": ultimo.resumo() if ultimo else None,
+        }
+
     def deletar(self, razao: str = "user requested") -> None:
         """Soft-delete this Poste (mark as deleted, not removed)."""
         self.deletado_em = _utc_now()

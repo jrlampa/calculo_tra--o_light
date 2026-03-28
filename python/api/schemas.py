@@ -323,6 +323,28 @@ class PosteOut(BaseModel):
     modelo_poste: str
 
 
+class TravessiaUpdateIn(BaseModel):
+    """Request body for PUT /postes/{id}/niveis/{nivel}/travessias/{posicao}."""
+
+    tipo_rede: str = Field(default="circuito", max_length=50, description="Network type")
+    tipo_cabo: str = Field(default="CAA", max_length=50, description="Cable type")
+    vao: float = Field(default=0.0, ge=0.0, description="Span length in meters")
+    flecha: float = Field(default=0.0, ge=0.0, description="Sag in meters")
+    angulo: float = Field(default=0.0, ge=0.0, lt=360.0, description="Deflection angle in degrees")
+
+
+class CondutorOut(BaseModel):
+    """One conductor (cable) entry from a Poste traversal, returned by GET /condutores."""
+
+    nivel: str = Field(description="Voltage level (MT1, MT2, BT, BTZ, RAL)")
+    posicao: int = Field(ge=1, le=4, description="Position within the level (1–4)")
+    tipo_rede: str = Field(description="Network type")
+    tipo_cabo: str = Field(description="Cable/conductor type")
+    vao: float = Field(description="Span length in meters")
+    flecha: float = Field(description="Sag in meters")
+    angulo: float = Field(description="Deflection angle in degrees")
+
+
 class PontoIn(BaseModel):
     """Legacy schema kept for the existing /pontos contract."""
 

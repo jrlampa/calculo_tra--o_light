@@ -45,7 +45,9 @@ export default function usePersistenciaCalculo({ pontoId, lastPayload, resultado
 
   // Inicia countdown de segundos para retry
   const startRetryCountdown = useCallback((backoffMs) => {
-    if (retryCountdownRef.current) {clearInterval(retryCountdownRef.current)}
+    if (retryCountdownRef.current) {
+      clearInterval(retryCountdownRef.current)
+    }
     
     let secondsRemaining = Math.ceil(backoffMs / 1000)
     
