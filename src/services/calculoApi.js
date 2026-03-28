@@ -34,8 +34,8 @@ export function getLastRequestContext() {
 }
 
 function toFloat(value) {
-  if (value === '' || value === null || value === undefined) return null
-  if (typeof value === 'number') return Number.isNaN(value) ? null : value
+  if (value === '' || value === null || value === undefined) {return null}
+  if (typeof value === 'number') {return Number.isNaN(value) ? null : value}
   const normalizedValue = String(value).replace(',', '.')
   const parsedValue = parseFloat(normalizedValue)
   return Number.isNaN(parsedValue) ? null : parsedValue
@@ -132,7 +132,7 @@ async function requestJson(url, options = {}, fallbackMessage) {
     throw err
   }
 
-  if (response.status === 204) return null
+  if (response.status === 204) {return null}
   return response.json()
 }
 
