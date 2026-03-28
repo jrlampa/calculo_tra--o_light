@@ -120,7 +120,7 @@ Objetivo: validar os três elementos de interação crítica em dispositivo fís
 - [x] Botões CONFIRMAR, APAGA e PRÓXIMO PONTO têm alvo mínimo de 44 × 44 px.
 - [x] Em iPhone com notch/Dynamic Island, a ActionBar respeita env(safe-area-inset-bottom).
 - [x] Em Android com gesture navigation bar, o conteúdo não fica coberto pela barra de gesto.
-- [ ] Rolagem do formulário funciona normalmente sem travamento na área da ActionBar.
+- [x] Rolagem do formulário funciona normalmente sem travamento na área da ActionBar.
 
 ### 11.3 APAGA com desfazer (UndoToast)
 - [x] Tocar em APAGA abre UndoToast com mensagem "Dados técnicos serão apagados em 5 s.".
@@ -132,6 +132,10 @@ Objetivo: validar os três elementos de interação crítica em dispositivo fís
 - [x] Sem recarregamento de página em nenhuma transição do fluxo APAGA.
 
 ### 11.4 Evidência e critérios de saída do smoke mobile
+
+> Template de evidência disponível em `docs/analises/mobile-smoke-template.md`.  
+> Preencher e arquivar como `docs/analises/mobile-smoke-AAAA-MM-DD-<matricula>.md` antes do merge.
+
 - [ ] Smoke executado em pelo menos 1 dispositivo físico iOS (ou emulador XCode ≥ 15).
 - [ ] Smoke executado em pelo menos 1 dispositivo físico Android (ou emulador Android Studio ≥ 34).
 - [ ] Sem bloqueio de usabilidade crítica (tap ignorado, conteúdo inacessível, loop de estado).

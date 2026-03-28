@@ -28,7 +28,10 @@
   --btn-orange-end: #bc5a17;
   --btn-orange-hover-start: #c86921;
   --btn-orange-hover-end: #a84b11;
-  /* ActionBar fixa: altura usada pelo UndoToast e pelo padding do conteúdo */
+  /* ActionBar fixa: altura usada pelo UndoToast e pelo padding do conteúdo.
+     80px = botão py-3 (≈ 48 px) + padding vertical da barra (p-2 = 8px × 2) +
+     border-top (1px) — mantido em sincronia com a classe pb-[max(…)] do Tailwind
+     e com o offset bottom do UndoToast. Alterar aqui propaga automaticamente. */
   --action-bar-height: 80px;
 }
 
@@ -45,6 +48,9 @@
       radial-gradient(circle at 14% 18%, rgba(255, 255, 255, 0.64) 0%, rgba(255, 255, 255, 0) 38%),
       radial-gradient(circle at 86% 6%, rgba(206, 221, 245, 0.54) 0%, rgba(206, 221, 245, 0) 36%),
       linear-gradient(165deg, #edf3fb 0%, #d5e1f2 52%, #ccd9ee 100%);
+    /* FE-26: Prevent iOS Safari rubber-band over-scroll from locking the page
+       scroll when touches start near or on the fixed ActionBar at the bottom. */
+    overscroll-behavior-y: none;
   }
 }
 
@@ -434,6 +440,10 @@
   flex: 1 1 auto;
   min-width: 0;
   overflow-x: auto;
+  /* FE-26: Smooth momentum scroll on iOS (legacy Safari < 13) and contained
+     overscroll so the fixed ActionBar zone does not capture the gesture. */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
 
 .calc-side-column {
@@ -1053,6 +1063,19 @@
   justify-content: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+/* ─── ActionBar scroll-lock fix (FE-26) ────────────── */
+/* On iOS Safari, touch gestures that START on a position:fixed element (the
+   ActionBar bar at the bottom) can prevent the page from scrolling.
+   Setting touch-action: pan-y lets vertical scroll gestures that begin on the
+   bar surface still propagate to the scroll container, while overscroll-behavior
+   keeps the fixed element from capturing the over-scroll bounce. */
+[data-testid="action-bar-mobile"],
+[data-testid="action-bar-tablet"],
+[data-testid="action-bar-desktop"] {
+  touch-action: pan-y;
+  overscroll-behavior: none;
 }
 
 .stepper-next-point-btn,

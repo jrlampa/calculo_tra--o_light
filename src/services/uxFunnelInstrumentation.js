@@ -41,8 +41,10 @@ const VALID_EVENT_NAMES = new Set(Object.values(UX_FUNNEL_EVENTS))
 let localEventCallback = null
 
 // In-memory ring-buffer of the last MAX_LOG_ENTRIES events for audit/traceability.
-// 200 entries covers a full working session (project → N points × 4 events each)
-// without imposing noticeable memory pressure on mobile devices.
+// 200 entries covers a full working session. With ~12 distinct event types the
+// real per-point event count depends on retry paths and batch ops; in practice
+// a typical point produces 3-5 events (confirmed, calculated, persisted ± retry).
+// 200 gives headroom for ~40-65 points per session without memory pressure.
 // Exposed via getTraceabilityLog() so callers can collect evidence without a
 // persistent backend.
 const MAX_LOG_ENTRIES = 200
