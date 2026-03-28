@@ -70,6 +70,14 @@ class Poste:
     - Niveis (voltage levels): always 5 (MT1, MT2, BT, BTZ, RAL)
     - Travessias (spans) within each Nivel: always 4 per level
     - CalculoSnapshots (calculation history): append-only
+
+    Cross-project lineage
+    ---------------------
+    A physical pole can appear in multiple Projects across time.  When
+    Project Y starts from a pole that was already part of Project X, the
+    new Poste is created with ``origem_id`` pointing to the ancestor.
+    The chain of ``origem_id`` links forms the full audit history of that
+    physical pole across all projects.
     """
 
     projeto_id: ProjetoId
@@ -80,6 +88,9 @@ class Poste:
     modelo_poste: str = ""  # e.g., "11/600", "13/800"
     calculos: List[CalculoSnapshot] = field(default_factory=list)  # Append-only history
     geometria: Geometria_Poste = field(default_factory=Geometria_Poste)
+    # Lineage: UUID of the Poste in a previous project this one continues.
+    # None means this is a "root" pole — first time this physical pole is studied.
+    origem_id: Optional[PosteId] = None
     criado_em: datetime = field(default_factory=_utc_now)
     atualizado_em: datetime = field(default_factory=_utc_now)
     deletado_em: Optional[datetime] = None  # Soft-delete
@@ -206,12 +217,27 @@ class Poste:
                 })
         return result
 
+    def vincular_origem(self, origem_id: PosteId) -> None:
+        """Link this Poste to its ancestor in a previous project.
+
+        Call this when creating a Poste in Project Y that continues from a
+        physical pole that was already studied in Project X.  The link is
+        one-directional: the descendant holds a reference to the ancestor;
+        navigating the full chain requires the repository.
+
+        Raises:
+            ValueError: If ``origem_id`` equals this Poste's own ID (self-loop).
+        """
+        if origem_id.value == self.id.value:
+            raise ValueError("Poste não pode ser sua própria origem (self-loop)")
+        self.origem_id = origem_id
+        self.atualizado_em = _utc_now()
+
     def perfil(self) -> dict:
         """Human-readable summary of the physical items attached to this Poste.
 
-        Returns identification, structural data, active spans (vao > 0), and
-        the last saved calculation if available.  Use this to answer the
-        question "what is on Poste N?" from any context.
+        Returns identification, structural data, active spans (vao > 0),
+        the last saved calculation, and lineage info.
         """
         ultimo = self.obter_ultimo_calculo_salvo()
         condutores_ativos = [
@@ -223,6 +249,7 @@ class Poste:
             "tipo_poste": self.tipo_poste,
             "modelo_poste": self.modelo_poste,
             "projeto_id": str(self.projeto_id.value),
+            "origem_id": str(self.origem_id.value) if self.origem_id else None,
             "condutores_ativos": condutores_ativos,
             "ultimo_calculo": ultimo.resumo() if ultimo else None,
         }

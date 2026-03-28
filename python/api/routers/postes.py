@@ -11,8 +11,11 @@ from api.schemas import (
     CalculoInput,
     CalculoOutput,
     CondutorOut,
+    LinhagemEntry,
     PosteIn,
+    PosteLinhagem,
     PosteOut,
+    PosteVincularIn,
     TravessiaUpdateIn,
 )
 from domain.factories import PosteFactory
@@ -274,5 +277,66 @@ async def obter_ultimo_calculo(
         if not ultimo:
             raise HTTPException(status_code=404, detail="Nenhum cálculo encontrado para este Poste")
         return ultimo
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+# ─────────────────────── LINHAGEM (cross-project audit trail) ────────────────
+
+@router.put("/{poste_id}/vincular-origem", response_model=PosteOut)
+async def vincular_origem(
+    poste_id: UUID,
+    inp: PosteVincularIn,
+    _user: CurrentUser = Depends(require_mutation_identity),
+    service: PosteService = Depends(get_poste_service),
+) -> PosteOut:
+    """Vincula este Poste ao seu ancestral em um projeto anterior.
+
+    Use quando o Projeto Y herda um poste físico que já foi estudado no
+    Projeto X.  O par (poste_id, origem_id) estabelece o elo de linhagem:
+    dados do Projeto Y (mais recente) têm prioridade; o histórico completo
+    de ambos os projetos fica disponível via GET /linhagem.
+
+    Regras:
+    - Ambos os Postes devem existir e não estar deletados.
+    - Devem pertencer a projetos **diferentes**.
+    - Um Poste não pode ser sua própria origem.
+    """
+    try:
+        origem_uuid = UUID(inp.origem_id)
+        poste = service.vincular_origem(poste_id, origem_uuid)
+        return PosteFactory.to_response_dict(poste)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        logger.error("Erro ao vincular origem do Poste: %s", e)
+        raise HTTPException(status_code=500, detail="Erro ao vincular origem") from e
+
+
+@router.get("/{poste_id}/linhagem", response_model=PosteLinhagem)
+async def obter_linhagem(
+    poste_id: UUID,
+    _user: CurrentUser = Depends(require_mutation_identity),
+    service: PosteService = Depends(get_poste_service),
+) -> PosteLinhagem:
+    """Retorna a cadeia completa de linhagem cross-projeto de um Poste.
+
+    A cadeia é ordenada do ancestral mais antigo (índice 0) ao Poste
+    atual (último elemento).  Use ``atualizado_em`` para determinar qual
+    projeto tem os dados mais recentes (política timestamp-mais-novo-vence).
+
+    Use este endpoint para:
+    - Auditar quais projetos modificaram um poste físico e em que ordem.
+    - Recuperar configurações anteriores de um poste físico.
+    - Rastrear a evolução de um poste ao longo de múltiplos estudos.
+    """
+    try:
+        chain_data = service.obter_linhagem(poste_id)
+        entries = [LinhagemEntry(**entry) for entry in chain_data]
+        return PosteLinhagem(
+            poste_id=str(poste_id),
+            chain=entries,
+            profundidade=len(entries),
+        )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e

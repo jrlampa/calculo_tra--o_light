@@ -176,6 +176,34 @@ class CalculoDeletado(DomainEvent):
 
 
 @dataclass(frozen=True)
+class PosteVinculado(DomainEvent):
+    """Event: A Poste was linked to its ancestor in a previous project.
+
+    Recorded when a Poste in Project Y is declared a continuation of a Poste
+    in Project X.  The chain of these events provides the full cross-project
+    lineage (audit trail) for any physical pole.
+    """
+
+    projeto_id: UUID = field(default_factory=uuid4)
+    poste_id: UUID = field(default_factory=uuid4)
+    origem_id: UUID = field(default_factory=uuid4)
+    numero: str = ""
+    origem_numero: str = ""
+    origem_projeto_id: Optional[UUID] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = super().to_dict()
+        d.update({
+            "projeto_id": str(self.projeto_id),
+            "poste_id": str(self.poste_id),
+            "origem_id": str(self.origem_id),
+            "numero": self.numero,
+            "origem_numero": self.origem_numero,
+            "origem_projeto_id": str(self.origem_projeto_id) if self.origem_projeto_id else None,
+        })
+        return d
+
+@dataclass(frozen=True)
 class PosteDeletado(DomainEvent):
     """Event: A Poste was deleted (soft-delete)."""
 

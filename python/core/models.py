@@ -52,9 +52,33 @@ class Poste(Base):
     atualizado_em = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     deletado_em = Column(DateTime, nullable=True)  # Soft-delete support
 
+    # Cross-project lineage: the Poste in a previous project that this one continues.
+    # Nullable — only set when this Poste was derived from an ancestor.
+    poste_origem_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("pontos.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
     __table_args__ = (UniqueConstraint("projeto_id", "ponto", name="_projeto_ponto_uc"),)
 
     projeto = relationship("Projeto", back_populates="postes")
+    # Self-referential: the ancestor Poste (in another project)
+    poste_origem = relationship(
+        "Poste",
+        foreign_keys=[poste_origem_id],
+        back_populates="continuacoes",
+        uselist=False,
+        remote_side=[id],
+    )
+    # All Postes that inherit from this one (in later projects)
+    continuacoes = relationship(
+        "Poste",
+        foreign_keys=[poste_origem_id],
+        back_populates="poste_origem",
+        uselist=True,
+    )
     niveis = relationship("NivelCalculo", back_populates="poste", cascade="all, delete-orphan")
     resultado = relationship(
         "ResultadoCalculo", back_populates="poste", uselist=False, cascade="all, delete-orphan"
@@ -145,6 +169,15 @@ class CalculoSnapshot(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     poste_id = Column(UUID(as_uuid=True), ForeignKey("pontos.id"), nullable=False)
+
+    # Project that triggered this calculation — enables cross-project audit.
+    # Nullable so old rows without this column are still valid.
+    projeto_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("projetos.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     # Calculation result as JSONB (all fields from ResultadoCalculo flattened)
     resultado_json = Column(Text)  # JSON string of CalculoResultado

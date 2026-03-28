@@ -243,6 +243,67 @@ class PosteService:
             return True, "Poste válido"
         except ValueError as e:
             return False, str(e)
+
+    # ─────────────────────── LINEAGE ─────────────────────────────────────
+
+    def vincular_origem(self, poste_id: UUID, origem_id: UUID) -> PosteAggregate:
+        """Link a Poste to its ancestor in a previous project.
+
+        Use this when Project Y inherits a physical pole that was already
+        studied in Project X.  The ``poste_id`` (in Project Y) is the
+        descendant; ``origem_id`` (in Project X) is the ancestor.
+
+        Business rules enforced:
+        - Both Postes must exist and not be soft-deleted.
+        - They must belong to different projects (intra-project loops are not
+          meaningful in this domain).
+        - The origin must not already have a descendant in the same project as
+          the descendant (one-to-one per project pair).
+
+        Returns the updated descendant Poste aggregate.
+        """
+        poste = self.repo.obter_por_id(poste_id)
+        if not poste:
+            raise ValueError(f"Poste {poste_id} não encontrado")
+        if poste.esta_deletado():
+            raise ValueError(f"Poste {poste_id} está deletado e não pode ser vinculado")
+
+        origem = self.repo.obter_por_id(origem_id)
+        if not origem:
+            raise ValueError(f"Poste origem {origem_id} não encontrado")
+        if origem.esta_deletado():
+            raise ValueError(f"Poste origem {origem_id} está deletado")
+
+        if poste.projeto_id.value == origem.projeto_id.value:
+            raise ValueError(
+                "Vínculo de origem deve ser entre projetos diferentes — "
+                "postes do mesmo projeto não podem ser vinculados"
+            )
+
+        # Apply domain method (validates self-loop)
+        poste.vincular_origem(PosteId(value=origem_id))
+
+        # Persist via repository
+        self.repo.vincular_origem(poste_id, origem_id)
+
+        logger.info(
+            "Poste %s (projeto %s) vinculado à origem %s (projeto %s)",
+            poste.numero, poste.projeto_id, origem.numero, origem.projeto_id,
+        )
+        return self.repo.obter_por_id(poste_id)
+
+    def obter_linhagem(self, poste_id: UUID) -> List[Dict[str, Any]]:
+        """Return the full cross-project ancestry chain for a physical pole.
+
+        The chain is returned oldest-first so callers can determine which
+        project's data is most recent (last entry).  Each entry exposes
+        ``atualizado_em`` and ``calculos_count`` to support conflict resolution
+        (latest-timestamp-wins policy).
+        """
+        poste = self.repo.obter_por_id(poste_id)
+        if not poste:
+            raise ValueError(f"Poste {poste_id} não encontrado")
+        return self.repo.obter_linhagem(poste_id)
     
     # ─────────────────────── HELPERS ──────────────────────────────────
     

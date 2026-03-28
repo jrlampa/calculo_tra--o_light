@@ -181,6 +181,7 @@ class PosteFactory:
             'numero': poste.numero,
             'tipo_poste': poste.tipo_poste,
             'modelo_poste': poste.modelo_poste,
+            'origem_id': str(poste.origem_id.value) if poste.origem_id else None,
             'criado_em': poste.criado_em.isoformat() if poste.criado_em else None,
             'atualizado_em': poste.atualizado_em.isoformat() if poste.atualizado_em else None,
             'deletado_em': poste.deletado_em.isoformat() if poste.deletado_em else None,

@@ -117,6 +117,7 @@ class PosteRepository:
             id=PosteId(value=db_poste.id),
             tipo_poste=db_poste.tipo_poste or "",
             modelo_poste=db_poste.modelo_poste or "",
+            origem_id=PosteId(value=db_poste.poste_origem_id) if db_poste.poste_origem_id else None,
             criado_em=db_poste.criado_em,
             atualizado_em=db_poste.atualizado_em,
             deletado_em=db_poste.deletado_em
@@ -160,6 +161,7 @@ class PosteRepository:
                 db_poste.numero = poste.numero
                 db_poste.tipo_poste = poste.tipo_poste
                 db_poste.modelo_poste = poste.modelo_poste
+                db_poste.poste_origem_id = poste.origem_id.value if poste.origem_id else None
                 db_poste.atualizado_em = datetime.now(UTC)
             else:
                 # INSERT new
@@ -169,6 +171,7 @@ class PosteRepository:
                     numero=poste.numero,
                     tipo_poste=poste.tipo_poste,
                     modelo_poste=poste.modelo_poste,
+                    poste_origem_id=poste.origem_id.value if poste.origem_id else None,
                     criado_em=poste.criado_em,
                     atualizado_em=poste.atualizado_em
                 )
@@ -265,11 +268,20 @@ class PosteRepository:
         poste: PosteAggregate,
         resultado: CalculoResultado,
         calculado_por: Optional[str] = None,
-        status: str = "draft"
+        status: str = "draft",
+        projeto_id: Optional[UUID] = None,
     ) -> UUID:
         """Record a new calculation snapshot (append-only).
-        
-        Returns: snapshot_id
+
+        Args:
+            poste: Poste aggregate that was calculated.
+            resultado: CalculoResultado value object.
+            calculado_por: User ID or email that ran the calculation.
+            status: 'draft' or 'saved'.
+            projeto_id: Explicit project that triggered this calculation.
+                Falls back to ``poste.projeto_id`` when not provided.
+
+        Returns: snapshot_id (UUID)
         """
         # Serialize resultado to JSON
         resultado_json = resultado.json() if hasattr(resultado, 'json') else json.dumps(
@@ -289,40 +301,109 @@ class PosteRepository:
                 'poste_ecc': getattr(resultado, 'poste_ecc', 0),
             }
         )
-        
+
+        effective_projeto_id = projeto_id if projeto_id is not None else poste.projeto_id.value
         calculado_em = datetime.now(UTC).replace(tzinfo=None)
 
         snapshot = CalculoSnapshot(
             id=uuid4(),
             poste_id=poste.id.value,
+            projeto_id=effective_projeto_id,
             resultado_json=resultado_json,
             calculado_em=calculado_em,
             calculado_por=calculado_por,
-            status=status
+            status=status,
         )
         self.db.add(snapshot)
         self.db.commit()
         logger.info(f"Cálculo snapshot registrado para Poste {poste.numero}")
         return snapshot.id
-    
+
     def obter_historico(self, poste_id: UUID) -> List[Dict[str, Any]]:
         """Retrieve calculation history for a Poste (most recent first)."""
         snapshots = self.db.query(CalculoSnapshot).filter(
             CalculoSnapshot.poste_id == poste_id
         ).order_by(CalculoSnapshot.calculado_em.desc()).all()
-        
+
         return [
             {
                 'id': s.id,
                 'calculado_em': s.calculado_em.isoformat(),
                 'calculado_por': s.calculado_por,
                 'status': s.status,
-                'resultado': json.loads(s.resultado_json) if s.resultado_json else {}
+                'projeto_id': str(s.projeto_id) if s.projeto_id else None,
+                'resultado': json.loads(s.resultado_json) if s.resultado_json else {},
             }
             for s in snapshots
         ]
-    
-    # ─────────────────────── SOFT DELETE ────────────────────────────────
+
+    # ─────────────────────── LINEAGE ──────────────────────────────────────
+
+    def vincular_origem(self, poste_id: UUID, origem_id: UUID) -> None:
+        """Persist the lineage link between a Poste and its predecessor.
+
+        Sets ``poste_origem_id`` on the descendant record.  This is separate
+        from ``salvar()`` so callers can link an already-created Poste without
+        going through the full aggregate save path.
+        """
+        db_poste = self.db.query(Poste).filter(Poste.id == poste_id).first()
+        if not db_poste:
+            raise ValueError(f"Poste {poste_id} não encontrado")
+        origem = self.db.query(Poste).filter(Poste.id == origem_id).first()
+        if not origem:
+            raise ValueError(f"Poste origem {origem_id} não encontrado")
+        db_poste.poste_origem_id = origem_id
+        db_poste.atualizado_em = datetime.now(UTC)
+        self.db.commit()
+        logger.info(f"Poste {db_poste.numero} vinculado à origem {origem.numero}")
+
+    def obter_linhagem(self, poste_id: UUID, max_profundidade: int = 50) -> List[Dict[str, Any]]:
+        """Return the full ancestry chain for a Poste, oldest first.
+
+        Follows the ``poste_origem_id`` chain up to ``max_profundidade`` hops
+        to avoid infinite loops if data is inconsistent.  The list always
+        starts with the root ancestor and ends with the requested Poste.
+
+        Each entry includes:
+        - id, numero, tipo_poste, modelo_poste
+        - projeto_id (which project contains this Poste)
+        - atualizado_em (timestamp — newer entries take precedence)
+        - calculos_count (how many snapshots exist)
+        """
+        chain: List[Dict[str, Any]] = []
+        visited: set = set()
+
+        current_id: Optional[UUID] = poste_id
+        while current_id and len(chain) < max_profundidade:
+            if current_id in visited:
+                logger.warning("Ciclo detectado na linhagem do Poste %s", poste_id)
+                break
+            visited.add(current_id)
+
+            db_poste = self.db.query(Poste).filter(Poste.id == current_id).first()
+            if not db_poste:
+                break
+
+            calculos_count = self.db.query(CalculoSnapshot).filter(
+                CalculoSnapshot.poste_id == current_id
+            ).count()
+
+            chain.append({
+                "id": str(db_poste.id),
+                "numero": db_poste.numero,
+                "tipo_poste": db_poste.tipo_poste or "",
+                "modelo_poste": db_poste.modelo_poste or "",
+                "projeto_id": str(db_poste.projeto_id),
+                "origem_id": str(db_poste.poste_origem_id) if db_poste.poste_origem_id else None,
+                "atualizado_em": db_poste.atualizado_em.isoformat() if db_poste.atualizado_em else None,
+                "calculos_count": calculos_count,
+            })
+
+            current_id = db_poste.poste_origem_id
+
+        # Reverse so the oldest ancestor is first
+        chain.reverse()
+        return chain
     
     def deletar_suave(self, poste_id: UUID) -> None:
         """Soft delete a Poste (mark deletado_em, don't remove from DB)."""

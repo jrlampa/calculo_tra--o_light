@@ -3,6 +3,15 @@
 Encapsulates all mapping and assembly logic that previously lived directly
 inside the ``/calcular`` and ``/postes`` routers, keeping them thin
 (validate → call service → return response).  Business logic lives here.
+
+Singleton usage
+---------------
+A module-level singleton ``calculo_service = CalculoService()`` is provided
+at the bottom of this file.  Routers should import it directly::
+
+    from services.calculo_service import calculo_service
+
+Do **not** instantiate ``CalculoService()`` yourself — use the shared instance.
 """
 
 from __future__ import annotations

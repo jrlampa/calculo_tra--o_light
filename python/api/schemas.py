@@ -321,6 +321,47 @@ class PosteOut(BaseModel):
     numero: str
     tipo_poste: str
     modelo_poste: str
+    origem_id: Optional[str] = None
+
+
+class PosteVincularIn(BaseModel):
+    """Request body for PUT /postes/{id}/vincular-origem.
+
+    Links a Poste in the current project to its physical predecessor in a
+    previous project (cross-project lineage).
+    """
+
+    origem_id: str = Field(
+        min_length=36,
+        max_length=36,
+        description="UUID do Poste ancestral (de um projeto anterior) que este Poste continua.",
+    )
+
+
+class LinhagemEntry(BaseModel):
+    """A single node in the cross-project lineage chain."""
+
+    id: str
+    numero: str
+    tipo_poste: str
+    modelo_poste: str
+    projeto_id: str
+    origem_id: Optional[str] = None
+    atualizado_em: Optional[str] = None
+    calculos_count: int = 0
+
+
+class PosteLinhagem(BaseModel):
+    """Response for GET /postes/{id}/linhagem.
+
+    The chain is ordered oldest → newest (index 0 is the root ancestor,
+    last entry is the requested Poste).  Use ``atualizado_em`` to determine
+    which project's data is most recent (latest-timestamp-wins).
+    """
+
+    poste_id: str
+    chain: list[LinhagemEntry]
+    profundidade: int = Field(description="Length of the lineage chain")
 
 
 class TravessiaUpdateIn(BaseModel):

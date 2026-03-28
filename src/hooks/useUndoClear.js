@@ -21,6 +21,13 @@ const FEEDBACK_VISIBLE_MS = 2000   // How long 'committed' / 'undone' messages s
  * @param {number} [options.ttlMs=5000]         Milliseconds the undo window stays open
  * @param {Function} options.onCommit            Called when the timeout fires (clear confirmed)
  * @param {Function} [options.onUndo]            Called when user undoes the clear
+ * @returns {{ clearState: string, countdown: number, requestClear: Function, undoClear: Function, commitClear: Function, isUndoPending: boolean }}
+ *   - `clearState`  — current state: 'idle' | 'undo_pending' | 'committed' | 'undone'
+ *   - `countdown`   — seconds remaining in the undo window (0 when not in undo_pending)
+ *   - `requestClear` — starts the undo countdown; call on "APAGA" button press
+ *   - `undoClear`   — cancels the clear and reverts to idle
+ *   - `commitClear` — immediately commits the clear without waiting for timeout
+ *   - `isUndoPending` — convenience boolean; true while state === 'undo_pending'
  */
 export default function useUndoClear({ ttlMs = 5000, onCommit, onUndo } = {}) {
   // 'idle' | 'undo_pending' | 'committed' | 'undone'
