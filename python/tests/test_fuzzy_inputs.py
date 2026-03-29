@@ -1,6 +1,5 @@
 import pytest
 import requests
-import json
 
 # Estes testes fazem requisições HTTP reais a um servidor local.
 # Marcar como skip incondicional evita falhas em CI/CD onde o servidor não está rodando.
@@ -13,7 +12,7 @@ def api_alive():
     try:
         r = requests.get(f"{BASE_URL}/health")
         return r.status_code == 200
-    except:
+    except Exception:
         return False
 
 @pytest.mark.skipif(not api_alive, reason="API local não está rodando")

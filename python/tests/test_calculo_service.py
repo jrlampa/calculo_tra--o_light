@@ -29,7 +29,7 @@ from api.schemas import (
     RamaisTraversalIn,
 )
 from domain.value_objects import CalculoResultado
-from services.calculo_service import CalculoService, _map_mt, _map_bt, _map_btz, _map_ral, _build_vetores
+from services.calculo_service import CalculoService, _map_mt, _map_bt, _map_btz, _map_ral
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────

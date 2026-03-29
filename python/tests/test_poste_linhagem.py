@@ -243,7 +243,7 @@ class TestPosteServiceLinhagem:
         p1 = _poste("1", ProjetoId())
         p2 = _poste("2", ProjetoId())
         svc, repo = self._build_service(p1, p2)
-        result = svc.vincular_origem(p2.id.value, p1.id.value)
+        svc.vincular_origem(p2.id.value, p1.id.value)
         # repo.vincular_origem was called
         assert len(repo._linhagem_calls) == 1
         assert repo._linhagem_calls[0] == (p2.id.value, p1.id.value)

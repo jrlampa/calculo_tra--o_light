@@ -17,7 +17,7 @@ os.environ.setdefault("APP_ENV", "development")
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from fastapi import HTTPException
 from api.dependencies import ensure_supabase_available, run_supabase_lookup
 

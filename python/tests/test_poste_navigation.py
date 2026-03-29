@@ -19,7 +19,6 @@ os.environ.setdefault("APP_ENV", "development")
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import pytest
-from uuid import uuid4
 
 from pydantic import ValidationError
 
@@ -31,7 +30,6 @@ from domain.value_objects import (
     Condutor,
     Geometria,
     NivelEnum,
-    PosteId,
     ProjetoId,
     TipoPoste,
     TipoRede,
