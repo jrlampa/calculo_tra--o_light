@@ -75,29 +75,32 @@ export function extractSectionErrors(detail) {
  *  Supabase/PostgREST format (`message` + `code`).
  */
 async function parseErrorBody(response, fallbackMessage) {
+  /** @type {(msg: string, code?: string|null, raw?: unknown) => {message: string, errorCode: string|null, rawDetail: unknown}} */
+  const result = (message, errorCode = null, rawDetail = null) => ({ message, errorCode, rawDetail })
+
   try {
     const payload = await response.json()
     // FastAPI: { detail: "string" }
     if (typeof payload?.detail === 'string' && payload.detail) {
-      return { message: payload.detail, errorCode: payload?.code ?? null, rawDetail: null }
+      return result(payload.detail, payload?.code ?? null)
     }
     // FastAPI: { detail: [{msg, loc}] } — preserve raw array for section-error extraction
     if (Array.isArray(payload?.detail) && payload.detail.length > 0) {
-      return {
-        message: payload.detail.map(item => item?.msg || 'Erro de validação').join(', '),
-        errorCode: null,
-        rawDetail: payload.detail,
-      }
+      return result(
+        payload.detail.map(item => item?.msg || 'Erro de validação').join(', '),
+        null,
+        payload.detail,
+      )
     }
     // Supabase/PostgREST: { message: "...", code: "42501" }
     if (typeof payload?.message === 'string' && payload.message) {
-      return { message: payload.message, errorCode: payload?.code ?? null, rawDetail: null }
+      return result(payload.message, payload?.code ?? null)
     }
   } catch {
-    return { message: fallbackMessage, errorCode: null, rawDetail: null }
+    return result(fallbackMessage)
   }
 
-  return { message: fallbackMessage, errorCode: null, rawDetail: null }
+  return result(fallbackMessage)
 }
 
 async function requestJson(url, options = {}, fallbackMessage) {

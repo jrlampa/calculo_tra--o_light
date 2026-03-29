@@ -63,6 +63,7 @@ export const useFormState = () => {
   }, [])
 
   // Reset para próximo ponto otimizado
+  // resetForm is stable (empty dep array above), so it's safe to close over here.
   const resetFormParaProximoPonto = useOptimizedCallback(() => {
     resetForm()
   }, [])

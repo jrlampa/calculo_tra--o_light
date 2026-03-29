@@ -59,7 +59,11 @@ export default function useCalculo(formState, debounceMs = 600, enabled = true) 
           total_angulo_graus: data?.total_angulo_graus ?? null,
         })
       } catch (err) {
-        if (err.name === 'AbortError') { return }
+        if (err.name === 'AbortError') {
+          // Request was intentionally cancelled — do not update error state;
+          // setLoading(false) in finally still executes as expected.
+          return
+        }
 
         // Para erros 422: extrair erros por seção (validação Pydantic)
         if (err.status === 422) {
