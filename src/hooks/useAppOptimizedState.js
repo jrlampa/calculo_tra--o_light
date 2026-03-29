@@ -8,7 +8,7 @@ import { useMemo, useCallback, useEffect, useRef } from 'react'
 
 import { TABELA_CARGAS_POSTE } from '../constants/tabelaCargasPoste.js'
 import { CAMPOS_MT, CAMPOS_BT, CAMPOS_BTZ, CAMPOS_RAL } from '../features/calculo/formConfig.js'
-import { buildBatchPayload, batchSaveCalculo, listProjetos } from '../services/calculoApi.js'
+import { buildBatchPayload, batchSaveCalculo, listProjetos, importarExcel } from '../services/calculoApi.js'
 import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstrumentation.js'
 
 import useCalculo from './useCalculo.js'
@@ -254,7 +254,7 @@ export const useAppOptimizedState = () => {
       
       const payload = buildBatchPayload(
         projId,
-        formState,
+        fullFormState,
         resultado
       )
 
@@ -281,7 +281,7 @@ export const useAppOptimizedState = () => {
       trackUxFunnelEvent(UX_FUNNEL_EVENTS.BATCH_SAVE_ERROR, { error: err.message })
       throw err
     }
-  }, [projetoState.projetoAtual?.id, projetoState.handlers, formState, resultado])
+  }, [projetoState.projetoAtual?.id, projetoState.handlers, fullFormState, resultado])
 
   // Handler para próximo ponto
   const handleProximoPonto = useCallback(() => {
@@ -298,22 +298,9 @@ export const useAppOptimizedState = () => {
   const handleImportarExcel = useCallback(async (file) => {
     if (!file) {return}
 
-    const formData = new FormData()
-    formData.append('file', file)
-
     try {
       trackUxFunnelEvent(UX_FUNNEL_EVENTS.IMPORT_EXCEL_STARTED, { filename: file.name })
-      // Faz o upload para a nova rota
-      const response = await fetch('/api/calcular/importar-excel', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!response.ok) {
-        throw new Error('Falha ao processar arquivo Excel')
-      }
-
-      const data = await response.json()
+      const data = await importarExcel(file)
 
       // 1. Atualizar Cabecalho
       if (data.cabecalho) {

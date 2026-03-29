@@ -1,6 +1,6 @@
 /* Tests for the pure helper functions exported from calculoApi.js:
  * buildCalculoRequest, buildBatchPayload, buildSalvarCalculoPayload,
- * extractSectionErrors
+ * extractSectionErrors, calcular, importarExcel
  * Also covers HTTP error parsing (403, 42501, Supabase format) via persistCalculo.
  * The private toFloat helper is indirectly exercised through these.
  */
@@ -13,6 +13,8 @@ import {
   getLastRequestContext,
   extractSectionErrors,
   persistCalculo,
+  calcular,
+  importarExcel,
 } from '@/services/calculoApi'
 
 // ─── minimal form-state factory ──────────────────────────────────────────────
@@ -428,5 +430,153 @@ describe('requestJson error parsing (via persistCalculo)', () => {
     const err = await persistCalculo('1', {}).catch(e => e)
     expect(err.isForbidden).toBeUndefined()
     expect(err.status).toBe(400)
+  })
+})
+
+// ─── calcular ─────────────────────────────────────────────────────────────────
+describe('calcular', () => {
+  const MOCK_RESULTADO = {
+    mt1: { tracao_dan: 100, angulo_graus: 10, texto: 'MT1 OK' },
+    total_tracao_dan: 100,
+    total_angulo_graus: 10,
+  }
+
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', { getItem: () => null })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('sends POST to /api/calcular with JSON payload and returns result', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(MOCK_RESULTADO),
+      headers: { get: () => null },
+    }))
+
+    const payload = { poste: { tipo_poste: 'DE', modelo_poste: 'M' }, mt1: [], mt2: [], bt: [], btz: [], ral: [] }
+    const result = await calcular(payload)
+
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/calcular',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify(payload) })
+    )
+    expect(result).toEqual(MOCK_RESULTADO)
+  })
+
+  it('passes AbortSignal to fetch when provided', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(MOCK_RESULTADO),
+      headers: { get: () => null },
+    }))
+
+    const controller = new AbortController()
+    await calcular({}, controller.signal)
+
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/calcular',
+      expect.objectContaining({ signal: controller.signal })
+    )
+  })
+
+  it('does not include signal key when no signal is provided', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(MOCK_RESULTADO),
+      headers: { get: () => null },
+    }))
+
+    await calcular({})
+
+    const callOptions = fetch.mock.calls[0][1]
+    expect(callOptions).not.toHaveProperty('signal')
+  })
+
+  it('attaches rawDetail to error on 422', async () => {
+    const detail = [{ loc: ['body', 'mt1', 0, 'vao'], msg: 'field required' }]
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 422,
+      statusText: 'Unprocessable Entity',
+      json: () => Promise.resolve({ detail }),
+      headers: { get: () => null },
+    }))
+
+    const err = await calcular({}).catch(e => e)
+    expect(err.status).toBe(422)
+    expect(err.rawDetail).toEqual(detail)
+  })
+
+  it('throws on non-OK response without rawDetail for plain string errors', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+      json: () => Promise.resolve({ detail: 'Erro interno' }),
+      headers: { get: () => null },
+    }))
+
+    const err = await calcular({}).catch(e => e)
+    expect(err.message).toBe('Erro interno')
+    expect(err.rawDetail).toBeUndefined()
+  })
+})
+
+// ─── importarExcel ────────────────────────────────────────────────────────────
+describe('importarExcel', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('POSTs FormData to /api/calcular/importar-excel and returns parsed data', async () => {
+    const mockData = { cabecalho: { orgao: 'ANEEL' }, poste: { tipo_poste: 'DE' }, mt1: [] }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(mockData),
+    }))
+
+    const file = new File(['dummy'], 'planilha.xlsx', { type: 'application/vnd.ms-excel' })
+    const result = await importarExcel(file)
+
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/calcular/importar-excel',
+      expect.objectContaining({ method: 'POST' })
+    )
+
+    // Body must be FormData (not JSON)
+    const callOptions = fetch.mock.calls[0][1]
+    expect(callOptions.body).toBeInstanceOf(FormData)
+    expect(result).toEqual(mockData)
+  })
+
+  it('throws with the server message on non-OK response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: () => Promise.resolve({ detail: 'Arquivo inválido' }),
+    }))
+
+    const file = new File(['bad'], 'bad.xlsx')
+    const err = await importarExcel(file).catch(e => e)
+    expect(err.message).toBe('Arquivo inválido')
+  })
+
+  it('uses fallback message when response body is not parseable', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: () => Promise.reject(new SyntaxError('not JSON')),
+    }))
+
+    const file = new File(['x'], 'x.xlsx')
+    const err = await importarExcel(file).catch(e => e)
+    expect(err.message).toBe('Falha ao processar arquivo Excel')
   })
 })

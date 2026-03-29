@@ -189,11 +189,18 @@ class _StubRepo:
         self._linhagem_calls: list = []
 
     def obter_por_id(self, poste_id):
-        return self._postes.get(str(poste_id))
+        p = self._postes.get(str(poste_id))
+        if p is not None and p.deletado_em is not None:
+            return None
+        return p
 
     def obter_por_numero(self, projeto_id, numero):
         for p in self._postes.values():
-            if p.projeto_id.value == projeto_id and p.numero == numero:
+            if (
+                p.projeto_id.value == projeto_id
+                and p.numero == numero
+                and p.deletado_em is None
+            ):
                 return p
         return None
 
@@ -387,7 +394,9 @@ class TestPosteServiceClonar:
         p.deletar()
         destino = ProjetoId()
         svc, _ = self._build_service(p)
-        with pytest.raises(ValueError, match="deletado"):
+        # A soft-deleted Poste is invisible to the repository, so the service
+        # raises "não encontrado" rather than "deletado".
+        with pytest.raises(ValueError, match="não encontrado"):
             svc.clonar_para_projeto(p.id.value, destino.value)
 
 
