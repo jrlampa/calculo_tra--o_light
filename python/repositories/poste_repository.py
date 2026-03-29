@@ -38,18 +38,30 @@ class PosteRepository:
     # ─────────────────────── HYDRATION (DB → Agregado) ───────────────────
 
     def obter_por_id(self, poste_id: UUID) -> Optional[PosteAggregate]:
-        """Hydrate complete Poste aggregate from DB by ID."""
-        db_poste = self.db.query(Poste).filter(Poste.id == poste_id).first()
+        """Hydrate complete Poste aggregate from DB by ID.
+
+        Returns ``None`` when the Poste does not exist **or** has been soft-deleted.
+        """
+        db_poste = self.db.query(Poste).filter(
+            and_(
+                Poste.id == poste_id,
+                Poste.deletado_em.is_(None),
+            )
+        ).first()
         if not db_poste:
             return None
         return self._hidrate_agregado(db_poste)
 
     def obter_por_numero(self, projeto_id: UUID, numero: str) -> Optional[PosteAggregate]:
-        """Hydrate Poste aggregate by (projeto_id, numero) unique constraint."""
+        """Hydrate Poste aggregate by (projeto_id, numero) unique constraint.
+
+        Returns ``None`` when the Poste does not exist **or** has been soft-deleted.
+        """
         db_poste = self.db.query(Poste).filter(
             and_(
                 Poste.projeto_id == projeto_id,
-                Poste.numero == numero
+                Poste.numero == numero,
+                Poste.deletado_em.is_(None),
             )
         ).first()
         if not db_poste:

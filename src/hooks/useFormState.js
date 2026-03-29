@@ -52,20 +52,20 @@ export const useFormState = () => {
   }, [])
 
   // Reset de todos os níveis otimizado
+  // Usa a forma funcional do setState para não depender dos valores capturados no closure
   const resetForm = useOptimizedCallback(() => {
-    const empty = arr => arr.map(t => Object.fromEntries(Object.keys(t).map(k => [k, ''])))
-    
-    setMT1(empty(mt1))
-    setMT2(empty(mt2))
-    setBT(empty(bt))
-    setBTZ(empty(btz))
-    setRAL(empty(ral))
-  }, [mt1, mt2, bt, btz, ral])
+    const emptyRow = t => Object.fromEntries(Object.keys(t).map(k => [k, '']))
+    setMT1(prev => prev.map(emptyRow))
+    setMT2(prev => prev.map(emptyRow))
+    setBT(prev => prev.map(emptyRow))
+    setBTZ(prev => prev.map(emptyRow))
+    setRAL(prev => prev.map(emptyRow))
+  }, [])
 
   // Reset para próximo ponto otimizado
   const resetFormParaProximoPonto = useOptimizedCallback(() => {
     resetForm()
-  }, [resetForm])
+  }, [])
 
   // Restaurar snapshot completo dos dados técnicos
   const restoreFormSnapshot = useOptimizedCallback((snapshot) => {
@@ -134,7 +134,7 @@ export const useFormState = () => {
       restoreFormSnapshot,
       applyImportedData
     }
-  }), [formState, mt1, mt2, bt, btz, ral, hasFormData, travessiasPreenchidas, handleTravessiaChange, resetForm, resetFormParaProximoPonto, restoreFormSnapshot])
+  }), [formState, mt1, mt2, bt, btz, ral, hasFormData, travessiasPreenchidas, handleTravessiaChange, restoreFormSnapshot])
 
   return formStateMemo
 }

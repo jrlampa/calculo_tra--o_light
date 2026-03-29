@@ -155,5 +155,47 @@ describe('useFormState', () => {
 
     expect(result.current.hasFormData).toBe(true)
   })
+
+  it('applyImportedData replaces provided levels and leaves others untouched', () => {
+    const { result } = renderHook(() => useFormState())
+
+    // Set a value in ral before import
+    act(() => {
+      result.current.handlers.handleTravessiaChange('ral', 0, 'tipoCabo', 'RAL-BEFORE')
+    })
+
+    const importedMt1 = [
+      makeMTRow({ tipoRede: 'MT-IMPORT', tipoCabo: 'CAB-IMPORT', vao: '55' }),
+      makeMTRow(),
+      makeMTRow(),
+      makeMTRow(),
+    ]
+
+    act(() => {
+      result.current.handlers.applyImportedData({ mt1: importedMt1 })
+    })
+
+    // mt1 replaced by import data
+    expect(result.current.travessias.mt1[0].tipoRede).toBe('MT-IMPORT')
+    expect(result.current.travessias.mt1[0].vao).toBe('55')
+    // ral was not in the import payload — value preserved
+    expect(result.current.travessias.ral[0].tipoCabo).toBe('RAL-BEFORE')
+  })
+
+  it('resetFormParaProximoPonto clears all data (same as resetForm)', () => {
+    const { result } = renderHook(() => useFormState())
+
+    act(() => {
+      result.current.handlers.handleTravessiaChange('mt2', 1, 'tipoCabo', 'VALUE')
+      result.current.handlers.handleTravessiaChange('btz', 0, 'qtdLigacoes', '2')
+    })
+
+    act(() => {
+      result.current.handlers.resetFormParaProximoPonto()
+    })
+
+    expect(result.current.travessias.mt2[1].tipoCabo).toBe('')
+    expect(result.current.travessias.btz[0].qtdLigacoes).toBe('')
+  })
 })
 
