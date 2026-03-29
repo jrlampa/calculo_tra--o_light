@@ -11,7 +11,8 @@ from typing import List
 from uuid import UUID
 
 from api.schemas import CalculoInput, CabecalhoIn
-from domain.aggregates import Poste as PosteAggregate, Nivel as NivelEntity, Travessia as TravessiaEntity
+from domain.aggregates import Poste as PosteAggregate, Nivel as NivelEntity
+from domain.entities import Travessia as TravessiaEntity
 from domain.value_objects import (
     Condutor, Geometria, NivelEnum, ProjetoId,
     CaboConductor, TipoRede,

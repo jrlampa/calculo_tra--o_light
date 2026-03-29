@@ -19,7 +19,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from core.models import Poste, NivelCalculo, Travessia, CalculoSnapshot
-from domain.aggregates import Poste as PosteAggregate, Nivel as NivelEntity, Travessia as TravessiaEntity
+from domain.aggregates import Poste as PosteAggregate, Nivel as NivelEntity
+from domain.entities import Travessia as TravessiaEntity
 from domain.value_objects import (
     Condutor, Geometria, NivelEnum, PosteId, ProjetoId,
     CalculoResultado, parse_cabo_conductor, parse_tipo_rede
