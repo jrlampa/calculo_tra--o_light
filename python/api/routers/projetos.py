@@ -509,8 +509,8 @@ async def update_projeto(
     """Atualiza dados do cabeçalho de um projeto."""
     try:
         projeto = await projeto_service.update_projeto(
-            UUID(projeto_id), 
-            inp, 
+            UUID(projeto_id),
+            inp,
             UUID(str(user.user_id))
         )
         return ProjetoOut(**projeto.model_dump(mode='json'))
@@ -530,7 +530,7 @@ async def delete_projeto(
     """Exclui um projeto. Falha se houver pontos vinculados (Soft Delete)."""
     try:
         await projeto_service.delete_projeto(
-            UUID(projeto_id), 
+            UUID(projeto_id),
             UUID(str(user.user_id))
         )
         return None

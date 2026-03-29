@@ -2,11 +2,10 @@
 # projects, poles, calculation results, and reference data.
 from datetime import datetime
 from uuid import uuid4
-from typing import Optional, List
 
 from sqlalchemy import Column, String, Float, DateTime, ForeignKey, Integer, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, relationship
 
 
 class Base(DeclarativeBase):

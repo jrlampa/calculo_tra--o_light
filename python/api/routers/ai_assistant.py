@@ -12,7 +12,6 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from ai.ollama_client import get_ai_assistant, ChatMessage
-from core.config import get_settings
 
 router = APIRouter(prefix="/ai", tags=["AI Assistant"])
 logger = logging.getLogger(__name__)
@@ -55,35 +54,35 @@ async def chat_with_ai(request: ChatRequest) -> ChatResponse:
     try:
         # Get AI assistant
         ai_assistant = await get_ai_assistant()
-        
+
         # Get or create conversation ID
         conversation_id = request.conversation_id or f"conv_{datetime.now(UTC).timestamp()}"
-        
+
         # Get conversation history
         history = conversations.get(conversation_id, [])
-        
+
         # Chat with AI
         response = await ai_assistant.chat(request.message, history)
-        
+
         # Update conversation history
         if conversation_id not in conversations:
             conversations[conversation_id] = []
-        
+
         conversations[conversation_id].extend([
             ChatMessage(role="user", content=request.message),
             ChatMessage(role="assistant", content=response)
         ])
-        
+
         # Limit conversation history to last 20 messages
         if len(conversations[conversation_id]) > 20:
             conversations[conversation_id] = conversations[conversation_id][-20:]
-        
+
         return ChatResponse(
             response=response,
             conversation_id=conversation_id,
             model=ai_assistant.model or "unknown"
         )
-        
+
     except Exception as e:
         logger.error(f"AI chat failed: {e}")
         raise HTTPException(
@@ -98,48 +97,48 @@ async def stream_chat_with_ai(request: ChatRequest):
     try:
         # Get AI assistant
         ai_assistant = await get_ai_assistant()
-        
+
         # Get or create conversation ID
         conversation_id = request.conversation_id or f"conv_{datetime.now(UTC).timestamp()}"
-        
+
         # Get conversation history
         history = conversations.get(conversation_id, [])
-        
+
         async def generate():
             try:
                 full_response = ""
-                
+
                 # Stream response from AI
                 async for chunk in ai_assistant.stream_chat(request.message, history):
                     full_response += chunk
                     yield f"data: {json.dumps({'chunk': chunk, 'conversation_id': conversation_id})}\n\n"
-                
+
                 # Update conversation history
                 if conversation_id not in conversations:
                     conversations[conversation_id] = []
-                
+
                 conversations[conversation_id].extend([
                     ChatMessage(role="user", content=request.message),
                     ChatMessage(role="assistant", content=full_response)
                 ])
-                
+
                 # Limit conversation history
                 if len(conversations[conversation_id]) > 20:
                     conversations[conversation_id] = conversations[conversation_id][-20:]
-                
+
                 # Send completion signal
                 yield f"data: {json.dumps({'done': True, 'conversation_id': conversation_id})}\n\n"
-                
+
             except Exception as e:
                 logger.error(f"Stream chat failed: {e}")
                 yield f"data: {json.dumps({'error': str(e)})}\n\n"
-        
+
         return StreamingResponse(
             generate(),
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "Connection": "keep-alive"}
         )
-        
+
     except Exception as e:
         logger.error(f"AI stream chat failed: {e}")
         raise HTTPException(
@@ -154,10 +153,10 @@ async def analyze_calculation(request: AnalysisRequest) -> Dict[str, Any]:
     try:
         # Get AI assistant
         ai_assistant = await get_ai_assistant()
-        
+
         # Analyze calculation
         analysis = await ai_assistant.analyze_calculation(request.calculation_data)
-        
+
         return {
             "status": "success",
             "analysis": analysis,
@@ -165,7 +164,7 @@ async def analyze_calculation(request: AnalysisRequest) -> Dict[str, Any]:
             "timestamp": datetime.now(UTC).isoformat(),
             "model": ai_assistant.model or "unknown"
         }
-        
+
     except Exception as e:
         logger.error(f"Calculation analysis failed: {e}")
         raise HTTPException(
@@ -180,17 +179,17 @@ async def optimize_project(request: OptimizationRequest) -> Dict[str, Any]:
     try:
         # Get AI assistant
         ai_assistant = await get_ai_assistant()
-        
+
         # Prepare optimization prompt with goals
-        goals_text = ", ".join(request.optimization_goals)
+        ", ".join(request.optimization_goals)
         project_data_with_goals = {
             **request.project_data,
             "optimization_goals": request.optimization_goals
         }
-        
+
         # Get optimization suggestions
         suggestions = await ai_assistant.suggest_optimization(project_data_with_goals)
-        
+
         return {
             "status": "success",
             "suggestions": suggestions,
@@ -198,7 +197,7 @@ async def optimize_project(request: OptimizationRequest) -> Dict[str, Any]:
             "timestamp": datetime.now(UTC).isoformat(),
             "model": ai_assistant.model or "unknown"
         }
-        
+
     except Exception as e:
         logger.error(f"Project optimization failed: {e}")
         raise HTTPException(
@@ -212,7 +211,7 @@ async def get_conversation(conversation_id: str) -> Dict[str, Any]:
     """Get conversation history."""
     try:
         history = conversations.get(conversation_id, [])
-        
+
         return {
             "status": "success",
             "conversation_id": conversation_id,
@@ -226,7 +225,7 @@ async def get_conversation(conversation_id: str) -> Dict[str, Any]:
             ],
             "message_count": len(history)
         }
-        
+
     except Exception as e:
         logger.error(f"Failed to get conversation: {e}")
         raise HTTPException(
@@ -241,13 +240,13 @@ async def delete_conversation(conversation_id: str) -> Dict[str, Any]:
     try:
         if conversation_id in conversations:
             del conversations[conversation_id]
-        
+
         return {
             "status": "success",
             "message": f"Conversation {conversation_id} deleted",
             "timestamp": datetime.now(UTC).isoformat()
         }
-        
+
     except Exception as e:
         logger.error(f"Failed to delete conversation: {e}")
         raise HTTPException(
@@ -261,7 +260,7 @@ async def list_conversations() -> Dict[str, Any]:
     """List all conversations."""
     try:
         conversation_list = []
-        
+
         for conv_id, messages in conversations.items():
             conversation_list.append({
                 "conversation_id": conv_id,
@@ -269,16 +268,16 @@ async def list_conversations() -> Dict[str, Any]:
                 "last_message": messages[-1].timestamp.isoformat() if messages else None,
                 "preview": messages[-1].content[:100] + "..." if messages and len(messages[-1].content) > 100 else (messages[-1].content if messages else "")
             })
-        
+
         # Sort by last message time
         conversation_list.sort(key=lambda x: x["last_message"] or "", reverse=True)
-        
+
         return {
             "status": "success",
             "conversations": conversation_list,
             "total_count": len(conversation_list)
         }
-        
+
     except Exception as e:
         logger.error(f"Failed to list conversations: {e}")
         raise HTTPException(
@@ -292,7 +291,7 @@ async def get_ai_status() -> Dict[str, Any]:
     """Get AI assistant status."""
     try:
         ai_assistant = await get_ai_assistant()
-        
+
         # Get available models
         models = []
         if ai_assistant.client:
@@ -306,7 +305,7 @@ async def get_ai_status() -> Dict[str, Any]:
                 }
                 for model in model_list
             ]
-        
+
         return {
             "status": "success",
             "ai_initialized": ai_assistant.client is not None,
@@ -316,7 +315,7 @@ async def get_ai_status() -> Dict[str, Any]:
             "active_conversations": len(conversations),
             "timestamp": datetime.now(UTC).isoformat()
         }
-        
+
     except Exception as e:
         logger.error(f"Failed to get AI status: {e}")
         return {
@@ -331,38 +330,38 @@ async def get_ai_status() -> Dict[str, Any]:
 async def websocket_chat(websocket: WebSocket):
     """WebSocket endpoint for real-time chat."""
     await websocket.accept()
-    
+
     try:
         # Get AI assistant
         ai_assistant = await get_ai_assistant()
-        
+
         conversation_id = None
         history = []
-        
+
         while True:
             # Receive message
             data = await websocket.receive_json()
-            
+
             message_type = data.get("type", "chat")
-            
+
             if message_type == "chat":
                 user_message = data.get("message", "")
                 conversation_id = data.get("conversation_id")
-                
+
                 if not conversation_id:
                     conversation_id = f"ws_conv_{datetime.now(UTC).timestamp()}"
-                
+
                 # Get conversation history
                 history = conversations.get(conversation_id, [])
-                
+
                 # Stream response
                 await websocket.send_json({
                     "type": "start",
                     "conversation_id": conversation_id
                 })
-                
+
                 full_response = ""
-                
+
                 async for chunk in ai_assistant.stream_chat(user_message, history):
                     full_response += chunk
                     await websocket.send_json({
@@ -370,26 +369,26 @@ async def websocket_chat(websocket: WebSocket):
                         "chunk": chunk,
                         "conversation_id": conversation_id
                     })
-                
+
                 # Update conversation history
                 if conversation_id not in conversations:
                     conversations[conversation_id] = []
-                
+
                 conversations[conversation_id].extend([
                     ChatMessage(role="user", content=user_message),
                     ChatMessage(role="assistant", content=full_response)
                 ])
-                
+
                 # Limit history
                 if len(conversations[conversation_id]) > 20:
                     conversations[conversation_id] = conversations[conversation_id][-20:]
-                
+
                 await websocket.send_json({
                     "type": "end",
                     "conversation_id": conversation_id,
                     "full_response": full_response
                 })
-                
+
             elif message_type == "get_history":
                 if conversation_id:
                     history = conversations.get(conversation_id, [])
@@ -405,10 +404,10 @@ async def websocket_chat(websocket: WebSocket):
                             for msg in history
                         ]
                     })
-                
+
             elif message_type == "ping":
                 await websocket.send_json({"type": "pong"})
-                
+
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected for conversation {conversation_id}")
     except Exception as e:
@@ -418,5 +417,5 @@ async def websocket_chat(websocket: WebSocket):
                 "type": "error",
                 "error": str(e)
             })
-        except:
+        except Exception:
             pass

@@ -39,7 +39,7 @@ async def list_public_normas(
     """Lista pública de normas e regras."""
     if categoria:
         return await run_supabase_lookup(
-            supabase, 
+            supabase,
             lambda: supabase.fetch_normas_by_categoria(categoria)
         )
     return await run_supabase_lookup(supabase, supabase.fetch_normas)
@@ -68,6 +68,6 @@ async def get_config() -> dict:
             "postes": postes_por_tipo,
             "cabos_por_rede": CABOS_POR_REDE,
         }
-    except Exception as e:
+    except Exception:
         logger.exception("Erro em /api/config")
         raise HTTPException(status_code=500, detail="Erro interno ao carregar configuracoes")

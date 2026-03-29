@@ -10,7 +10,6 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 from uuid import UUID, uuid4
 
-from domain.value_objects import CalculoResultado
 
 
 @dataclass(frozen=True)

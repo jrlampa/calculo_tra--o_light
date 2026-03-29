@@ -34,7 +34,7 @@ async def importar_excel(file: UploadFile = File(...)) -> CalculoInput:
     """Import legacy Excel data to pre-fill the frontend form."""
     if not file.filename.lower().endswith((".xlsm", ".xlsx")):
         raise HTTPException(status_code=400, detail="Apenas arquivos .xlsm ou .xlsx são permitidos")
-    
+
     try:
         content = await file.read()
         extracted_data = extract_excel_to_input(content)

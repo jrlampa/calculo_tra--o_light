@@ -1,8 +1,8 @@
 """Padrão de autenticação padronizado para endpoints críticos.
-    
+
     This Python module defines a standardized authentication pattern for critical endpoints, ensuring
     consistent authentication across environments.
-    
+
     :param request: The `request` parameter in the context of FastAPI represents the incoming HTTP
     request made to your API endpoint. It contains information such as headers, cookies, query
     parameters, and more that are sent by the client making the request. In your code, you are using the
@@ -16,7 +16,7 @@
     FastAPI application. It includes functions for different types of authentication (public, write,
     admin), validation functions for endpoint access, logging authentication attempts, and compatibility
     functions with existing dependencies.
-    
+
 
 Este módulo define o padrão único de autenticação que deve ser usado
 por todos os endpoints, eliminando variantes por ambiente e reduzindo
@@ -34,8 +34,6 @@ from pydantic import BaseModel
 from api.auth import (
     CurrentUser,
     get_current_user,
-    require_admin,
-    require_mutation_identity,
     verify_jwt_token,
     verify_session_cookie,
 )
@@ -80,25 +78,25 @@ def _get_cookie(request: Request, cookie_name: str) -> str | None:
 
 class AuthConfig(BaseModel):
     """Configuração padronizada de autenticação."""
-    
+
     # JWT Configuration
     jwt_secret: str
     jwt_algorithm: str = "HS256"
     jwt_leeway_seconds: int = 30
-    
-    # Session Configuration  
+
+    # Session Configuration
     session_secret: str
     session_ttl_seconds: int = 86400
     session_cookie_name: str = "calc_session"
-    
+
     # Authentication Rules
     require_jwt_for_writes: bool = True
     allow_session_for_reads: bool = True
     require_admin_role: bool = True
-    
+
     # Environment
     environment: str = "development"
-    
+
     @property
     def is_production(self) -> bool:
         """Verifica se está em ambiente de produção."""
@@ -111,14 +109,14 @@ def get_auth_config() -> AuthConfig:
     jwt_secret = os.getenv("AUTH_JWT_SECRET")
     if not jwt_secret:
         raise ValueError("AUTH_JWT_SECRET deve ser definido")
-    
+
     # Session Secret - única variável padronizada
     session_secret = os.getenv("AUTH_SESSION_SECRET")
     if not session_secret:
         if os.getenv("APP_ENV", "").lower() in ["prod", "production"]:
             raise ValueError("AUTH_SESSION_SECRET deve ser definido em produção")
         session_secret = "development_session_secret_change_in_production"
-    
+
     return AuthConfig(
         jwt_secret=jwt_secret,
         session_secret=session_secret,
@@ -131,7 +129,7 @@ def get_auth_config() -> AuthConfig:
 
 class AuthenticationError(Exception):
     """Exceção para erros de autenticação padronizados."""
-    
+
     def __init__(self, message: str, code: str = "AUTH_ERROR"):
         self.message = message
         self.code = code
@@ -142,10 +140,10 @@ def validate_auth_config():
     """Valida a configuração de autenticação no startup."""
     try:
         config = get_auth_config()
-        
+
         # Logs de auditoria da configuração
         logger.info(f"auth_config_validated - Env: {config.environment}, JWT: {config.require_jwt_for_writes}, Session: {config.allow_session_for_reads}, Prod: {config.is_production}")
-        
+
         return config
     except Exception as e:
         logger.error(f"auth_config_validation_failed: {e}")
@@ -156,22 +154,22 @@ def validate_auth_config():
 
 def public_auth(request: Request) -> CurrentUser:
     """Autenticação para endpoints públicos (leitura).
-    
+
     Permite acesso anônimo, mas tenta autenticar se houver credenciais.
     """
     config = get_auth_config()
-    
+
     # Verificar JWT primeiro
     jwt_token = None
     auth_header = _get_header(request, "authorization")
     if auth_header and auth_header.startswith("Bearer "):
         jwt_token = auth_header[7:]
-    
+
     jwt_user = verify_jwt_token(jwt_token) if jwt_token else None
     if jwt_user:
         logger.info("public_auth_jwt_success", user_id=jwt_user.user_id)
         return jwt_user
-    
+
     # Verificar sessão se permitido
     if config.allow_session_for_reads:
         session_cookie = _get_cookie(request, config.session_cookie_name)
@@ -179,7 +177,7 @@ def public_auth(request: Request) -> CurrentUser:
         if session_user:
             logger.info("public_auth_session_success", user_id=session_user.user_id)
             return session_user
-    
+
     # Acesso anônimo
     logger.info("public_auth_anonymous")
     return CurrentUser(
@@ -192,22 +190,22 @@ def public_auth(request: Request) -> CurrentUser:
 
 def write_auth(request: Request) -> CurrentUser:
     """Autenticação para endpoints de escrita.
-    
+
     Exige JWT em produção, permite fallback para sessão em desenvolvimento.
     """
     config = get_auth_config()
-    
+
     # Verificar JWT
     jwt_token = None
     auth_header = _get_header(request, "authorization")
     if auth_header and auth_header.startswith("Bearer "):
         jwt_token = auth_header[7:]
-    
+
     jwt_user = verify_jwt_token(jwt_token) if jwt_token else None
     if jwt_user:
         logger.info("write_auth_jwt_success", user_id=jwt_user.user_id)
         return jwt_user
-    
+
     # Fallback para sessão apenas em desenvolvimento
     if not config.is_production and config.allow_session_for_reads:
         session_cookie = _get_cookie(request, config.session_cookie_name)
@@ -215,12 +213,12 @@ def write_auth(request: Request) -> CurrentUser:
         if session_user:
             logger.warning("write_auth_session_fallback", user_id=session_user.user_id)
             return session_user
-    
+
     # Falha de autenticação
-    logger.warning("write_auth_failed", 
+    logger.warning("write_auth_failed",
                   environment=config.environment,
                   require_jwt=config.require_jwt_for_writes)
-    
+
     if config.is_production:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -243,11 +241,11 @@ def write_auth(request: Request) -> CurrentUser:
 
 def admin_auth(request: Request) -> CurrentUser:
     """Autenticação para endpoints administrativos.
-    
+
     Exige JWT com role=admin ou token admin.
     """
     config = get_auth_config()
-    
+
     # Primeiro tenta autenticação normal
     try:
         user = get_current_user(request)
@@ -256,15 +254,15 @@ def admin_auth(request: Request) -> CurrentUser:
             return user
     except HTTPException:
         pass
-    
+
     # Verifica token admin
     admin_token = _get_header(request, "X-Admin-Token")
     expected_admin_token = os.getenv("AUTH_ADMIN_TOKEN")
-    
+
     if expected_admin_token and admin_token:
         import hmac
         if hmac.compare_digest(admin_token, expected_admin_token):
-            logger.warning("admin_auth_token_fallback", 
+            logger.warning("admin_auth_token_fallback",
                           user_id="admin_token_user")
             return CurrentUser(
                 user_id="admin_token_user",
@@ -272,11 +270,11 @@ def admin_auth(request: Request) -> CurrentUser:
                 auth_source="admin_token",
                 claims={}
             )
-    
+
     # Falha de autenticação admin
-    logger.warning("admin_auth_failed", 
+    logger.warning("admin_auth_failed",
                   environment=config.environment)
-    
+
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
         detail={
@@ -323,7 +321,7 @@ def log_auth_attempt(
     auth_type: Literal["public", "write", "admin"]
 ):
     """Registra tentativas de autenticação para auditoria."""
-    logger.info("auth_attempt", 
+    logger.info("auth_attempt",
                endpoint=endpoint,
                user_id=user.user_id,
                auth_source=user.auth_source,
@@ -341,7 +339,7 @@ def require_mutation_identity_standard(
 ) -> CurrentUser:
     """Versão padronizada do require_mutation_identity."""
     config = get_auth_config()
-    
+
     if config.require_jwt_for_writes and user.auth_source != "jwt":
         if config.is_production:
             raise HTTPException(
@@ -353,10 +351,10 @@ def require_mutation_identity_standard(
                 }
             )
         else:
-            logger.warning("mutation_identity_session_fallback", 
+            logger.warning("mutation_identity_session_fallback",
                           user_id=user.user_id,
                           environment=config.environment)
-    
+
     return user
 
 

@@ -14,7 +14,7 @@ from models.projeto import Projeto, ProjetoCreate, ProjetoUpdate
 
 class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
     """Repository for projeto operations."""
-    
+
     def __init__(self, db_client):
         super().__init__(Projeto)
         self.db = db_client
@@ -52,7 +52,7 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
             # Keep safe defaults when schema introspection is unavailable.
             # Including both English (Alembic default) and Portuguese (IM3 standard) mappings.
             found_columns = {
-                "created_at", "updated_at", "deleted_at", 
+                "created_at", "updated_at", "deleted_at",
                 "criado_em", "atualizado_em", "deletado_em"
             }
 
@@ -89,12 +89,12 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
         for key, value in raw.items():
             normalized[key] = str(value) if isinstance(value, UUID) else value
         return normalized
-    
+
     async def _log_activity(
-        self, 
-        activity_type: str, 
-        user_id: Optional[UUID] = None, 
-        projeto_id: Optional[UUID] = None, 
+        self,
+        activity_type: str,
+        user_id: Optional[UUID] = None,
+        projeto_id: Optional[UUID] = None,
         details: Optional[Dict[str, Any]] = None
     ) -> None:
         """Helper to log backend activities (Audit Trail)."""
@@ -115,7 +115,7 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
             # Audit logging should not break the main transaction, but we log it.
             import logging
             logging.getLogger(__name__).error(f"Failed to log activity {activity_type}: {e}")
-    
+
     async def get(self, id: UUID) -> Optional[Projeto]:
         """Get a projeto by ID."""
         try:
@@ -128,10 +128,10 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
             return Projeto(**self._to_dict(result)) if result else None
         except Exception as e:
             raise RuntimeError(f"Error fetching projeto {id}: {e}")
-    
+
     async def get_multi(
-        self, 
-        skip: int = 0, 
+        self,
+        skip: int = 0,
         limit: int = 100,
         owner_id: Optional[UUID] = None
     ) -> List[Projeto]:
@@ -147,22 +147,22 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
             """
             query += deleted_filter  # nosec B608
             params = []
-            
+
             if owner_id:
                 query += " AND p.owner_id = $%d"
                 params.append(str(owner_id))
-            
+
             query += f" GROUP BY p.id ORDER BY p.{contract['order']} DESC LIMIT $%d OFFSET $%d"
             params.extend([limit, skip])
-            
+
             # Format query with proper parameter indices
             formatted_query = query % tuple(range(1, len(params) + 1))
-            
+
             results = await self.db.fetch_all(formatted_query, *params)
             return [Projeto(**self._to_dict(result)) for result in results]
         except Exception as e:
             raise RuntimeError(f"Error fetching projetos: {e}")
-    
+
     async def create(self, obj_in: ProjetoCreate) -> Projeto:
         """Create a new projeto."""
         try:
@@ -172,7 +172,7 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
             # Ensure all required fields are present and valid
             if not obj_in.orgao or not obj_in.ns or not obj_in.nome or not obj_in.estudado_por or not obj_in.matricula:
                 raise ValueError("Campos obrigatórios ausentes: orgao, ns, nome, estudado_por, matricula")
-            
+
             if not obj_in.data_estudo:
                 raise ValueError("Campo data_estudo é obrigatório")
 
@@ -201,7 +201,7 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
                 VALUES ({', '.join(values_expr)})
                 RETURNING *
             """
-            
+
             result = await self.db.fetch_one(
                 query,
                 str(projeto_id),
@@ -214,12 +214,12 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
                 obj_in.data_estudo,
                 str(obj_in.owner_id)
             )
-            
+
             if not result:
                 raise RuntimeError("Projeto não foi criado no banco de dados")
-            
+
             projeto = Projeto(**self._to_dict(result))
-            
+
             # Audit Trail
             await self._log_activity(
                 activity_type="PROJECT_CREATE",
@@ -227,15 +227,15 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
                 projeto_id=projeto.id,
                 details={"nome": projeto.nome, "ns": projeto.ns}
             )
-            
+
             return projeto
         except Exception as e:
             raise RuntimeError(f"Error creating projeto: {e}")
 
-    
+
     async def update(
-        self, 
-        db_obj: Projeto, 
+        self,
+        db_obj: Projeto,
         obj_in: ProjetoUpdate
     ) -> Projeto:
         """Update an existing projeto."""
@@ -244,31 +244,31 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
             update_data = obj_in.dict(exclude_unset=True)
             if not update_data:
                 return db_obj
-            
+
             # Build dynamic update query
             set_clauses = []
             params = [str(db_obj.id)]
-            
+
             for i, (field, value) in enumerate(update_data.items(), 2):
                 set_clauses.append(f"{field} = ${i}")
                 params.append(value)
-            
+
             if contract["updated"]:
                 set_clauses.append(f"{contract['updated']} = NOW()")
             params.append(str(db_obj.id))
 
             deleted_filter = self._active_filter(contract["deleted"])
-            
+
             query = f"""
-                UPDATE projetos 
+                UPDATE projetos
                 SET {', '.join(set_clauses)}
                 WHERE id = $1{deleted_filter}
                 RETURNING *
             """  # nosec B608
-            
+
             result = await self.db.fetch_one(query, *params)
             projeto = Projeto(**self._to_dict(result)) if result else db_obj
-            
+
             # Audit Trail
             if result:
                 await self._log_activity(
@@ -277,11 +277,11 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
                     projeto_id=projeto.id,
                     details={"fields_updated": list(update_data.keys())}
                 )
-            
+
             return projeto
         except Exception as e:
             raise RuntimeError(f"Error updating projeto {db_obj.id}: {e}")
-    
+
     async def delete(self, id: UUID) -> Optional[Projeto]:
         """Soft delete a projeto."""
         try:
@@ -297,7 +297,7 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
             return Projeto(**self._to_dict(result)) if result else None
         except Exception as e:
             raise RuntimeError(f"Error deleting projeto {id}: {e}")
-    
+
     async def count(self, owner_id: Optional[UUID] = None) -> int:
         """Count projetos with optional owner filter."""
         try:
@@ -305,20 +305,20 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
             query = "SELECT COUNT(*) as count FROM projetos WHERE 1=1"
             query += self._active_filter(contract["deleted"])  # nosec B608
             params = []
-            
+
             if owner_id:
                 query += " AND owner_id = $1"
                 params.append(str(owner_id))
-            
+
             result = await self.db.fetch_one(query, *params)
             return result["count"]
         except Exception as e:
             raise RuntimeError(f"Error counting projetos: {e}")
-    
+
     async def get_by_owner(self, owner_id: UUID) -> List[Projeto]:
         """Get all projetos for a specific owner."""
         return await self.get_multi(owner_id=owner_id)
-    
+
     async def user_can_access_projeto(self, projeto_id: UUID, user_id: UUID) -> bool:
         """Check if user can access a projeto."""
         try:
@@ -332,7 +332,7 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
             return result is not None
         except Exception as e:
             raise RuntimeError(f"Error checking projeto access: {e}")
-    
+
     async def get_with_pontos_count(self, projeto_id: UUID) -> Optional[Dict[str, Any]]:
         """Get projeto with pontos count."""
         try:
@@ -351,7 +351,7 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
             return self._to_dict(result) if result else None
         except Exception as e:
             raise RuntimeError(f"Error fetching projeto with pontos: {e}")
-    
+
     # Métodos auxiliares para testes de hierarquia
     async def _get_ponto(self, ponto_id: str) -> Optional[Dict[str, Any]]:
         """Get ponto by ID (for testing)."""
@@ -363,7 +363,7 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
             return self._to_dict(result) if result else None
         except Exception as e:
             raise RuntimeError(f"Error fetching ponto {ponto_id}: {e}")
-    
+
     async def _get_niveis_calculo(self, ponto_id: str) -> List[Dict[str, Any]]:
         """Get all niveis for a ponto (for testing)."""
         try:
@@ -374,7 +374,7 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
             return [self._to_dict(row) for row in result]
         except Exception as e:
             raise RuntimeError(f"Error fetching niveis for ponto {ponto_id}: {e}")
-    
+
     async def _get_travessias(self, nivel_id: str) -> List[Dict[str, Any]]:
         """Get all travessias for a nivel (for testing)."""
         try:
@@ -385,7 +385,7 @@ class ProjetoRepository(BaseRepository[Projeto, ProjetoCreate, ProjetoUpdate]):
             return [self._to_dict(row) for row in result]
         except Exception as e:
             raise RuntimeError(f"Error fetching travessias for nivel {nivel_id}: {e}")
-    
+
     async def _get_resultado_calculo(self, ponto_id: str) -> Optional[Dict[str, Any]]:
         """Get resultado for a ponto (for testing)."""
         try:

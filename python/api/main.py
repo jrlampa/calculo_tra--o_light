@@ -13,7 +13,6 @@ import os
 import sys
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
-from uuid import UUID
 
 import structlog
 from fastapi import FastAPI, Request
@@ -165,7 +164,6 @@ async def authentication_middleware(request: Request, call_next):
 
 from fastapi.exceptions import RequestValidationError
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
 
 
 @app.exception_handler(RequestValidationError)

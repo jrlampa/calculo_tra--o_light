@@ -47,7 +47,7 @@ async def get_cache_statistics() -> CacheStatsResponse:
     try:
         cache_manager = await get_cache_manager()
         stats = await cache_manager.get_cache_stats()
-        
+
         return CacheStatsResponse(
             status="success",
             local_stats=stats["local_stats"],
@@ -55,7 +55,7 @@ async def get_cache_statistics() -> CacheStatsResponse:
             total_requests=stats["total_requests"],
             redis_info=stats["redis_info"]
         )
-        
+
     except Exception as e:
         logger.error(f"Failed to get cache statistics: {e}")
         raise HTTPException(
@@ -70,13 +70,13 @@ async def cache_health_check() -> CacheHealthResponse:
     try:
         cache_manager = await get_cache_manager()
         health = await cache_manager.health_check()
-        
+
         return CacheHealthResponse(
             status=health["status"],
             error=health.get("error"),
             stats=health.get("stats")
         )
-        
+
     except Exception as e:
         logger.error(f"Cache health check failed: {e}")
         return CacheHealthResponse(
@@ -93,7 +93,7 @@ async def clear_cache(
     """Clear cache entries."""
     try:
         cache_manager = await get_cache_manager()
-        
+
         if pattern:
             # Clear specific pattern
             deleted = await cache_manager.cache.delete_pattern(pattern, prefix)
@@ -103,13 +103,13 @@ async def clear_cache(
             success = await cache_manager.cache.flush_all()
             deleted = 1 if success else 0
             message = "Cleared all cache entries"
-        
+
         return CacheOperationResponse(
             success=deleted > 0,
             message=message,
             affected_keys=deleted
         )
-        
+
     except Exception as e:
         logger.error(f"Failed to clear cache: {e}")
         raise HTTPException(
@@ -124,13 +124,13 @@ async def invalidate_projeto_cache(projeto_id: str) -> CacheOperationResponse:
     try:
         cache_manager = await get_cache_manager()
         deleted = await cache_manager.invalidate_projeto_cache(projeto_id)
-        
+
         return CacheOperationResponse(
             success=deleted > 0,
             message=f"Invalidated {deleted} cache entries for projeto {projeto_id}",
             affected_keys=deleted
         )
-        
+
     except Exception as e:
         logger.error(f"Failed to invalidate projeto cache: {e}")
         raise HTTPException(
@@ -148,22 +148,22 @@ async def list_cache_keys(
     """List cache keys matching pattern."""
     try:
         cache_manager = await get_cache_manager()
-        
+
         if not cache_manager.cache.redis_client:
             raise HTTPException(
                 status_code=503,
                 detail="Cache not available"
             )
-        
+
         # Create full pattern with prefix
         full_pattern = cache_manager.cache._make_key(prefix, pattern)
-        
+
         # Get keys
         keys = await cache_manager.cache.redis_client.keys(full_pattern)
-        
+
         # Limit results
         keys = keys[:limit]
-        
+
         # Get TTL for each key
         key_info = []
         for key in keys:
@@ -173,7 +173,7 @@ async def list_cache_keys(
                 "ttl": ttl,
                 "type": await cache_manager.cache.redis_client.type(key)
             })
-        
+
         return {
             "status": "success",
             "pattern": pattern,
@@ -182,7 +182,7 @@ async def list_cache_keys(
             "keys": key_info,
             "timestamp": datetime.now(UTC).isoformat()
         }
-        
+
     except Exception as e:
         logger.error(f"Failed to list cache keys: {e}")
         raise HTTPException(
@@ -199,16 +199,16 @@ async def get_cache_key(
     """Get specific cache key value and metadata."""
     try:
         cache_manager = await get_cache_manager()
-        
+
         # Get value
         value = await cache_manager.cache.get(key, prefix)
-        
+
         # Get TTL
         ttl = await cache_manager.cache.ttl(key, prefix)
-        
+
         # Check existence
         exists = await cache_manager.cache.exists(key, prefix)
-        
+
         return {
             "status": "success",
             "key": key,
@@ -218,7 +218,7 @@ async def get_cache_key(
             "value": value,
             "timestamp": datetime.now(UTC).isoformat()
         }
-        
+
     except Exception as e:
         logger.error(f"Failed to get cache key: {e}")
         raise HTTPException(
@@ -236,13 +236,13 @@ async def delete_cache_key(
     try:
         cache_manager = await get_cache_manager()
         success = await cache_manager.cache.delete(key, prefix)
-        
+
         return CacheOperationResponse(
             success=success,
             message=f"{'Deleted' if success else 'Key not found'} cache key '{key}' with prefix '{prefix}'",
             affected_keys=1 if success else 0
         )
-        
+
     except Exception as e:
         logger.error(f"Failed to delete cache key: {e}")
         raise HTTPException(
@@ -262,13 +262,13 @@ async def set_cache_key(
     try:
         cache_manager = await get_cache_manager()
         success = await cache_manager.cache.set(key, value, prefix, ttl)
-        
+
         return CacheOperationResponse(
             success=success,
             message=f"{'Set' if success else 'Failed to set'} cache key '{key}' with prefix '{prefix}' and TTL {ttl}s",
             affected_keys=1 if success else 0
         )
-        
+
     except Exception as e:
         logger.error(f"Failed to set cache key: {e}")
         raise HTTPException(
@@ -283,13 +283,13 @@ async def reset_cache_statistics() -> CacheOperationResponse:
     try:
         cache_manager = await get_cache_manager()
         await cache_manager.cache.clear_stats()
-        
+
         return CacheOperationResponse(
             success=True,
             message="Cache statistics reset successfully",
             affected_keys=0
         )
-        
+
     except Exception as e:
         logger.error(f"Failed to reset cache statistics: {e}")
         raise HTTPException(
@@ -304,18 +304,18 @@ async def get_cache_performance() -> Dict[str, Any]:
     try:
         cache_manager = await get_cache_manager()
         stats = await cache_manager.get_cache_stats()
-        
+
         # Calculate additional metrics
         local_stats = stats["local_stats"]
         total_requests = stats["total_requests"]
-        
+
         # Calculate rates
         hit_rate = stats["hit_rate"]
         miss_rate = 100 - hit_rate
         set_rate = (local_stats["sets"] / total_requests * 100) if total_requests > 0 else 0
         delete_rate = (local_stats["deletes"] / total_requests * 100) if total_requests > 0 else 0
         error_rate = (local_stats["errors"] / total_requests * 100) if total_requests > 0 else 0
-        
+
         # Performance classification
         if hit_rate >= 80:
             performance_grade = "A"
@@ -325,7 +325,7 @@ async def get_cache_performance() -> Dict[str, Any]:
             performance_grade = "C"
         else:
             performance_grade = "D"
-        
+
         return {
             "status": "success",
             "performance": {
@@ -341,7 +341,7 @@ async def get_cache_performance() -> Dict[str, Any]:
             "recommendations": get_performance_recommendations(hit_rate, error_rate),
             "timestamp": datetime.now(UTC).isoformat()
         }
-        
+
     except Exception as e:
         logger.error(f"Failed to get cache performance: {e}")
         raise HTTPException(
@@ -353,20 +353,20 @@ async def get_cache_performance() -> Dict[str, Any]:
 def get_performance_recommendations(hit_rate: float, error_rate: float) -> list:
     """Get performance recommendations based on metrics."""
     recommendations = []
-    
+
     if hit_rate < 50:
         recommendations.append("Consider increasing cache TTL for frequently accessed data")
         recommendations.append("Review cache key patterns and ensure proper caching strategies")
-    
+
     if hit_rate < 30:
         recommendations.append("Cache hit rate is very low - review caching implementation")
         recommendations.append("Consider warming up cache with frequently accessed data")
-    
+
     if error_rate > 5:
         recommendations.append("High error rate detected - check Redis connection stability")
         recommendations.append("Review error logs and fix underlying issues")
-    
+
     if hit_rate > 90:
         recommendations.append("Excellent cache performance - consider optimizing memory usage")
-    
+
     return recommendations

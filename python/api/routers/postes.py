@@ -39,7 +39,7 @@ async def criar_poste(
     service: PosteService = Depends(get_poste_service),
 ) -> PosteOut:
     """Cria novo Poste (agregado raiz) em um projeto.
-    
+
     O Poste é criado com 5 Niveis (MT1, MT2, BT, BTZ, RAL) × 4 Travessias cada.
     """
     try:
@@ -131,17 +131,17 @@ async def atualizar_travessia(
     service: PosteService = Depends(get_poste_service),
 ) -> PosteOut:
     """Atualiza uma Travessia dentro de um Nivel de um Poste.
-    
+
     Valida que 1 ≤ posicao ≤ 4 e que nivel ∈ {MT1, MT2, BT, BTZ, RAL}.
     """
     try:
         # Parse nivel enum
         nivel_enum = NivelEnum(nivel.upper())
-        
+
         # Validate posicao
         if not 1 <= posicao <= 4:
             raise ValueError(f"Posição deve estar entre 1-4, recebeu {posicao}")
-        
+
         # Update through service (goes through aggregate)
         poste = service.atualizar_travessia(
             poste_id=poste_id,
@@ -257,7 +257,7 @@ async def obter_historico_calculos(
     service: PosteService = Depends(get_poste_service),
 ) -> list[dict]:
     """Obtém histórico de cálculos de um Poste (append-only snapshots).
-    
+
     Retorna lista de snapshots mais recentes primeiro.
     """
     try:

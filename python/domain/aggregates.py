@@ -1,6 +1,6 @@
 """Domain aggregates — root entities that enforce invariants over child entities.
 
-An aggregate is a cluster of domain objects (entities and value objects) that can be 
+An aggregate is a cluster of domain objects (entities and value objects) that can be
 treated as a single unit. The root entity enforces consistency boundaries.
 
 Poste = Root Aggregate (owns Niveis, Travessias, CalculoSnapshots)
@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from typing import List, Optional
 from uuid import UUID, uuid4
 
-from domain.entities import Nivel, Travessia
+from domain.entities import Nivel
 from domain.value_objects import (
     CalculoResultado,
     Condutor,
@@ -33,7 +33,7 @@ def _utc_now() -> datetime:
 @dataclass
 class CalculoSnapshot:
     """Immutable snapshot of a calculation result (append-only event).
-    
+
     Represents a saved calculation at a point in time. Once created, never modified.
     Status can be: 'draft' (unsaved working copy) or 'saved' (persistent).
     """
@@ -65,7 +65,7 @@ class CalculoSnapshot:
 @dataclass
 class Poste:
     """Root aggregate for pole/post in electrical distribution network.
-    
+
     A Poste is the fundamental unit of calculation. It owns:
     - Niveis (voltage levels): always 5 (MT1, MT2, BT, BTZ, RAL)
     - Travessias (spans) within each Nivel: always 4 per level
@@ -310,7 +310,7 @@ class Poste:
 @dataclass
 class Projeto:
     """Parent aggregate — groups multiple Postes and project metadata.
-    
+
     A Projeto is the context/container for multiple Postes.
     It doesn't own Poste objects directly, only references (IDs).
     """

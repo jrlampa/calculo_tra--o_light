@@ -43,7 +43,7 @@ async def create_cabo(
 
 @router.delete("/cabos/{cable_id}")
 async def delete_cabo(
-    cable_id: int, 
+    cable_id: int,
     _: CurrentUser = Depends(require_admin),
     supabase: object = Depends(get_supabase_dependency)
 ):
@@ -90,7 +90,7 @@ async def create_poste(
 
 @router.delete("/postes/{poste_id}")
 async def delete_poste(
-    poste_id: int, 
+    poste_id: int,
     _: CurrentUser = Depends(require_admin),
     supabase: object = Depends(get_supabase_dependency)
 ):
