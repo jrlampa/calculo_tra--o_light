@@ -4,8 +4,9 @@
  * returns { matches: false }.  Here we override it per-test to simulate
  * different viewport states and to exercise the change-event listener.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+
 import { useIsMobile } from '@/hooks/useIsMobile'
 
 function makeMql(initialMatches = false) {

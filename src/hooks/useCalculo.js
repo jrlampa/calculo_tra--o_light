@@ -23,6 +23,7 @@
  * endpoint and returns the computed resultado.
  */
 import { useState, useEffect, useRef } from 'react'
+
 import { buildCalculoRequest, extractSectionErrors } from '../services/calculoApi.js'
 import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstrumentation.js'
 

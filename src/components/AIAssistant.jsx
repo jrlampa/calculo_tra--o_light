@@ -1,7 +1,7 @@
 /* The above code is a React component named `AIAssistant` that serves as an AI chatbot interface. Here
 is a summary of its functionality: */
-import React, { useState, useEffect, useRef } from 'react';
 import { Send, Bot, User, Trash2, MessageSquare, TrendingUp, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const AIAssistant = ({ calculationData, projectData, onOptimizationSuggestion }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -35,13 +35,13 @@ const AIAssistant = ({ calculationData, projectData, onOptimizationSuggestion })
         connected: data.ollama_connected,
         model: data.current_model
       });
-    } catch (error) {
+    } catch (_error) {
       setAiStatus({ connected: false, model: null });
     }
   };
 
   const sendMessage = async () => {
-    if (!inputValue.trim() || isLoading) return;
+    if (!inputValue.trim() || isLoading) {return;}
 
     const userMessage = {
       role: 'user',
@@ -80,7 +80,7 @@ const AIAssistant = ({ calculationData, projectData, onOptimizationSuggestion })
       } else {
         throw new Error(data.detail || 'Failed to send message');
       }
-    } catch (error) {
+    } catch (_error) {
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.',
@@ -93,7 +93,7 @@ const AIAssistant = ({ calculationData, projectData, onOptimizationSuggestion })
   };
 
   const analyzeCalculation = async () => {
-    if (!calculationData) return;
+    if (!calculationData) {return;}
 
     setIsLoading(true);
     setActiveTab('analysis');
@@ -129,7 +129,7 @@ const AIAssistant = ({ calculationData, projectData, onOptimizationSuggestion })
   };
 
   const optimizeProject = async () => {
-    if (!projectData) return;
+    if (!projectData) {return;}
 
     setIsLoading(true);
     setActiveTab('optimization');
@@ -173,7 +173,7 @@ const AIAssistant = ({ calculationData, projectData, onOptimizationSuggestion })
         await fetch(`/api/ai/conversations/${conversationId}`, {
           method: 'DELETE'
         });
-      } catch (error) {
+      } catch (_error) { // no-op
       }
     }
     

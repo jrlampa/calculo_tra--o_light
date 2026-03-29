@@ -81,7 +81,7 @@ export const usePerformanceMonitor = () => {
  * @param {string} componentName - Nome do componente
  * @returns {Object} - Informações sobre re-renders
  */
-export const useRerenderDetector = (componentName) => {
+export const useRerenderDetector = (_componentName) => {
   const [rerenderCount, setRerenderCount] = useState(0)
   const [lastRenderProps, setLastRenderProps] = useState(null)
   const [rerenderReasons, setRerenderReasons] = useState([])
@@ -127,7 +127,7 @@ export const useRerenderDetector = (componentName) => {
  */
 export const useVirtualizedList = (items = [], threshold = 100) => {
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: threshold })
-  const [containerHeight, setContainerHeight] = useState(0)
+  const [_containerHeight, _setContainerHeight] = useState(0)
   const itemHeight = 40 // Altura aproximada de cada item
 
   const visibleItems = useMemo(() => {
@@ -139,7 +139,7 @@ export const useVirtualizedList = (items = [], threshold = 100) => {
   }, [items, visibleRange, threshold])
 
   const handleScroll = useCallback((e) => {
-    if (items.length <= threshold) return
+    if (items.length <= threshold) {return}
     
     const scrollTop = e.target.scrollTop
     const start = Math.floor(scrollTop / itemHeight)

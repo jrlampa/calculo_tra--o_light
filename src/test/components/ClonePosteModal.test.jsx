@@ -9,8 +9,9 @@
  * - Calls onClone with the selected poste ID.
  * - Calls onClose when Cancelar is clicked.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+
 import ClonePosteModal from '@/components/projeto/ClonePosteModal'
 
 // Mock listPostes from calculoApi

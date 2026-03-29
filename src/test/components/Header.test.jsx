@@ -1,7 +1,8 @@
 /* Tests for Header PersistenciaChip state contract (FE-21/22) */
-import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { describe, it, expect, vi } from 'vitest'
+
 import Header from '@/components/header/Header'
 
 const baseDados = {

@@ -2,16 +2,10 @@
 traction in an electrical network. Here is a breakdown of what the code is doing: */
 // App.jsx — Aplicação principal de Cálculo de Tração de Rede Elétrica (Otimizado)
 import React, { useRef, useState } from 'react'
-import { useAppOptimizedState } from './hooks/useAppOptimizedState.js'
-import Header from './components/header/Header.jsx'
-import FlowStepper from './components/fluxo/FlowStepper.jsx'
+
 import ErrorBoundary from './components/error/ErrorBoundary.jsx'
-import TelaProjetoInicial from './components/projeto/TelaProjetoInicial.jsx'
-import GerenciadorProjetos from './components/projeto/GerenciadorProjetos.jsx'
-import ClonePosteModal from './components/projeto/ClonePosteModal.jsx'
-import LineageChip from './components/projeto/LineageChip.jsx'
-import SecaoNivel from './components/secao/SecaoNivel.jsx'
-import UndoToast from './components/ui/UndoToast.jsx'
+import FlowStepper from './components/fluxo/FlowStepper.jsx'
+import Header from './components/header/Header.jsx'
 import { 
   LazyTabelaCarga, 
   LazyDiagramaPoste, 
@@ -19,6 +13,13 @@ import {
   LazyMobileActionBar,
   preloadAllComponents 
 } from './components/lazy/LazyComponents.jsx'
+import ClonePosteModal from './components/projeto/ClonePosteModal.jsx'
+import GerenciadorProjetos from './components/projeto/GerenciadorProjetos.jsx'
+import LineageChip from './components/projeto/LineageChip.jsx'
+import TelaProjetoInicial from './components/projeto/TelaProjetoInicial.jsx'
+import SecaoNivel from './components/secao/SecaoNivel.jsx'
+import UndoToast from './components/ui/UndoToast.jsx'
+import { useAppOptimizedState } from './hooks/useAppOptimizedState.js'
 
 // Preload components quando a aplicação iniciar
 preloadAllComponents()

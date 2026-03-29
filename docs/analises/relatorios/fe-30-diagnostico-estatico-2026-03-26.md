@@ -1,7 +1,7 @@
 # FE-30 – Diagnóstico Estático + Regressão E2E
 
-**Data:** 2026-03-26 (atualizado 2026-03-28 — FE-31 round 2)  
-**Escopo:** Arquivos alterados em FE-20..FE-29 + FE-31  
+**Data:** 2026-03-26 (atualizado 2026-03-29 — round 3 full-scope)  
+**Escopo:** Todos os arquivos em `src/` (FE-20..FE-31 + cobertura total)  
 **Responsável:** Copilot SWE Agent
 
 ---
@@ -49,6 +49,13 @@ A instalação base não incluía as dependências `@typescript-eslint/eslint-pl
 **`src/services/calculoApi.js`** – `parseErrorMessage` → `parseErrorBody` (FE-31 round 2):
 - Substituído `parseErrorMessage` por `parseErrorBody` que retorna `{message, errorCode}`.
 - Agora detecta `payload.code === '42501'` (Supabase/PostgREST RLS) além de HTTP 403.
+
+**Round 3 — escopo completo `src/` (2026-03-29):**
+- `eslint --fix` corrigiu 36 erros auto-corrigíveis restantes em todo `src/` (curly, import/order, etc.).
+- `.eslintrc.json` recebeu `"varsIgnorePattern": "^_"` (consistência com `argsIgnorePattern` e `caughtErrorsIgnorePattern` já existentes).
+- Variáveis e imports não utilizados foram removidos ou prefixados com `_` em 12 arquivos: `AIAssistant.jsx`, `CacheMonitor.jsx`, `UndoToast.jsx`, `useAIAssistant.js`, `useFormState.js`, `usePerformanceMonitor.js`, `useProjetoState.js`, `AIAssistantDemo.jsx`, e 4 arquivos de teste.
+- `no-useless-catch` em `useAIAssistant.js`: catchs que apenas re-lançavam foram removidos; try-blocks sem catch/finally foram simplificados.
+- `for (;;)` substituiu `while (true)` em `useAIAssistant.js` (streaming loop) para satisfazer `no-constant-condition`.
 
 ### 1.4 Avisos residuais (não bloqueantes)
 

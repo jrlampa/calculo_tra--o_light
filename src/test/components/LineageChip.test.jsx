@@ -8,8 +8,9 @@
  * - Expands to show ancestry chain.
  * - Collapses back on ✕ click.
  */
+import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+
 import LineageChip from '@/components/projeto/LineageChip'
 
 // Mock useLineage so tests are isolated from API

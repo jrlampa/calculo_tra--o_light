@@ -1,7 +1,7 @@
 /* The above code is a React component called `CacheMonitor` that serves as a monitoring tool for a
 cache system. Here is a summary of what the code is doing: */
-import React, { useState, useEffect } from 'react';
 import { Database, Activity, TrendingUp, AlertCircle, CheckCircle, Trash2, RefreshCw, BarChart3 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 
 const CacheMonitor = () => {
   const [cacheStats, setCacheStats] = useState(null);
@@ -41,7 +41,8 @@ const CacheMonitor = () => {
       } else {
         throw new Error(data.detail || 'Failed to fetch cache health');
       }
-    } catch (err) {
+    } catch (_err) {
+      // no-op
     }
   };
 
@@ -133,7 +134,7 @@ const CacheMonitor = () => {
   };
 
   // Get performance grade color
-  const getGradeColor = (grade) => {
+  const _getGradeColor = (grade) => {
     switch (grade) {
       case 'A': return 'text-green-600';
       case 'B': return 'text-blue-600';

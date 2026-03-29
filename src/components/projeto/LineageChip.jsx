@@ -9,10 +9,11 @@
  *  - origemId (string|null) parent Poste UUID — if null/undefined the chip renders nothing
  */
 import React, { useState } from 'react'
+
 import { useLineage } from '../../hooks/useLineage.js'
 
 function formatDate(isoString) {
-  if (!isoString) return '—'
+  if (!isoString) {return '—'}
   try {
     return new Date(isoString).toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -29,7 +30,7 @@ export default function LineageChip({ posteId, origemId }) {
   const { chain, profundidade, loading, error } = useLineage(posteId, origemId)
 
   // Nothing to show if there's no lineage link
-  if (!origemId) return null
+  if (!origemId) {return null}
 
   return (
     <div className="inline-block">

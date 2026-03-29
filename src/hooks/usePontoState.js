@@ -5,8 +5,9 @@
  * @returns The `usePontoState` custom hook is returning an object with the following properties:
  */
 import { useState, useCallback, useMemo, useEffect } from 'react'
-import { createPonto, clonarPosteDeProjeto, getLastRequestContext } from '../services/calculoApi.js'
+
 import { POSTE_INICIAL } from '../features/calculo/formConfig.js'
+import { createPonto, clonarPosteDeProjeto, getLastRequestContext } from '../services/calculoApi.js'
 import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstrumentation.js'
 
 export const usePontoState = ({ projetoAtual, cabecalho, resetPersistencia }) => {
@@ -84,7 +85,7 @@ export const usePontoState = ({ projetoAtual, cabecalho, resetPersistencia }) =>
         modeloPoste: poste.modeloPoste || '',
       })
       setPontoState({ loading: false, status: 'saved', error: '' })
-      if (resetPersistencia) resetPersistencia()
+      if (resetPersistencia) {resetPersistencia()}
       trackUxFunnelEvent(UX_FUNNEL_EVENTS.POINT_CONFIRMED, {
         projeto_id: projetoAtual?.id ?? null,
         ponto_id: pontoCriado?.id ?? null,
@@ -122,7 +123,7 @@ export const usePontoState = ({ projetoAtual, cabecalho, resetPersistencia }) =>
         modeloPoste: clonado.modelo_poste || '',
       })
       setPontoState({ loading: false, status: 'saved', error: '' })
-      if (resetPersistencia) resetPersistencia()
+      if (resetPersistencia) {resetPersistencia()}
       trackUxFunnelEvent(UX_FUNNEL_EVENTS.POINT_CONFIRMED, {
         projeto_id: projetoAtual?.id ?? null,
         ponto_id: clonado?.id ?? null,
@@ -153,18 +154,18 @@ export const usePontoState = ({ projetoAtual, cabecalho, resetPersistencia }) =>
     setPontoSnapshot(null)
     setPontoState({ loading: false, status: 'idle', error: '' })
     setOrigemId(null)
-    if (resetPersistencia) resetPersistencia()
+    if (resetPersistencia) {resetPersistencia()}
   }, [resetPersistencia])
 
   // Efeito para detectar mudanças APENAS no nome do ponto
   useEffect(() => {
-    if (!pontoSnapshot) return
+    if (!pontoSnapshot) {return}
 
     const pontoMudou = (cabecalho.ponto || '').trim() !== pontoSnapshot.ponto
     
     // NOTA: Mudanças no poste.tipoPoste ou poste.modeloPoste NÃO reiniciam mais o ponto.
     // Isso evita o "Zera tudo" reportado pelo usuário e permite recalcular mantendo os vetores.
-    if (!pontoMudou) return
+    if (!pontoMudou) {return}
 
     resetPonto()
   }, [cabecalho.ponto, pontoSnapshot, resetPonto])

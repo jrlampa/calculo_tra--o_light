@@ -3,8 +3,9 @@
  * idle → undo_pending → undone (user clicks Desfazer)
  * countdown, callbacks, cleanup
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
 import useUndoClear from '@/hooks/useUndoClear'
 
 // Must match FEEDBACK_VISIBLE_MS in useUndoClear.js

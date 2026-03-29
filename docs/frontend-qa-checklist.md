@@ -84,7 +84,7 @@
 
 ## 8) Critérios de saída da QA
 - [x] Sem erros de diagnóstico estático nos arquivos alterados (0 erros ESLint – ver `docs/analises/relatorios/fe-30-diagnostico-estatico-2026-03-26.md`).
-- [x] Sem regressão funcional nos testes E2E críticos existentes (106/106 testes unitários passam).
+- [x] Sem regressão funcional nos testes E2E críticos existentes (194/194 testes unitários passam).
 - [x] E2E sem mocks do backend disponível via `e2e/ui-critical-flow-real.spec.js` (FE-27); auto-skip quando backend indisponível.
 - [x] Não há bloqueio A11y de severidade alta no fluxo crítico.
 - [x] Sem bloqueio de fallback para indisponibilidade de /api/config.

@@ -7,8 +7,9 @@
  * analysis, optimization, report, and validation results. Additionally, it includes demo data for
  * calculation and project details.
  */
-import React, { useState, useEffect } from 'react';
-import { Bot, Cpu, Database, Zap, TrendingUp, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { Bot, Cpu, Database, Zap, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
+import React, { useState } from 'react';
+
 import { useAIAssistant } from '../hooks/useAIAssistant';
 
 const AIAssistantDemo = () => {
@@ -21,7 +22,7 @@ const AIAssistantDemo = () => {
     validateParameters
   } = useAIAssistant();
 
-  const [demoData, setDemoData] = useState({
+  const [_demoData, _setDemoData] = useState({
     calculation: {
       poste: {
         altura: 12,

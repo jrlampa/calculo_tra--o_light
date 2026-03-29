@@ -1,6 +1,7 @@
 /* Tests for the useDebounce hook */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
 import { useDebounce } from '@/hooks/useDebounce'
 
 describe('useDebounce', () => {
@@ -92,7 +93,7 @@ describe('useDebounce', () => {
   })
 
   it('clears the pending timer when the component unmounts', () => {
-    const { result, rerender, unmount } = renderHook(
+    const { rerender, unmount } = renderHook(
       ({ value }) => useDebounce(value, 300),
       { initialProps: { value: 'start' } }
     )

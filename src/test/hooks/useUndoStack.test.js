@@ -1,8 +1,9 @@
 /* Tests for the useUndoStack custom hook:
  * push, undo, redo, clear, maxSize cap, canUndo / canRedo, TTL expiry
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
 import useUndoStack from '@/hooks/useUndoStack'
 
 describe('useUndoStack', () => {

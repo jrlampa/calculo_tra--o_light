@@ -32,7 +32,7 @@ export default function GerenciadorProjetos({ onNovo, onAbrir, onEditar, onExclu
   }
 
   const handleDeleteConfirm = async () => {
-    if (!confirmDelete) return
+    if (!confirmDelete) {return}
     try {
       await onExcluir(confirmDelete.id)
       setConfirmDelete(null)

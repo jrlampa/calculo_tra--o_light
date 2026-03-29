@@ -34,11 +34,11 @@ const UndoToast = ({
     }
   }, [clearState])
 
-  if (clearState === 'idle') return null
+  if (clearState === 'idle') {return null}
 
   const isPending   = clearState === 'undo_pending'
   const isUndone    = clearState === 'undone'
-  const isCommitted = clearState === 'committed'
+  const _isCommitted = clearState === 'committed'
 
   const message = isPending
     ? `Dados técnicos serão apagados em ${countdown}s.`

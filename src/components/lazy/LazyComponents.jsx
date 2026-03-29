@@ -1,6 +1,7 @@
 /* This code snippet is utilizing lazy loading in a React application to improve performance by loading
 components only when they are needed. Here's a breakdown of what the code is doing: */
 import React, { Suspense, lazy } from 'react'
+
 import LoadingSpinner from '../ui/LoadingSpinner.jsx'
 
 // Lazy loading para componentes pesados

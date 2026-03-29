@@ -1,7 +1,8 @@
 /* Tests for TelaProjetoInicial accessibility — items 9–13 of QA checklist */
-import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { describe, it, expect, vi } from 'vitest'
+
 import TelaProjetoInicial from '@/components/projeto/TelaProjetoInicial'
 
 const baseDados = {

@@ -9,6 +9,7 @@
  *   const { chain, loading, error } = useLineage(pontoAtual?.id, pontoAtual?.origem_id)
  */
 import { useState, useEffect, useCallback, useRef } from 'react'
+
 import { obterLinhagem } from '../services/calculoApi.js'
 
 /**
@@ -34,15 +35,15 @@ export function useLineage(posteId, origemId) {
     setError('')
     try {
       const data = await obterLinhagem(id)
-      if (!mountedRef.current) return
+      if (!mountedRef.current) {return}
       setChain(data.chain ?? [])
       setProfundidade(data.profundidade ?? 0)
     } catch (err) {
-      if (!mountedRef.current) return
+      if (!mountedRef.current) {return}
       setError(err.message || 'Erro ao obter linhagem')
       setChain([])
     } finally {
-      if (mountedRef.current) setLoading(false)
+      if (mountedRef.current) {setLoading(false)}
     }
   }, [])
 

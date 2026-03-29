@@ -12,8 +12,9 @@
  * All tests mock global.fetch so the real requestJson / persistCalculo pipeline
  * runs with controlled HTTP responses (avoids ES-module path issues with vi.mock).
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
 import usePersistenciaCalculo from '@/hooks/usePersistenciaCalculo'
 
 // ─── Shared fixtures ──────────────────────────────────────────────────────────

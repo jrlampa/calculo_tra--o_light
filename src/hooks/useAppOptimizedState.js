@@ -7,6 +7,7 @@
 import { useMemo, useCallback, useEffect, useRef } from 'react'
 
 import { TABELA_CARGAS_POSTE } from '../constants/tabelaCargasPoste.js'
+import { CAMPOS_MT, CAMPOS_BT, CAMPOS_BTZ, CAMPOS_RAL } from '../features/calculo/formConfig.js'
 import { buildBatchPayload, batchSaveCalculo, listProjetos } from '../services/calculoApi.js'
 import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstrumentation.js'
 
@@ -19,7 +20,6 @@ import { usePontoState } from './usePontoState.js'
 import { useProjetoState } from './useProjetoState.js'
 import useUndoClear from './useUndoClear.js'
 import useUndoStack from './useUndoStack.js'
-import { CAMPOS_MT, CAMPOS_BT, CAMPOS_BTZ, CAMPOS_RAL } from '../features/calculo/formConfig.js'
 
 
 export const useAppOptimizedState = () => {

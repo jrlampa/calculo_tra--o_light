@@ -1,7 +1,7 @@
 /* Tests for FlowStepper keyboard accessibility (FE-20) */
-import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { describe, it, expect, vi } from 'vitest'
+
 import FlowStepper from '@/components/fluxo/FlowStepper'
 
 describe('FlowStepper — accessibility', () => {

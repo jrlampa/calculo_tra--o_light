@@ -4,8 +4,9 @@
  * - handleTravessiaChange updates the correct cell
  * - resetForm zeroes out all cells
  */
-import { describe, it, expect } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
+import { describe, it, expect } from 'vitest'
+
 import { useFormState } from '@/hooks/useFormState'
 
 // Helper: build a valid MT snapshot row

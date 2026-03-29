@@ -14,6 +14,7 @@
  * functions:
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
+
 import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstrumentation.js'
 
 const DEFAULT_MAX_SIZE = 10
@@ -39,7 +40,7 @@ export default function useUndoStack(pontoId, maxSize = DEFAULT_MAX_SIZE, ttlMs 
 
   useEffect(() => {
     if (undoStack.length > 0) {
-      if (ttlTimerRef.current) clearTimeout(ttlTimerRef.current)
+      if (ttlTimerRef.current) {clearTimeout(ttlTimerRef.current)}
       
       ttlTimerRef.current = setTimeout(() => {
         const expiredCount = stackRef.current.undo.length
@@ -80,7 +81,7 @@ export default function useUndoStack(pontoId, maxSize = DEFAULT_MAX_SIZE, ttlMs 
   }, [maxSize, ttlMs])
 
   const undo = useCallback(() => {
-    if (stackRef.current.undo.length === 0) return null
+    if (stackRef.current.undo.length === 0) {return null}
 
     const action = stackRef.current.undo[0]
     stackRef.current.undo = stackRef.current.undo.slice(1)
@@ -93,7 +94,7 @@ export default function useUndoStack(pontoId, maxSize = DEFAULT_MAX_SIZE, ttlMs 
   }, [])
 
   const redo = useCallback(() => {
-    if (stackRef.current.redo.length === 0) return null
+    if (stackRef.current.redo.length === 0) {return null}
 
     const action = stackRef.current.redo[0]
     stackRef.current.redo = stackRef.current.redo.slice(1)

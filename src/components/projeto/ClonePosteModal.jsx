@@ -15,6 +15,7 @@
  *  - projetoAtualId          UUID of the currently open project (excluded).
  */
 import React, { useState, useEffect, useCallback } from 'react'
+
 import { listPostes } from '../../services/calculoApi.js'
 
 export default function ClonePosteModal({ onClone, onClose, listProjetos, projetoAtualId }) {
@@ -36,7 +37,7 @@ export default function ClonePosteModal({ onClone, onClose, listProjetos, projet
         // Exclude the currently open project
         setProjetos((data || []).filter(p => p.id !== projetoAtualId))
       } catch (err) {
-        setError('Erro ao carregar projetos: ' + (err.message || 'Tente novamente.'))
+        setError(`Erro ao carregar projetos: ${  err.message || 'Tente novamente.'}`)
       } finally {
         setLoadingProjetos(false)
       }
@@ -59,7 +60,7 @@ export default function ClonePosteModal({ onClone, onClose, listProjetos, projet
         const data = await listPostes(projetoSelecionadoId)
         setPostes(data || [])
       } catch (err) {
-        setError('Erro ao carregar postes: ' + (err.message || 'Tente novamente.'))
+        setError(`Erro ao carregar postes: ${  err.message || 'Tente novamente.'}`)
         setPostes([])
       } finally {
         setLoadingPostes(false)
@@ -69,14 +70,14 @@ export default function ClonePosteModal({ onClone, onClose, listProjetos, projet
   }, [projetoSelecionadoId])
 
   const handleConfirm = useCallback(async () => {
-    if (!posteSelecionadoId) return
+    if (!posteSelecionadoId) {return}
     setCloning(true)
     setError('')
     try {
       await onClone(posteSelecionadoId)
       onClose()
     } catch (err) {
-      setError('Erro ao clonar poste: ' + (err.message || 'Tente novamente.'))
+      setError(`Erro ao clonar poste: ${  err.message || 'Tente novamente.'}`)
     } finally {
       setCloning(false)
     }
