@@ -79,24 +79,25 @@ async function parseErrorBody(response, fallbackMessage) {
     const payload = await response.json()
     // FastAPI: { detail: "string" }
     if (typeof payload?.detail === 'string' && payload.detail) {
-      return { message: payload.detail, errorCode: payload?.code ?? null }
+      return { message: payload.detail, errorCode: payload?.code ?? null, rawDetail: null }
     }
-    // FastAPI: { detail: [{msg, loc}] }
+    // FastAPI: { detail: [{msg, loc}] } — preserve raw array for section-error extraction
     if (Array.isArray(payload?.detail) && payload.detail.length > 0) {
       return {
         message: payload.detail.map(item => item?.msg || 'Erro de validação').join(', '),
         errorCode: null,
+        rawDetail: payload.detail,
       }
     }
     // Supabase/PostgREST: { message: "...", code: "42501" }
     if (typeof payload?.message === 'string' && payload.message) {
-      return { message: payload.message, errorCode: payload?.code ?? null }
+      return { message: payload.message, errorCode: payload?.code ?? null, rawDetail: null }
     }
   } catch {
-    return { message: fallbackMessage, errorCode: null }
+    return { message: fallbackMessage, errorCode: null, rawDetail: null }
   }
 
-  return { message: fallbackMessage, errorCode: null }
+  return { message: fallbackMessage, errorCode: null, rawDetail: null }
 }
 
 async function requestJson(url, options = {}, fallbackMessage) {
@@ -113,11 +114,13 @@ async function requestJson(url, options = {}, fallbackMessage) {
   storeRequestContext(response, url, method)
 
   if (!response.ok) {
-    const { message, errorCode } = await parseErrorBody(response, fallbackMessage)
+    const { message, errorCode, rawDetail } = await parseErrorBody(response, fallbackMessage)
     // Criar erro com status capturado (importante para diferenciar erros de autorização)
     const err = new Error(message)
     err.status = response.status
     err.statusText = response.statusText
+    // Preservar array de detalhes Pydantic para extração de erros por seção (422)
+    if (rawDetail) { err.rawDetail = rawDetail }
     // Detectar código de autorização via status HTTP, código PostgreSQL 42501 ou mensagem
     if (
       response.status === 403 ||
@@ -156,19 +159,7 @@ function mapPoste(poste) {
   }
 }
 
-function mapMTTravessia(travessia) {
-  return {
-    tipo_rede: travessia.tipoRede || '',
-    tipo_cabo: travessia.tipoCabo || '',
-    vao: toFloat(travessia.vao) ?? 0,
-    flecha: toFloat(travessia.flecha) ?? 0,
-    angulo: toFloat(travessia.angulo) ?? 0,
-    altura_poste: toFloat(travessia.alturaPoste) ?? 0,
-    altura_ancoragem: toFloat(travessia.alturaAncoragem) ?? 0,
-  }
-}
-
-function mapBTTravessia(travessia) {
+function mapNetworkTravessia(travessia) {
   return {
     tipo_rede: travessia.tipoRede || '',
     tipo_cabo: travessia.tipoCabo || '',
@@ -188,6 +179,18 @@ function mapBTZTravessia(travessia) {
     angulo: toFloat(travessia.angulo) ?? 0,
     altura_poste: toFloat(travessia.alturaPoste) ?? 0,
     altura_ancoragem: toFloat(travessia.alturaAncoragem) ?? 0,
+  }
+}
+
+function mapProjetoDados(cabecalho) {
+  return {
+    orgao: cabecalho.orgao || '',
+    ns: cabecalho.ns || '',
+    nome: cabecalho.projeto || '',
+    endereco: cabecalho.endereco || '',
+    estudado_por: cabecalho.estudado_por || cabecalho.estudadoPor || '',
+    matricula: cabecalho.matricula || '',
+    data_estudo: cabecalho.data || '',
   }
 }
 
@@ -264,9 +267,9 @@ export function buildCalculoRequest(formState) {
   return {
     cabecalho: mapCabecalho(cabecalho),
     poste: mapPoste(poste),
-    mt1: mt1.map(mapMTTravessia),
-    mt2: mt2.map(mapMTTravessia),
-    bt: bt.map(mapBTTravessia),
+    mt1: mt1.map(mapNetworkTravessia),
+    mt2: mt2.map(mapNetworkTravessia),
+    bt: bt.map(mapNetworkTravessia),
     btz: btz.map(mapBTZTravessia),
     ral: ral.map(mapRALTravessia),
   }
@@ -291,26 +294,16 @@ export function buildBatchPayload(projetoId, formState, resultado) {
 
   return {
     projeto_id: projetoId || null,
-    projeto_dados: !projetoId
-      ? {
-          orgao: cabecalho.orgao || '',
-          ns: cabecalho.ns || '',
-          nome: cabecalho.projeto || '',
-          endereco: cabecalho.endereco || '',
-          estudado_por: cabecalho.estudado_por || cabecalho.estudadoPor || '',
-          matricula: cabecalho.matricula || '',
-          data_estudo: cabecalho.data || '',
-        }
-      : null,
+    projeto_dados: !projetoId ? mapProjetoDados(cabecalho) : null,
     ponto_dados: {
       ponto: cabecalho.ponto || '',
       tipo_poste: poste.tipoPoste || '',
       modelo_poste: poste.modeloPoste || '',
     },
     niveis: [
-      buildNivelPayload('MT1', mt1.map(mapMTTravessia)),
-      buildNivelPayload('MT2', mt2.map(mapMTTravessia)),
-      buildNivelPayload('BT', bt.map(mapBTTravessia)),
+      buildNivelPayload('MT1', mt1.map(mapNetworkTravessia)),
+      buildNivelPayload('MT2', mt2.map(mapNetworkTravessia)),
+      buildNivelPayload('BT', bt.map(mapNetworkTravessia)),
       buildNivelPayload('BTZ', btz.map(mapBTZTravessia)),
       buildNivelPayload('RAL', ral.map(mapRALTravessia)),
     ],
@@ -324,15 +317,7 @@ export async function createProjeto(cabecalho) {
     {
       method: 'POST',
       headers: JSON_HEADERS,
-      body: JSON.stringify({
-        orgao: cabecalho.orgao || '',
-        ns: cabecalho.ns || '',
-        nome: cabecalho.projeto || '',
-        endereco: cabecalho.endereco || '',
-        estudado_por: cabecalho.estudado_por || cabecalho.estudadoPor || '',
-        matricula: cabecalho.matricula || '',
-        data_estudo: cabecalho.data || '',
-      }),
+      body: JSON.stringify(mapProjetoDados(cabecalho)),
     },
     'Erro ao criar projeto'
   )
@@ -380,15 +365,7 @@ export async function updateProjeto(id, cabecalho) {
     {
       method: 'PUT',
       headers: JSON_HEADERS,
-      body: JSON.stringify({
-        orgao: cabecalho.orgao,
-        ns: cabecalho.ns,
-        nome: cabecalho.projeto,
-        endereco: cabecalho.endereco,
-        estudado_por: cabecalho.estudado_por || cabecalho.estudadoPor,
-        matricula: cabecalho.matricula,
-        data_estudo: cabecalho.data,
-      }),
+      body: JSON.stringify(mapProjetoDados(cabecalho)),
     },
     'Erro ao atualizar projeto'
   )
@@ -413,6 +390,55 @@ export async function batchSaveCalculo(payload) {
     'Erro ao realizar salvamento atômico'
   )
 }
+
+/**
+ * Envia o payload de cálculo para o endpoint /api/calcular.
+ *
+ * Aceita um AbortSignal opcional para cancelamento (ex.: quando o usuário
+ * muda os campos enquanto uma requisição anterior ainda está em voo).
+ *
+ * @param {object} payload - Payload construído por `buildCalculoRequest`.
+ * @param {AbortSignal} [signal] - Sinal de cancelamento do AbortController.
+ * @returns {Promise<object>} Resultado do cálculo (CalculoOutput).
+ */
+export async function calcular(payload, signal) {
+  return requestJson(
+    '/api/calcular',
+    {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify(payload),
+      ...(signal ? { signal } : {}),
+    },
+    'Erro ao calcular'
+  )
+}
+
+/**
+ * Faz upload de um arquivo Excel para o endpoint de importação.
+ *
+ * @param {File} file - Arquivo Excel selecionado pelo usuário.
+ * @returns {Promise<object>} Dados extraídos: { cabecalho, poste, mt1, mt2, bt, btz, ral }.
+ */
+export async function importarExcel(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  // FormData requer que o Content-Type seja definido automaticamente pelo browser
+  // (com o boundary correto), portanto não usamos requestJson aqui.
+  const response = await fetch('/api/calcular/importar-excel', {
+    method: 'POST',
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const { message } = await parseErrorBody(response, 'Falha ao processar arquivo Excel')
+    throw new Error(message)
+  }
+
+  return response.json()
+}
+
 /**
  * Lista os postes (pontos) de um projeto existente.
  * Usado pelo ClonePosteModal para mostrar quais postes podem ser clonados.
