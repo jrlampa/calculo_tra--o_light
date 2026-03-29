@@ -20,11 +20,18 @@ class MockPosteRepository:
         self.snapshots = {}  # poste_id → [snapshots]
 
     def obter_por_id(self, poste_id: UUID) -> PosteAggregate | None:
-        return self.postes.get(poste_id)
+        poste = self.postes.get(poste_id)
+        if poste is not None and poste.deletado_em is not None:
+            return None
+        return poste
 
     def obter_por_numero(self, projeto_id: UUID, numero: str) -> PosteAggregate | None:
         for p in self.postes.values():
-            if p.projeto_id.value == projeto_id and p.numero == numero:
+            if (
+                p.projeto_id.value == projeto_id
+                and p.numero == numero
+                and p.deletado_em is None
+            ):
                 return p
         return None
 
@@ -170,7 +177,7 @@ class TestPosteCRUD:
         assert updated.modelo_poste == "13/800"
 
     def test_deletar_poste_soft_delete(self, poste_service, projeto_id):
-        """Test soft delete marks deletado_em."""
+        """Test soft delete marks deletado_em and hides the Poste from lookups."""
         created = poste_service.criar_poste(projeto_id, "1")
 
         poste_service.deletar_poste(created.id.value)
@@ -179,9 +186,9 @@ class TestPosteCRUD:
         postes = poste_service.listar_postes_do_projeto(projeto_id)
         assert len(postes) == 0
 
-        # But should be retrievable directly
+        # Should also not be retrievable directly (repository filters deleted postes)
         retrieved = poste_service.obter_poste(created.id.value)
-        assert retrieved.deletado_em is not None
+        assert retrieved is None
 
     def test_restaurar_poste(self, poste_service, projeto_id):
         """Test restoring a soft-deleted Poste."""

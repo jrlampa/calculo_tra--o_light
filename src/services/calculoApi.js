@@ -159,7 +159,7 @@ function mapPoste(poste) {
   }
 }
 
-function mapNetworkTravessia(travessia) {
+function mapStandardTravessia(travessia) {
   return {
     tipo_rede: travessia.tipoRede || '',
     tipo_cabo: travessia.tipoCabo || '',
@@ -267,9 +267,9 @@ export function buildCalculoRequest(formState) {
   return {
     cabecalho: mapCabecalho(cabecalho),
     poste: mapPoste(poste),
-    mt1: mt1.map(mapNetworkTravessia),
-    mt2: mt2.map(mapNetworkTravessia),
-    bt: bt.map(mapNetworkTravessia),
+    mt1: mt1.map(mapStandardTravessia),
+    mt2: mt2.map(mapStandardTravessia),
+    bt: bt.map(mapStandardTravessia),
     btz: btz.map(mapBTZTravessia),
     ral: ral.map(mapRALTravessia),
   }
@@ -301,9 +301,9 @@ export function buildBatchPayload(projetoId, formState, resultado) {
       modelo_poste: poste.modeloPoste || '',
     },
     niveis: [
-      buildNivelPayload('MT1', mt1.map(mapNetworkTravessia)),
-      buildNivelPayload('MT2', mt2.map(mapNetworkTravessia)),
-      buildNivelPayload('BT', bt.map(mapNetworkTravessia)),
+      buildNivelPayload('MT1', mt1.map(mapStandardTravessia)),
+      buildNivelPayload('MT2', mt2.map(mapStandardTravessia)),
+      buildNivelPayload('BT', bt.map(mapStandardTravessia)),
       buildNivelPayload('BTZ', btz.map(mapBTZTravessia)),
       buildNivelPayload('RAL', ral.map(mapRALTravessia)),
     ],

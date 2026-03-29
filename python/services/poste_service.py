@@ -266,14 +266,10 @@ class PosteService:
         poste = self.repo.obter_por_id(poste_id)
         if not poste:
             raise ValueError(f"Poste {poste_id} não encontrado")
-        if poste.esta_deletado():
-            raise ValueError(f"Poste {poste_id} está deletado e não pode ser vinculado")
 
         origem = self.repo.obter_por_id(origem_id)
         if not origem:
             raise ValueError(f"Poste origem {origem_id} não encontrado")
-        if origem.esta_deletado():
-            raise ValueError(f"Poste origem {origem_id} está deletado")
 
         if poste.projeto_id.value == origem.projeto_id.value:
             raise ValueError(
@@ -334,8 +330,6 @@ class PosteService:
         origem = self.repo.obter_por_id(poste_origem_id)
         if not origem:
             raise ValueError(f"Poste origem {poste_origem_id} não encontrado")
-        if origem.esta_deletado():
-            raise ValueError(f"Poste origem {poste_origem_id} está deletado")
 
         if origem.projeto_id.value == projeto_destino_id:
             raise ValueError(
