@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-import math
 from fastapi import APIRouter, Depends, HTTPException
 from uuid import UUID
 
@@ -11,21 +10,19 @@ from api.dependencies import get_poste_service
 from api.schemas import (
     CalculoInput,
     CalculoOutput,
-    LevelResultOut,
-    VetorOut,
+    ClonarPosteIn,
+    CondutorOut,
+    LinhagemEntry,
     PosteIn,
+    PosteLinhagem,
     PosteOut,
+    PosteVincularIn,
+    TravessiaUpdateIn,
 )
 from domain.factories import PosteFactory
-from domain.value_objects import NivelEnum, CalculoResultado
+from domain.value_objects import NivelEnum
+from services.calculo_service import calculo_service
 from services.poste_service import PosteService
-from translated.ponto_blocks import (
-    BTTraversalInput,
-    BTZeroTraversalInput,
-    MTTraversalInput,
-    RamaisTraversalInput,
-    calcular_polo,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +39,7 @@ async def criar_poste(
     service: PosteService = Depends(get_poste_service),
 ) -> PosteOut:
     """Cria novo Poste (agregado raiz) em um projeto.
-    
+
     O Poste é criado com 5 Niveis (MT1, MT2, BT, BTZ, RAL) × 4 Travessias cada.
     """
     try:
@@ -129,36 +126,32 @@ async def atualizar_travessia(
     poste_id: UUID,
     nivel: str,
     posicao: int,
-    tipo_rede: str,
-    tipo_cabo: str,
-    vao: float,
-    flecha: float,
-    angulo: float,
+    inp: TravessiaUpdateIn,
     _user: CurrentUser = Depends(require_mutation_identity),
     service: PosteService = Depends(get_poste_service),
 ) -> PosteOut:
     """Atualiza uma Travessia dentro de um Nivel de um Poste.
-    
+
     Valida que 1 ≤ posicao ≤ 4 e que nivel ∈ {MT1, MT2, BT, BTZ, RAL}.
     """
     try:
         # Parse nivel enum
         nivel_enum = NivelEnum(nivel.upper())
-        
+
         # Validate posicao
         if not 1 <= posicao <= 4:
             raise ValueError(f"Posição deve estar entre 1-4, recebeu {posicao}")
-        
+
         # Update through service (goes through aggregate)
         poste = service.atualizar_travessia(
             poste_id=poste_id,
             nivel_enum=nivel_enum,
             posicao=posicao,
-            tipo_rede=tipo_rede,
-            tipo_cabo=tipo_cabo,
-            vao=vao,
-            flecha=flecha,
-            angulo=angulo
+            tipo_rede=inp.tipo_rede,
+            tipo_cabo=inp.tipo_cabo,
+            vao=inp.vao,
+            flecha=inp.flecha,
+            angulo=inp.angulo,
         )
         return PosteFactory.to_response_dict(poste)
     except ValueError as e:
@@ -166,6 +159,47 @@ async def atualizar_travessia(
     except Exception as e:
         logger.error("Erro ao atualizar Travessia: %s", e)
         raise HTTPException(status_code=500, detail="Erro ao atualizar Travessia") from e
+
+
+# ─────────────────────── NAVEGAÇÃO (O QUE ESTÁ NO POSTE) ─────────────────
+
+@router.get("/projeto/{projeto_id}/numero/{numero}", response_model=PosteOut)
+async def obter_poste_por_numero(
+    projeto_id: UUID,
+    numero: str,
+    _user: CurrentUser = Depends(require_mutation_identity),
+    service: PosteService = Depends(get_poste_service),
+) -> PosteOut:
+    """Localiza um Poste pelo número dentro do projeto (chave natural).
+
+    Use este endpoint para resolver "Poste 1 do Projeto X" sem precisar
+    do UUID do poste.  O par (projeto_id, numero) é único.
+    """
+    poste = service.obter_poste_por_numero(projeto_id, numero)
+    if not poste:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Poste '{numero}' não encontrado no projeto {projeto_id}",
+        )
+    return PosteFactory.to_response_dict(poste)
+
+
+@router.get("/{poste_id}/condutores", response_model=list[CondutorOut])
+async def listar_condutores_poste(
+    poste_id: UUID,
+    _user: CurrentUser = Depends(require_mutation_identity),
+    service: PosteService = Depends(get_poste_service),
+) -> list[CondutorOut]:
+    """Lista todos os condutores (cabos) instalados neste Poste.
+
+    Percorre todos os Niveis × Travessias e devolve cada condutor com sua
+    geometria.  Este é o endpoint canônico para responder "o que está
+    pendurado no Poste?".
+    """
+    poste = service.obter_poste(poste_id)
+    if not poste:
+        raise HTTPException(status_code=404, detail="Poste não encontrado")
+    return poste.obter_condutores()
 
 
 # ─────────────────────── CÁLCULOS ────────────────────────────────
@@ -178,168 +212,33 @@ async def calcular_poste(
     service: PosteService = Depends(get_poste_service),
 ) -> CalculoOutput:
     """Calcula forças num Poste e salva snapshot de cálculo.
-    
+
     Fluxo:
-    1. Carrega agregado Poste pelo ID
-    2. Converte CalculoInput para PosteAggregate (in-memory)
-    3. Executa engine de cálculo
-    4. Salva resultado como snapshot append-only
-    5. Retorna CalculoOutput
+    1. Verifica existência do Poste
+    2. Delega mapeamento e cálculo ao CalculoService
+    3. Persiste resultado como snapshot append-only
+    4. Retorna CalculoOutput
     """
     try:
-        # 1. Get Poste aggregate
         poste = service.obter_poste(poste_id)
         if not poste:
             raise HTTPException(status_code=404, detail="Poste não encontrado")
-        
-        # 2. Convert CalculoInput to PosteAggregate (override geometry)
-        _ = PosteFactory.from_calculo_input(
-            projeto_id=poste.projeto_id.value,
-            calculo_input=inp
-        )
-        
-        # 3. Convert to ponto_blocks input format
-        mt1 = [
-            MTTraversalInput(
-                tipo_rede=t.tipo_rede, tipo_cabo=t.tipo_cabo,
-                vao=t.vao, flecha=t.flecha, angulo=t.angulo,
-                altura_poste=t.altura_poste, altura_ancoragem=t.altura_ancoragem,
-            )
-            for t in inp.mt1
-        ]
-        mt2 = [
-            MTTraversalInput(
-                tipo_rede=t.tipo_rede, tipo_cabo=t.tipo_cabo,
-                vao=t.vao, flecha=t.flecha, angulo=t.angulo,
-                altura_poste=t.altura_poste, altura_ancoragem=t.altura_ancoragem,
-            )
-            for t in inp.mt2
-        ]
-        bt = [
-            BTTraversalInput(
-                tipo_rede=t.tipo_rede, tipo_cabo=t.tipo_cabo,
-                vao=t.vao, flecha=t.flecha, angulo=t.angulo,
-                altura_poste=t.altura_poste, altura_ancoragem=t.altura_ancoragem,
-            )
-            for t in inp.bt
-        ]
-        btz = [
-            BTZeroTraversalInput(
-                qtd_ligacoes=t.qtd_ligacoes,
-                vao=t.vao, flecha=t.flecha, angulo=t.angulo,
-                altura_poste=t.altura_poste, altura_ancoragem=t.altura_ancoragem,
-            )
-            for t in inp.btz
-        ]
-        ral = [
-            RamaisTraversalInput(
-                tipo_cabo=t.tipo_cabo, qtd_cabos=t.qtd_cabos,
-                vao=t.vao, flecha=t.flecha, angulo=t.angulo,
-                altura_poste=t.altura_poste, altura_ancoragem=t.altura_ancoragem,
-            )
-            for t in inp.ral
-        ]
-        
-        # 4. Run calculation engine
-        result = calcular_polo(
-            mt1_inputs=mt1,
-            mt2_inputs=mt2,
-            bt_inputs=bt,
-            btz_inputs=btz,
-            ral_inputs=ral,
-            tipo_poste=inp.poste.tipo_poste,
-            modelo_poste=inp.poste.modelo_poste,
-        )
-        
-        # 5. Create CalculoResultado
-        resultado = CalculoResultado(
-            mt1_tracao=result.mt1.f_tip,
-            mt1_angulo=result.mt1.angulo,
-            mt2_tracao=result.mt2.f_tip,
-            mt2_angulo=result.mt2.angulo,
-            bt_tracao=result.bt.f_tip,
-            bt_angulo=result.bt.angulo,
-            btz_tracao=result.btz.f_tip,
-            btz_angulo=result.btz.angulo,
-            ral_tracao=result.ral.f_tip,
-            ral_angulo=result.ral.angulo,
-            total_tracao=result.total_tracao,
-            total_angulo=result.total_angulo,
-            poste_ecc=result.poste_ecc,
-        )
-        
-        # 6. Register snapshot
+
+        output, resultado = calculo_service.calcular_com_resultado(inp)
+
         snapshot_id = service.registrar_calculo(
             poste_id=poste_id,
             resultado=resultado,
             calculado_por=str(user.user_id),
-            status="saved"
+            status="saved",
         )
         logger.info(
             "Cálculo registrado para Poste %s, snapshot %s", poste_id, snapshot_id
         )
-        
-        # 7. Build vectors
-        level_defs = [
-            ("MT1", result.mt1.f_tip, result.mt1.angulo),
-            ("MT2", result.mt2.f_tip, result.mt2.angulo),
-            ("BT",  result.bt.f_tip,  result.bt.angulo),
-            ("BTZ", result.btz.f_tip, result.btz.angulo),
-            ("RAL", result.ral.f_tip, result.ral.angulo),
-        ]
-        vetores = [
-            VetorOut(
-                label=label,
-                tracao_dan=f,
-                angulo_graus=a,
-                comp_x=f * math.cos(a * math.pi / 180),
-                comp_y=f * math.sin(a * math.pi / 180),
-            )
-            for label, f, a in level_defs
-            if f != 0
-        ]
-        
-        # 8. Return response
-        return CalculoOutput(
-            mt1=LevelResultOut(
-                tracao_dan=result.mt1.f_tip,
-                angulo_graus=result.mt1.angulo,
-                resultante_raw=result.mt1.resultante,
-                texto=result.texto_mt1,
-            ),
-            mt2=LevelResultOut(
-                tracao_dan=result.mt2.f_tip,
-                angulo_graus=result.mt2.angulo,
-                resultante_raw=result.mt2.resultante,
-                texto=result.texto_mt2,
-            ),
-            bt=LevelResultOut(
-                tracao_dan=result.bt.f_tip,
-                angulo_graus=result.bt.angulo,
-                resultante_raw=result.bt.resultante,
-                texto=result.texto_bt,
-            ),
-            btz=LevelResultOut(
-                tracao_dan=result.btz.f_tip,
-                angulo_graus=result.btz.angulo,
-                resultante_raw=result.btz.resultante,
-                texto=result.texto_btz,
-            ),
-            ral=LevelResultOut(
-                tracao_dan=result.ral.f_tip,
-                angulo_graus=result.ral.angulo,
-                resultante_raw=result.ral.resultante,
-                texto=result.texto_ral,
-            ),
-            total_tracao_dan=result.total_tracao,
-            total_angulo_graus=result.total_angulo,
-            texto_total=result.texto_total,
-            vetores=vetores,
-            poste_ecc_dan=result.poste_ecc,
-            status_poste=result.status_poste,
-            resistencia_nominal=result.resistencia_nominal,
-        )
-        
+        return output
+
+    except HTTPException:
+        raise
     except ValueError as e:
         logger.warning("Entrada inválida em cálculo: %s", e)
         raise HTTPException(status_code=422, detail=f"Erro: {str(e)}") from e
@@ -358,7 +257,7 @@ async def obter_historico_calculos(
     service: PosteService = Depends(get_poste_service),
 ) -> list[dict]:
     """Obtém histórico de cálculos de um Poste (append-only snapshots).
-    
+
     Retorna lista de snapshots mais recentes primeiro.
     """
     try:
@@ -381,3 +280,97 @@ async def obter_ultimo_calculo(
         return ultimo
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+# ─────────────────────── LINHAGEM (cross-project audit trail) ────────────────
+
+@router.put("/{poste_id}/vincular-origem", response_model=PosteOut)
+async def vincular_origem(
+    poste_id: UUID,
+    inp: PosteVincularIn,
+    _user: CurrentUser = Depends(require_mutation_identity),
+    service: PosteService = Depends(get_poste_service),
+) -> PosteOut:
+    """Vincula este Poste ao seu ancestral em um projeto anterior.
+
+    Use quando o Projeto Y herda um poste físico que já foi estudado no
+    Projeto X.  O par (poste_id, origem_id) estabelece o elo de linhagem:
+    dados do Projeto Y (mais recente) têm prioridade; o histórico completo
+    de ambos os projetos fica disponível via GET /linhagem.
+
+    Regras:
+    - Ambos os Postes devem existir e não estar deletados.
+    - Devem pertencer a projetos **diferentes**.
+    - Um Poste não pode ser sua própria origem.
+    """
+    try:
+        origem_uuid = UUID(inp.origem_id)
+        poste = service.vincular_origem(poste_id, origem_uuid)
+        return PosteFactory.to_response_dict(poste)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        logger.error("Erro ao vincular origem do Poste: %s", e)
+        raise HTTPException(status_code=500, detail="Erro ao vincular origem") from e
+
+
+@router.get("/{poste_id}/linhagem", response_model=PosteLinhagem)
+async def obter_linhagem(
+    poste_id: UUID,
+    _user: CurrentUser = Depends(require_mutation_identity),
+    service: PosteService = Depends(get_poste_service),
+) -> PosteLinhagem:
+    """Retorna a cadeia completa de linhagem cross-projeto de um Poste.
+
+    A cadeia é ordenada do ancestral mais antigo (índice 0) ao Poste
+    atual (último elemento).  Use ``atualizado_em`` para determinar qual
+    projeto tem os dados mais recentes (política timestamp-mais-novo-vence).
+
+    Use este endpoint para:
+    - Auditar quais projetos modificaram um poste físico e em que ordem.
+    - Recuperar configurações anteriores de um poste físico.
+    - Rastrear a evolução de um poste ao longo de múltiplos estudos.
+    """
+    try:
+        chain_data = service.obter_linhagem(poste_id)
+        entries = [LinhagemEntry(**entry) for entry in chain_data]
+        return PosteLinhagem(
+            poste_id=str(poste_id),
+            chain=entries,
+            profundidade=len(entries),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@router.post("/{poste_id}/clonar-para-projeto", response_model=PosteOut, status_code=201)
+async def clonar_para_projeto(
+    poste_id: UUID,
+    inp: ClonarPosteIn,
+    _user: CurrentUser = Depends(require_mutation_identity),
+    service: PosteService = Depends(get_poste_service),
+) -> PosteOut:
+    """Clona um Poste para outro Projeto, estabelecendo o elo de linhagem.
+
+    Use este endpoint quando o Projeto Y herda um poste físico que já foi
+    estudado no Projeto X:
+
+    1. O Poste de origem (``poste_id``, no Projeto X) é carregado.
+    2. Toda a configuração (Niveis, Travessias, tipo/modelo) é copiada.
+    3. O clone é criado no ``projeto_id`` informado (Projeto Y).
+    4. ``clone.origem_id`` é automaticamente definido como ``poste_id``.
+    5. O clone tem timestamp recente — é imediatamente reconhecido como o
+       dado mais atual para aquele poste físico (política timestamp-wins).
+
+    O clone pode ser modificado livremente no Projeto Y sem afetar os
+    dados do Projeto X.
+    """
+    try:
+        projeto_destino_uuid = UUID(inp.projeto_id)
+        clone = service.clonar_para_projeto(poste_id, projeto_destino_uuid)
+        return PosteFactory.to_response_dict(clone)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        logger.error("Erro ao clonar Poste: %s", e)
+        raise HTTPException(status_code=500, detail="Erro ao clonar Poste") from e

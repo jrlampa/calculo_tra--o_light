@@ -6,29 +6,29 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import UTC, datetime
 
-from ai.ollama_client import get_ai_assistant, ChatMessage
-from models.projeto import Projeto, ProjetoCreate, ProjetoUpdate
+from ai.ollama_client import get_ai_assistant
+from models.projeto import Projeto
 
 logger = logging.getLogger(__name__)
 
 
 class AIService:
     """AI service for intelligent assistance."""
-    
+
     def __init__(self):
         self.ai_assistant = None
         self._initialized = False
-    
+
     async def _ensure_initialized(self):
         """Ensure AI assistant is initialized."""
         if not self._initialized:
             self.ai_assistant = await get_ai_assistant()
             self._initialized = True
-    
+
     async def analyze_calculation_results(self, calculation_data: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze calculation results and provide insights."""
         await self._ensure_initialized()
-        
+
         try:
             # Enhance calculation data with context
             enhanced_data = {
@@ -36,10 +36,10 @@ class AIService:
                 "analysis_request": "comprehensive_analysis",
                 "timestamp": datetime.now(UTC).isoformat()
             }
-            
+
             # Get AI analysis
             analysis = await self.ai_assistant.analyze_calculation(enhanced_data)
-            
+
             # Parse and structure the analysis
             return {
                 "status": "success",
@@ -49,7 +49,7 @@ class AIService:
                 "risks": self._parse_risks(analysis),
                 "timestamp": datetime.now(UTC).isoformat()
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to analyze calculation results: {e}")
             return {
@@ -57,11 +57,11 @@ class AIService:
                 "error": str(e),
                 "timestamp": datetime.now(UTC).isoformat()
             }
-    
+
     async def suggest_project_optimizations(self, projeto: Projeto) -> Dict[str, Any]:
         """Suggest optimizations for a project."""
         await self._ensure_initialized()
-        
+
         try:
             # Prepare project data for AI
             project_data = {
@@ -73,10 +73,10 @@ class AIService:
                 "project_type": "cálculo_de_tração",
                 "optimization_goals": ["cost_reduction", "safety_improvement", "efficiency"]
             }
-            
+
             # Get AI suggestions
             suggestions = await self.ai_assistant.suggest_optimization(project_data)
-            
+
             return {
                 "status": "success",
                 "suggestions": suggestions,
@@ -86,7 +86,7 @@ class AIService:
                 "implementation_priority": self._parse_priority(suggestions),
                 "timestamp": datetime.now(UTC).isoformat()
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to suggest project optimizations: {e}")
             return {
@@ -94,11 +94,11 @@ class AIService:
                 "error": str(e),
                 "timestamp": datetime.now(UTC).isoformat()
             }
-    
+
     async def validate_calculation_parameters(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """Validate calculation parameters with AI."""
         await self._ensure_initialized()
-        
+
         try:
             # Prepare validation prompt
             validation_prompt = f"""Valide os seguintes parâmetros de cálculo de tração:
@@ -113,10 +113,10 @@ Verifique:
 5. Unidades de medida corretas
 
 Retorne uma análise detalhada da validação."""
-            
+
             # Get AI validation
             validation = await self.ai_assistant.chat(validation_prompt)
-            
+
             return {
                 "status": "success",
                 "validation": validation,
@@ -125,7 +125,7 @@ Retorne uma análise detalhada da validação."""
                 "recommendations": self._parse_validation_recommendations(validation),
                 "timestamp": datetime.now(UTC).isoformat()
             }
-            
+
         except Exception as e:
             logger.error(f"Failed to validate calculation parameters: {e}")
             return {
@@ -133,11 +133,11 @@ Retorne uma análise detalhada da validação."""
                 "error": str(e),
                 "timestamp": datetime.now(UTC).isoformat()
             }
-    
+
     async def generate_technical_report(self, calculation_data: Dict[str, Any], project_info: Dict[str, Any]) -> str:
         """Generate technical report with AI."""
         await self._ensure_initialized()
-        
+
         try:
             # Prepare report generation prompt
             report_prompt = f"""Gere um relatório técnico completo com base nos seguintes dados:
@@ -158,20 +158,20 @@ O relatório deve incluir:
 7. Análise de conformidade técnica
 
 Use linguagem técnica profissional e formato estruturado."""
-            
+
             # Generate report
             report = await self.ai_assistant.chat(report_prompt)
-            
+
             return report
-            
+
         except Exception as e:
             logger.error(f"Failed to generate technical report: {e}")
             raise
-    
+
     async def chat_with_context(self, message: str, context: Dict[str, Any], conversation_id: Optional[str] = None) -> str:
         """Chat with AI using specific context."""
         await self._ensure_initialized()
-        
+
         try:
             # Prepare context-aware prompt
             context_prompt = f"""Contexto atual do projeto/cálculo:
@@ -182,72 +182,72 @@ Com base neste contexto, responda à seguinte pergunta:
 {message}
 
 Seja específico e técnico, considerando os dados fornecidos."""
-            
+
             # Get conversation history if provided
             history = []
             if conversation_id:
                 from api.routers.ai_assistant import conversations
                 history = conversations.get(conversation_id, [])
-            
+
             # Chat with context
             response = await self.ai_assistant.chat(context_prompt, history)
-            
+
             return response
-            
+
         except Exception as e:
             logger.error(f"Failed to chat with context: {e}")
             raise
-    
+
     def _parse_insights(self, analysis: str) -> List[str]:
         """Parse insights from AI analysis."""
         # Simple parsing - in production, use more sophisticated NLP
         insights = []
         lines = analysis.split('\n')
-        
+
         for line in lines:
             if 'insight:' in line.lower() or 'observação:' in line.lower():
                 insights.append(line.strip())
-        
+
         return insights[:5]  # Limit to 5 insights
-    
+
     def _parse_recommendations(self, analysis: str) -> List[str]:
         """Parse recommendations from AI analysis."""
         recommendations = []
         lines = analysis.split('\n')
-        
+
         for line in lines:
             if 'recommendation:' in line.lower() or 'recomendação:' in line.lower():
                 recommendations.append(line.strip())
-        
+
         return recommendations[:5]  # Limit to 5 recommendations
-    
+
     def _parse_risks(self, analysis: str) -> List[str]:
         """Parse risks from AI analysis."""
         risks = []
         lines = analysis.split('\n')
-        
+
         for line in lines:
             if 'risk:' in line.lower() or 'risco:' in line.lower():
                 risks.append(line.strip())
-        
+
         return risks[:5]  # Limit to 5 risks
-    
+
     def _parse_optimization_areas(self, suggestions: str) -> List[str]:
         """Parse optimization areas from suggestions."""
         areas = []
         lines = suggestions.split('\n')
-        
+
         for line in lines:
             if 'area:' in line.lower() or 'área:' in line.lower():
                 areas.append(line.strip())
-        
+
         return areas[:5]  # Limit to 5 areas
-    
+
     def _parse_savings(self, suggestions: str) -> Dict[str, str]:
         """Parse potential savings from suggestions."""
         savings = {}
         lines = suggestions.split('\n')
-        
+
         for line in lines:
             if 'saving:' in line.lower() or 'economia:' in line.lower():
                 parts = line.split(':')
@@ -255,14 +255,14 @@ Seja específico e técnico, considerando os dados fornecidos."""
                     key = parts[0].strip()
                     value = ':'.join(parts[1:]).strip()
                     savings[key] = value
-        
+
         return savings
-    
+
     def _parse_priority(self, suggestions: str) -> List[Dict[str, str]]:
         """Parse implementation priority from suggestions."""
         priorities = []
         lines = suggestions.split('\n')
-        
+
         for line in lines:
             if 'priority:' in line.lower() or 'prioridade:' in line.lower():
                 parts = line.split(':')
@@ -273,13 +273,13 @@ Seja específico e técnico, considerando os dados fornecidos."""
                         "priority": priority,
                         "description": description
                     })
-        
+
         return priorities[:5]  # Limit to 5 priorities
-    
+
     def _parse_validation_result(self, validation: str) -> bool:
         """Parse validation result."""
         validation_lower = validation.lower()
-        
+
         # Look for validation keywords
         if 'válido' in validation_lower and 'inválido' not in validation_lower:
             return True
@@ -287,29 +287,29 @@ Seja específico e técnico, considerando os dados fornecidos."""
             return False
         elif 'problema' in validation_lower or 'issue' in validation_lower:
             return False
-        
+
         return True  # Default to valid if unclear
-    
+
     def _parse_validation_issues(self, validation: str) -> List[str]:
         """Parse validation issues."""
         issues = []
         lines = validation.split('\n')
-        
+
         for line in lines:
             if any(keyword in line.lower() for keyword in ['erro:', 'error:', 'problema:', 'issue:', 'inválido:', 'invalid:']):
                 issues.append(line.strip())
-        
+
         return issues[:5]  # Limit to 5 issues
-    
+
     def _parse_validation_recommendations(self, validation: str) -> List[str]:
         """Parse validation recommendations."""
         recommendations = []
         lines = validation.split('\n')
-        
+
         for line in lines:
             if any(keyword in line.lower() for keyword in ['recomendação:', 'recommendation:', 'sugestão:', 'suggestion:']):
                 recommendations.append(line.strip())
-        
+
         return recommendations[:5]  # Limit to 5 recommendations
 
 
@@ -320,8 +320,8 @@ _ai_service: Optional[AIService] = None
 def get_ai_service() -> AIService:
     """Get AI service instance."""
     global _ai_service
-    
+
     if _ai_service is None:
         _ai_service = AIService()
-    
+
     return _ai_service

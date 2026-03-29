@@ -7,8 +7,9 @@
  * analysis, optimization, report, and validation results. Additionally, it includes demo data for
  * calculation and project details.
  */
-import React, { useState, useEffect } from 'react';
-import { Bot, Cpu, Database, Zap, TrendingUp, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { Bot, Cpu, Database, Zap, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
+import React, { useState } from 'react';
+
 import { useAIAssistant } from '../hooks/useAIAssistant';
 
 const AIAssistantDemo = () => {
@@ -21,7 +22,7 @@ const AIAssistantDemo = () => {
     validateParameters
   } = useAIAssistant();
 
-  const [demoData, setDemoData] = useState({
+  const [_demoData, _setDemoData] = useState({
     calculation: {
       poste: {
         altura: 12,
@@ -61,7 +62,6 @@ const AIAssistantDemo = () => {
       const result = await analyzeCalculation(demoData.calculation, 'comprehensive');
       setAnalysisResult(result);
     } catch (error) {
-      console.error('Analysis failed:', error);
       setAnalysisResult({
         status: 'error',
         error: error.message
@@ -74,7 +74,6 @@ const AIAssistantDemo = () => {
       const result = await optimizeProject(demoData.project, ['cost_reduction', 'safety_improvement', 'efficiency']);
       setOptimizationResult(result);
     } catch (error) {
-      console.error('Optimization failed:', error);
       setOptimizationResult({
         status: 'error',
         error: error.message
@@ -90,7 +89,6 @@ const AIAssistantDemo = () => {
         report
       });
     } catch (error) {
-      console.error('Report generation failed:', error);
       setReportResult({
         status: 'error',
         error: error.message
@@ -106,7 +104,6 @@ const AIAssistantDemo = () => {
         validation
       });
     } catch (error) {
-      console.error('Validation failed:', error);
       setValidationResult({
         status: 'error',
         error: error.message

@@ -56,7 +56,7 @@ export const useValidation = (initialValues = {}, validationRules = {}) => {
   // Validar campo específico
   const validateField = useCallback((field, value) => {
     const rules = validationRules[field]
-    if (!rules) return true
+    if (!rules) {return true}
     
     let error = null
     

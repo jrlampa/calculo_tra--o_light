@@ -3,8 +3,6 @@
 No database, no HTTP — pure domain logic validation.
 """
 import pytest
-from datetime import datetime
-from uuid import uuid4
 
 from domain import (
     Projeto,
@@ -20,10 +18,6 @@ from domain import (
     CaboConductor,
     PosteId,
     ProjetoId,
-    DuplicatePosteNumero,
-    InvalidNivelStructure,
-    NoCálculoDraft,
-    PosteNotFound,
 )
 
 
@@ -203,7 +197,7 @@ class TestPosteAggregate:
         )
         draft = poste.registrar_calculo(resultado, "user1")
         assert draft.status == "draft"
-        
+
         salvo = poste.marcar_ultimo_calculo_como_salvo()
         assert salvo.status == "saved"
 
@@ -218,7 +212,7 @@ class TestPosteAggregate:
         )
         # No calculations yet
         assert poste.obter_ultimo_calculo_salvo() is None
-        
+
         # Register draft and save
         resultado = CalculoResultado(
             mt1_tracao=100.0, mt1_angulo=5.0,
@@ -231,7 +225,7 @@ class TestPosteAggregate:
         )
         poste.registrar_calculo(resultado)
         salvo = poste.marcar_ultimo_calculo_como_salvo()
-        
+
         # Should retrieve it
         retrieved = poste.obter_ultimo_calculo_salvo()
         assert retrieved is not None

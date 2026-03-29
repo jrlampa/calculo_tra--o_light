@@ -27,7 +27,7 @@ const normalizeLookupObject = value => {
 
   return Object.entries(value).reduce((acc, [key, options]) => {
     const normalizedKey = String(key).trim()
-    if (!normalizedKey) return acc
+    if (!normalizedKey) {return acc}
     acc[normalizedKey] = normalizeStringArray(options)
     return acc
   }, {})

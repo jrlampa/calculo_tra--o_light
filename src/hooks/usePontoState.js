@@ -5,8 +5,9 @@
  * @returns The `usePontoState` custom hook is returning an object with the following properties:
  */
 import { useState, useCallback, useMemo, useEffect } from 'react'
-import { createPonto, getLastRequestContext } from '../services/calculoApi.js'
+
 import { POSTE_INICIAL } from '../features/calculo/formConfig.js'
+import { createPonto, clonarPosteDeProjeto, getLastRequestContext } from '../services/calculoApi.js'
 import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstrumentation.js'
 
 export const usePontoState = ({ projetoAtual, cabecalho, resetPersistencia }) => {
@@ -14,6 +15,8 @@ export const usePontoState = ({ projetoAtual, cabecalho, resetPersistencia }) =>
   const [pontoAtual, setPontoAtual] = useState(null)
   const [pontoSnapshot, setPontoSnapshot] = useState(null)
   const [pontoState, setPontoState] = useState({ loading: false, status: 'idle', error: '' })
+  // origem_id is set when this ponto was cloned from another project's poste
+  const [origemId, setOrigemId] = useState(null)
 
   // Memoizar validações
   const canConfirmPonto = useMemo(() => {
@@ -82,7 +85,7 @@ export const usePontoState = ({ projetoAtual, cabecalho, resetPersistencia }) =>
         modeloPoste: poste.modeloPoste || '',
       })
       setPontoState({ loading: false, status: 'saved', error: '' })
-      if (resetPersistencia) resetPersistencia()
+      if (resetPersistencia) {resetPersistencia()}
       trackUxFunnelEvent(UX_FUNNEL_EVENTS.POINT_CONFIRMED, {
         projeto_id: projetoAtual?.id ?? null,
         ponto_id: pontoCriado?.id ?? null,
@@ -96,12 +99,52 @@ export const usePontoState = ({ projetoAtual, cabecalho, resetPersistencia }) =>
     }
   }, [projetoAtual, cabecalho.ponto, poste.tipoPoste, poste.modeloPoste, resetPersistencia])
 
+  // Handler para clonar um poste de outro projeto para o projeto atual
+  const handleClonarDeOutroProjeto = useCallback(async (posteOrigemId) => {
+    if (!projetoAtual?.id) {
+      setPontoState({ loading: false, status: 'error', error: 'Projeto ainda não foi criado.' })
+      return
+    }
+
+    setPontoState({ loading: true, status: 'saving', error: '' })
+
+    try {
+      const clonado = await clonarPosteDeProjeto(posteOrigemId, projetoAtual.id)
+
+      setPontoAtual(clonado)
+      setOrigemId(clonado.origem_id ?? null)
+      setPoste({
+        tipoPoste: clonado.tipo_poste || '',
+        modeloPoste: clonado.modelo_poste || '',
+      })
+      setPontoSnapshot({
+        ponto: clonado.numero || '',
+        tipoPoste: clonado.tipo_poste || '',
+        modeloPoste: clonado.modelo_poste || '',
+      })
+      setPontoState({ loading: false, status: 'saved', error: '' })
+      if (resetPersistencia) {resetPersistencia()}
+      trackUxFunnelEvent(UX_FUNNEL_EVENTS.POINT_CONFIRMED, {
+        projeto_id: projetoAtual?.id ?? null,
+        ponto_id: clonado?.id ?? null,
+        operation_id: null,
+        ponto: clonado.numero || '',
+        tipo_poste: clonado.tipo_poste || '',
+        modelo_poste: clonado.modelo_poste || '',
+        clonado_de: posteOrigemId,
+      })
+    } catch (err) {
+      setPontoState({ loading: false, status: 'error', error: err.message })
+    }
+  }, [projetoAtual, resetPersistencia])
+
   // Reset do estado do ponto
   const resetPonto = useCallback(() => {
     setPoste(() => ({ ...POSTE_INICIAL }))
     setPontoAtual(null)
     setPontoSnapshot(null)
     setPontoState({ loading: false, status: 'idle', error: '' })
+    setOrigemId(null)
   }, [])
 
   // Reset para próximo ponto (mantém projeto)
@@ -110,18 +153,19 @@ export const usePontoState = ({ projetoAtual, cabecalho, resetPersistencia }) =>
     setPontoAtual(null)
     setPontoSnapshot(null)
     setPontoState({ loading: false, status: 'idle', error: '' })
-    if (resetPersistencia) resetPersistencia()
+    setOrigemId(null)
+    if (resetPersistencia) {resetPersistencia()}
   }, [resetPersistencia])
 
   // Efeito para detectar mudanças APENAS no nome do ponto
   useEffect(() => {
-    if (!pontoSnapshot) return
+    if (!pontoSnapshot) {return}
 
     const pontoMudou = (cabecalho.ponto || '').trim() !== pontoSnapshot.ponto
     
     // NOTA: Mudanças no poste.tipoPoste ou poste.modeloPoste NÃO reiniciam mais o ponto.
     // Isso evita o "Zera tudo" reportado pelo usuário e permite recalcular mantendo os vetores.
-    if (!pontoMudou) return
+    if (!pontoMudou) {return}
 
     resetPonto()
   }, [cabecalho.ponto, pontoSnapshot, resetPonto])
@@ -161,15 +205,17 @@ export const usePontoState = ({ projetoAtual, cabecalho, resetPersistencia }) =>
     pontoAtual,
     pontoSnapshot,
     pontoState,
+    origemId,
     canConfirmPonto,
     headerFeedback,
     handlers: {
       handlePoste,
       handleConfirmPonto,
+      handleClonarDeOutroProjeto,
       resetPonto,
       handleProximoPonto
     }
-  }), [poste, pontoAtual, pontoSnapshot, pontoState, canConfirmPonto, headerFeedback, handlePoste, handleConfirmPonto, resetPonto, handleProximoPonto])
+  }), [poste, pontoAtual, pontoSnapshot, pontoState, origemId, canConfirmPonto, headerFeedback, handlePoste, handleConfirmPonto, handleClonarDeOutroProjeto, resetPonto, handleProximoPonto])
 
   return pontoStateMemo
 }

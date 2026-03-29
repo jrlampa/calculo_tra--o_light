@@ -12,32 +12,17 @@ const Field = React.memo(({ label, id, value, onChange, colSpan = 1, readOnly = 
     <>
       <td 
         id={labelId}
-        className="field-lbl" 
-        style={{ 
-          backgroundColor: '#E2E2E2', 
-          border: '1px solid #999',
-          textAlign: 'right',
-          padding: '2px 4px',
-          width: 80
-        }}
+        className="field-lbl"
       >
         {label}
       </td>
       <td 
         colSpan={colSpan}
-        style={{ 
-          border: '1px solid #999',
-          padding: 0
-        }}
+        className="header-cell"
       >
         <input
           id={id}
           className={`xcell header-input${readOnly ? ' xcell-readonly' : ''}`}
-          style={{ 
-            width: '100%', 
-            border: 'none', 
-            height: 18
-          }}
           value={value ?? ''}
           onChange={readOnly ? undefined : e => onChange(id, e.target.value)}
           readOnly={readOnly}
@@ -52,9 +37,9 @@ const Field = React.memo(({ label, id, value, onChange, colSpan = 1, readOnly = 
 // StatusChip separado para vínculo/ponto
 const VinculoChip = React.memo(({ status = 'idle', message = '' }) => {
   const toneClass = (() => {
-    if (status === 'error' || status === 'invalidated') return 'saving'
-    if (status === 'saved') return 'saved'
-    if (status === 'saving') return 'saving'
+    if (status === 'error' || status === 'invalidated') {return 'saving'}
+    if (status === 'saved') {return 'saved'}
+    if (status === 'saving') {return 'saving'}
     return 'idle'
   })()
 
@@ -70,33 +55,54 @@ const VinculoChip = React.memo(({ status = 'idle', message = '' }) => {
   )
 })
 
-// StatusChip para persistência com countdown opcional
-const PersistenciaChip = React.memo(({ status = 'idle', message = '', willRetry = false, retryInSeconds = 0, onRetry = null }) => {
+// StatusChip para persistência com contrato completo de estados
+const PersistenciaChip = React.memo(({
+  status = 'idle',
+  message = '',
+  willRetry = false,
+  isForbidden = false,
+  onRetry = null,
+  onReconfirmProjeto = null,
+}) => {
   const toneClass = (() => {
-    if (status === 'error') return 'error'
-    if (status === 'saved') return 'saved'
-    if (status === 'saving' || status === 'queued') return 'saving'
+    if (status === 'error') {return 'error'}
+    if (status === 'saved') {return 'saved'}
+    if (status === 'saving' || status === 'queued') {return 'saving'}
     return 'idle'
   })()
 
-  const displayMessage = willRetry
-    ? `Nova tentativa em ${retryInSeconds}s...`
-    : message || 'Aguardando envio.'
+  // Compute which CTA to show
+  // queued → "Reenviar"
+  // error + !willRetry + !isForbidden → "Tentar novamente"
+  // error + isForbidden → "Reconfirmar projeto"
+  const showReenviar = status === 'queued' && onRetry
+  const showTentarNovamente = status === 'error' && !willRetry && !isForbidden && onRetry
+  const showReconfirmar = status === 'error' && isForbidden && onReconfirmProjeto
 
   return (
     <div
-      className={`persistencia-chip-wrapper${willRetry ? ' willretry' : ''}`}
+      className={`persistencia-chip-wrapper${willRetry ? ' willretry' : ''}${isForbidden ? ' forbidden' : ''}`}
     >
       <span
         className={`persistencia-chip header-status header-status--${toneClass}`}
         role="status"
-        aria-live="assertive"
+        aria-live="polite"
         aria-atomic="true"
         id="header-persistencia-status"
       >
-        {displayMessage}
+        {message || 'Aguardando envio.'}
       </span>
-      {onRetry && status === 'error' && !willRetry && (
+      {showReenviar && (
+        <button
+          type="button"
+          className="header-retry-button"
+          onClick={onRetry}
+          aria-label="Reenviar cálculo imediatamente"
+        >
+          Reenviar
+        </button>
+      )}
+      {showTentarNovamente && (
         <button
           type="button"
           className="header-retry-button"
@@ -104,6 +110,16 @@ const PersistenciaChip = React.memo(({ status = 'idle', message = '', willRetry 
           aria-label="Tentar novamente a persistência do cálculo"
         >
           Tentar novamente
+        </button>
+      )}
+      {showReconfirmar && (
+        <button
+          type="button"
+          className="header-reconfirm-button"
+          onClick={onReconfirmProjeto}
+          aria-label="Reconfirmar projeto para tentar salvar novamente"
+        >
+          Reconfirmar projeto
         </button>
       )}
     </div>
@@ -124,21 +140,22 @@ const Header = ({
   persistenciaStatus = 'idle',
   persistenciaMensagem = '',
   persistenciaWillRetry = false,
-  persistenciaRetryInSeconds = 0,
+  persistenciaIsForbidden = false,
   onRetryPersistencia = null,
+  onReconfirmProjeto = null,
 }) => {
   return (
     <div>
-      <table style={{ borderCollapse: 'collapse', marginBottom: 8, width: '100%', tableLayout: 'fixed' }}>
+      <table className="header-data-table">
         <tbody>
-          <tr style={{ height: 22 }}>
+          <tr>
             <Field label="Órgão:" id="orgao" value={dados.orgao} onChange={onChange} readOnly={readOnlyCommon} />
             <Field label="N.S.:" id="ns" value={dados.ns} onChange={onChange} readOnly={readOnlyCommon} />
             <Field label="Projeto:" id="projeto" value={dados.projeto} onChange={onChange} readOnly={readOnlyCommon} />
             <Field label="Ponto:" id="ponto" value={dados.ponto} onChange={onChange} />
           </tr>
 
-          <tr style={{ height: 22 }}>
+          <tr>
             <Field
               label="Endereço:"
               id="endereco"
@@ -151,7 +168,7 @@ const Header = ({
             <Field label="Data:" id="data" value={dados.data} onChange={onChange} readOnly={readOnlyCommon} />
           </tr>
 
-          <tr style={{ height: 22 }}>
+          <tr>
             <Field
               label="Estudado por:"
               id="estudadoPor"
@@ -160,7 +177,7 @@ const Header = ({
               colSpan={3}
               readOnly={readOnlyCommon}
             />
-            <td colSpan={4} style={{ border: '1px solid #999', backgroundColor: '#f9f9f9' }} />
+            <td colSpan={4} className="header-empty-cell" />
           </tr>
         </tbody>
       </table>
@@ -174,8 +191,9 @@ const Header = ({
               status={persistenciaStatus}
               message={persistenciaMensagem}
               willRetry={persistenciaWillRetry}
-              retryInSeconds={persistenciaRetryInSeconds}
+              isForbidden={persistenciaIsForbidden}
               onRetry={onRetryPersistencia}
+              onReconfirmProjeto={onReconfirmProjeto}
             />
             <button
               type="button"
@@ -207,7 +225,8 @@ export default React.memo(Header, (prevProps, nextProps) => {
     prevProps.persistenciaStatus === nextProps.persistenciaStatus &&
     prevProps.persistenciaMensagem === nextProps.persistenciaMensagem &&
     prevProps.persistenciaWillRetry === nextProps.persistenciaWillRetry &&
-    prevProps.persistenciaRetryInSeconds === nextProps.persistenciaRetryInSeconds &&
-    prevProps.onRetryPersistencia === nextProps.onRetryPersistencia
+    prevProps.persistenciaIsForbidden === nextProps.persistenciaIsForbidden &&
+    prevProps.onRetryPersistencia === nextProps.onRetryPersistencia &&
+    prevProps.onReconfirmProjeto === nextProps.onReconfirmProjeto
   )
 })

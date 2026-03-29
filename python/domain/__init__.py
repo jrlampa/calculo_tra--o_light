@@ -36,6 +36,7 @@ from domain.events import (
     NivelAtualizado,
     PosteCriado,
     PosteDeletado,
+    PosteVinculado,
     ProjetoCriado,
     ProjetoDeletado,
     TravessiaAtualizada,
@@ -94,6 +95,7 @@ __all__ = [
     "TravessiaAtualizada",
     "CalculoSnapshotEvent",
     "CalculoDeletado",
+    "PosteVinculado",
     "PosteDeletado",
     "ProjetoDeletado",
     # Exceptions

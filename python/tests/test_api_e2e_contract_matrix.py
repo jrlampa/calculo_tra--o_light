@@ -23,14 +23,38 @@ PONTO_ID = "22222222-2222-2222-2222-222222222222"
 USER_A_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 
 
+class _MockConn:
+    """Mock DB connection that passes fetchval health-check."""
+
+    async def fetchval(self, query: str) -> int:
+        return 1
+
+
+class _MockPool:
+    """Mock connection pool supporting `async with pool.acquire() as conn`."""
+
+    def acquire(self):
+        return self
+
+    async def __aenter__(self):
+        return _MockConn()
+
+    async def __aexit__(self, *args: Any) -> None:
+        pass
+
+
 class SupabaseStub:
     def __init__(self) -> None:
+        self.is_enabled = True
         self.projeto_exists_value = True
         self.ponto_exists_value = True
         self.can_access_projeto_value = True
         self.can_access_ponto_value = True
         self.save_snapshot_value = True
         self.snapshot_payload: dict[str, Any] | None = None
+
+    async def _get_pool(self) -> _MockPool:
+        return _MockPool()
 
     async def projeto_exists(self, projeto_id: str) -> bool:
         return self.projeto_exists_value

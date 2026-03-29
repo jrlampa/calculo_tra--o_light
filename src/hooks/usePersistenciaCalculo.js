@@ -4,6 +4,7 @@
  * @returns The `usePersistenciaCalculo` custom hook is returning an object with three properties:
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
+
 import {
   buildSalvarCalculoPayload,
   getLastRequestContext,
@@ -44,7 +45,9 @@ export default function usePersistenciaCalculo({ pontoId, lastPayload, resultado
 
   // Inicia countdown de segundos para retry
   const startRetryCountdown = useCallback((backoffMs) => {
-    if (retryCountdownRef.current) clearInterval(retryCountdownRef.current)
+    if (retryCountdownRef.current) {
+      clearInterval(retryCountdownRef.current)
+    }
     
     let secondsRemaining = Math.ceil(backoffMs / 1000)
     
@@ -69,10 +72,10 @@ export default function usePersistenciaCalculo({ pontoId, lastPayload, resultado
   }, [])
 
   const flushPersistQueue = useCallback(async () => {
-    if (persistInFlightRef.current) return
+    if (persistInFlightRef.current) {return}
 
     const nextPersist = pendingPersistRef.current
-    if (!nextPersist) return
+    if (!nextPersist) {return}
 
     clearPersistTimer()
     persistInFlightRef.current = true
@@ -105,6 +108,10 @@ export default function usePersistenciaCalculo({ pontoId, lastPayload, resultado
         ponto_id: nextPersist.pontoId,
         operation_id: operationId || null,
         has_queue: Boolean(pendingPersistRef.current),
+      })
+      trackUxFunnelEvent(UX_FUNNEL_EVENTS.CALCULATION_PERSISTED, {
+        ponto_id: nextPersist.pontoId,
+        operation_id: operationId || null,
       })
     } catch (err) {
       // Detectar erro de autorização (403, FORBIDDEN, permission denied)
@@ -177,32 +184,40 @@ export default function usePersistenciaCalculo({ pontoId, lastPayload, resultado
       }
     } finally {
       persistInFlightRef.current = false
-
-      if (!pendingPersistRef.current) return
-
-      const elapsedMs = Date.now() - lastPersistAtRef.current
-      const waitMs = Math.max(PERSIST_WINDOW_MS - elapsedMs, 0)
-
-      if (waitMs > 0) {
-        setPersistencia(prevState => ({ 
-          ...prevState, 
-          status: 'queued', 
-          error: '',
-          willRetry: false
-        }))
-        clearPersistTimer()
-        persistTimerRef.current = setTimeout(() => {
-          void flushPersistQueue()
-        }, waitMs)
-        return
-      }
-
-      void flushPersistQueue()
     }
+
+    // Schedule queued flush outside the finally block to avoid no-unsafe-finally.
+    // Only flush if a NEW item was enqueued while this request was in-flight
+    // (i.e. the pending item is different from the one we just processed).
+    // If it's the same item (failure path — cleared only on success), return here
+    // because the catch block already scheduled the appropriate retry or the
+    // 403 handler intentionally suppresses further auto-retries.
+    if (!pendingPersistRef.current) {return}
+    if (pendingPersistRef.current === nextPersist) {return}
+
+    const elapsedMs = Date.now() - lastPersistAtRef.current
+    const waitMs = Math.max(PERSIST_WINDOW_MS - elapsedMs, 0)
+
+    if (waitMs > 0) {
+      startRetryCountdown(waitMs)
+      setPersistencia(prevState => ({ 
+        ...prevState, 
+        status: 'queued', 
+        error: '',
+        willRetry: false
+      }))
+      clearPersistTimer()
+      persistTimerRef.current = setTimeout(() => {
+        void flushPersistQueue()
+      }, waitMs)
+      return
+    }
+
+    void flushPersistQueue()
   }, [clearPersistTimer, startRetryCountdown])
 
   const schedulePersistQueue = useCallback(() => {
-    if (!pendingPersistRef.current) return
+    if (!pendingPersistRef.current) {return}
 
     if (persistInFlightRef.current) {
       setPersistencia(prevState => ({ 
@@ -252,12 +267,12 @@ export default function usePersistenciaCalculo({ pontoId, lastPayload, resultado
   }, [clearPersistTimer])
 
   useEffect(() => {
-    if (!pontoId || !resultado || !lastPayload) return
+    if (!pontoId || !resultado || !lastPayload) {return}
 
     const payload = buildSalvarCalculoPayload(pontoId, lastPayload, resultado)
     const signature = JSON.stringify(payload)
 
-    if (signature === lastPersistSignatureRef.current) return
+    if (signature === lastPersistSignatureRef.current) {return}
 
     pendingPersistRef.current = {
       pontoId,

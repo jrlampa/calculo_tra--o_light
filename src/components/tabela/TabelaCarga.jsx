@@ -12,8 +12,7 @@ export default function TabelaCarga({ dados }) {
   return (
     <div className="mt-2 mb-20 sm:mb-0 md:mb-0 overflow-x-auto md:overflow-visible">
       <table 
-        className="border-collapse text-[8px] md:text-[9px] w-full md:w-auto" 
-        style={{ borderColor: '#999' }}
+        className="border-collapse text-[8px] md:text-[9px] w-full md:w-auto border-[#999]"
       >
         <thead>
           <tr className="bg-gray-200">

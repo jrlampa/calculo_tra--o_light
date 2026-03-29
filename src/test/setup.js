@@ -1,9 +1,9 @@
 /* This code snippet is setting up a testing environment for a JavaScript project using Jest and
 Vitest. Here's a breakdown of what each part of the code is doing: */
 import '@testing-library/jest-dom'
-import { expect, afterEach } from 'vitest'
-import { cleanup } from '@testing-library/react'
 import * as matchers from '@testing-library/jest-dom/matchers'
+import { cleanup } from '@testing-library/react'
+import { expect, afterEach } from 'vitest'
 
 // Extend Vitest's expect with Testing Library matchers
 expect.extend(matchers)

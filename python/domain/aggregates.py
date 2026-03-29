@@ -1,6 +1,6 @@
 """Domain aggregates — root entities that enforce invariants over child entities.
 
-An aggregate is a cluster of domain objects (entities and value objects) that can be 
+An aggregate is a cluster of domain objects (entities and value objects) that can be
 treated as a single unit. The root entity enforces consistency boundaries.
 
 Poste = Root Aggregate (owns Niveis, Travessias, CalculoSnapshots)
@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from typing import List, Optional
 from uuid import UUID, uuid4
 
-from domain.entities import Nivel, Travessia
+from domain.entities import Nivel
 from domain.value_objects import (
     CalculoResultado,
     Condutor,
@@ -33,7 +33,7 @@ def _utc_now() -> datetime:
 @dataclass
 class CalculoSnapshot:
     """Immutable snapshot of a calculation result (append-only event).
-    
+
     Represents a saved calculation at a point in time. Once created, never modified.
     Status can be: 'draft' (unsaved working copy) or 'saved' (persistent).
     """
@@ -65,11 +65,19 @@ class CalculoSnapshot:
 @dataclass
 class Poste:
     """Root aggregate for pole/post in electrical distribution network.
-    
+
     A Poste is the fundamental unit of calculation. It owns:
     - Niveis (voltage levels): always 5 (MT1, MT2, BT, BTZ, RAL)
     - Travessias (spans) within each Nivel: always 4 per level
     - CalculoSnapshots (calculation history): append-only
+
+    Cross-project lineage
+    ---------------------
+    A physical pole can appear in multiple Projects across time.  When
+    Project Y starts from a pole that was already part of Project X, the
+    new Poste is created with ``origem_id`` pointing to the ancestor.
+    The chain of ``origem_id`` links forms the full audit history of that
+    physical pole across all projects.
     """
 
     projeto_id: ProjetoId
@@ -80,6 +88,9 @@ class Poste:
     modelo_poste: str = ""  # e.g., "11/600", "13/800"
     calculos: List[CalculoSnapshot] = field(default_factory=list)  # Append-only history
     geometria: Geometria_Poste = field(default_factory=Geometria_Poste)
+    # Lineage: UUID of the Poste in a previous project this one continues.
+    # None means this is a "root" pole — first time this physical pole is studied.
+    origem_id: Optional[PosteId] = None
     criado_em: datetime = field(default_factory=_utc_now)
     atualizado_em: datetime = field(default_factory=_utc_now)
     deletado_em: Optional[datetime] = None  # Soft-delete
@@ -185,6 +196,107 @@ class Poste:
         """Get all calculation snapshots in chronological order."""
         return sorted(self.calculos, key=lambda c: c.calculado_em)
 
+    def obter_condutores(self) -> List[dict]:
+        """Return all conductors across every nivel and travessia.
+
+        Each entry maps the nivel + position back to its conductor and geometry
+        so callers can answer "what is hanging on this Poste?" without knowing
+        the internal Nivel→Travessia hierarchy.
+        """
+        result = []
+        for n in self.niveis:
+            for t in n.travessias:
+                result.append({
+                    "nivel": n.nivel_enum.value,
+                    "posicao": t.posicao,
+                    "tipo_rede": t.condutor.tipo_rede.value,
+                    "tipo_cabo": t.condutor.tipo_cabo.value,
+                    "vao": t.geometria.vao,
+                    "flecha": t.geometria.flecha,
+                    "angulo": t.geometria.angulo,
+                })
+        return result
+
+    def vincular_origem(self, origem_id: PosteId) -> None:
+        """Link this Poste to its ancestor in a previous project.
+
+        Call this when creating a Poste in Project Y that continues from a
+        physical pole that was already studied in Project X.  The link is
+        one-directional: the descendant holds a reference to the ancestor;
+        navigating the full chain requires the repository.
+
+        Raises:
+            ValueError: If ``origem_id`` equals this Poste's own ID (self-loop).
+        """
+        if origem_id.value == self.id.value:
+            raise ValueError("Poste não pode ser sua própria origem (self-loop)")
+        self.origem_id = origem_id
+        self.atualizado_em = _utc_now()
+
+    def perfil(self) -> dict:
+        """Human-readable summary of the physical items attached to this Poste.
+
+        Returns identification, structural data, active spans (vao > 0),
+        the last saved calculation, and lineage info.
+        """
+        ultimo = self.obter_ultimo_calculo_salvo()
+        condutores_ativos = [
+            c for c in self.obter_condutores() if c["vao"] > 0
+        ]
+        return {
+            "id": str(self.id.value),
+            "numero": self.numero,
+            "tipo_poste": self.tipo_poste,
+            "modelo_poste": self.modelo_poste,
+            "projeto_id": str(self.projeto_id.value),
+            "origem_id": str(self.origem_id.value) if self.origem_id else None,
+            "condutores_ativos": condutores_ativos,
+            "ultimo_calculo": ultimo.resumo() if ultimo else None,
+        }
+
+    def clonar_para_projeto(self, projeto_destino_id: ProjetoId) -> "Poste":
+        """Create a deep copy of this Poste for a different project.
+
+        The clone gets a new UUID, belongs to ``projeto_destino_id``, and has
+        ``origem_id`` pre-set to this Poste's ID.  All Niveis and Travessias
+        are deep-copied so modifications to the clone never touch the original.
+
+        This is the canonical entry point for "Project Y starts from the
+        physical pole already studied in Project X":
+
+        1. Call this method on the Project-X Poste.
+        2. Persist the returned clone via ``PosteRepository.salvar()``.
+        3. The ``origem_id`` link is already in place — no extra call needed.
+
+        The clone starts with a fresh timestamp (``criado_em``/``atualizado_em``)
+        so it is immediately recognised as more recent than its ancestor.
+
+        Raises:
+            ValueError: If ``projeto_destino_id`` equals this Poste's own
+                ``projeto_id`` (cloning within the same project is not allowed).
+        """
+        if projeto_destino_id.value == self.projeto_id.value:
+            raise ValueError(
+                "clonar_para_projeto: projeto destino deve ser diferente do projeto de origem"
+            )
+
+        # Deep-copy Niveis and their Travessias
+        from copy import deepcopy
+
+        niveis_clone = deepcopy(self.niveis)
+
+        clone = Poste(
+            projeto_id=projeto_destino_id,
+            numero=self.numero,
+            tipo_poste=self.tipo_poste,
+            modelo_poste=self.modelo_poste,
+            niveis=niveis_clone,
+            geometria=deepcopy(self.geometria),
+            # Lineage: this clone continues from the original
+            origem_id=PosteId(value=self.id.value),
+        )
+        return clone
+
     def deletar(self, razao: str = "user requested") -> None:
         """Soft-delete this Poste (mark as deleted, not removed)."""
         self.deletado_em = _utc_now()
@@ -198,7 +310,7 @@ class Poste:
 @dataclass
 class Projeto:
     """Parent aggregate — groups multiple Postes and project metadata.
-    
+
     A Projeto is the context/container for multiple Postes.
     It doesn't own Poste objects directly, only references (IDs).
     """

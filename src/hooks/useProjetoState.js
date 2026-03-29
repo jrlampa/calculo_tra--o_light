@@ -4,8 +4,9 @@
  * @returns The `useProjetoState` custom hook is returning an object with the following properties:
  */
 import { useState, useCallback, useMemo } from 'react'
-import { createProjeto, listProjetos, deleteProjeto, updateProjeto } from '../services/calculoApi.js'
+
 import { CABECALHO_INICIAL } from '../features/calculo/formConfig.js'
+import { createProjeto, listProjetos, deleteProjeto, updateProjeto } from '../services/calculoApi.js'
 import { trackUxFunnelEvent, UX_FUNNEL_EVENTS } from '../services/uxFunnelInstrumentation.js'
 
 export const useProjetoState = () => {
@@ -63,7 +64,7 @@ export const useProjetoState = () => {
       })
       setEtapa('calculo')
       trackUxFunnelEvent(UX_FUNNEL_EVENTS.PROJECT_OPENED_FROM_DB, { id: projeto.id })
-    } catch (err) {
+    } catch (_err) {
       setProjetoState({ loading: false, error: 'Erro ao abrir projeto.' })
     } finally {
       setProjetoState(prev => ({ ...prev, loading: false }))

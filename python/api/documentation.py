@@ -33,21 +33,21 @@ def custom_openapi_schema(app: FastAPI) -> Dict[str, Any]:
         version="2.0.0",
         description="""
         ## API para Cálculo de Tração de Redes Elétricas
-        
+
         Esta API fornece endpoints para:
         - **Gerenciamento de Projetos**: CRUD de projetos e pontos
         - **Cálculos**: Processamento de tração e tensões
         - **Autenticação**: Login, registro e sessões
         - **Administração**: Operações administrativas
         - **Dados Públicos**: Lookup de cabos, postes e estruturas
-        
+
         ### Autenticação
         A maioria dos endpoints requer autenticação via token JWT.
-        
+
         ### Rate Limiting
         - 60 requisições por minuto
         - 1000 requisições por hora
-        
+
         ### Formato de Resposta
         Todas as respostas seguem o formato:
         ```json

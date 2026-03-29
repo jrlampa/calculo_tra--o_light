@@ -1,12 +1,12 @@
 import logging
 from io import BytesIO
-from typing import Any, Dict, List
+from typing import Any, List
 import openpyxl
 from api.schemas import (
-    CalculoInput, 
-    MTTraversalIn, 
-    BTTraversalIn, 
-    BTZeroTraversalIn, 
+    CalculoInput,
+    MTTraversalIn,
+    BTTraversalIn,
+    BTZeroTraversalIn,
     RamaisTraversalIn,
     PosteCalculoIn,
     CabecalhoIn
@@ -32,10 +32,12 @@ def find_row_by_keyword(ws, keyword: str, start_row: int = 1, col_range: List[in
             val = str(ws.cell(row=row, column=c).value or "").strip().upper()
             # Be very strict with level headers to avoid picking up partial matches
             if keyword.upper() == "MT - 1" or keyword.upper() == "MT - 1º NÍVEL":
-                if "MT - 1" in val: return row
+                if "MT - 1" in val:
+                    return row
             elif keyword.upper() == "BT":
                 # Strict BT to avoid BTZERO or RAMAIS BTZERO
-                if val == "BT" or val == "BT:": return row
+                if val == "BT" or val == "BT:":
+                    return row
             elif keyword.upper() in val:
                 return row
     return -1
@@ -44,14 +46,15 @@ def extract_excel_to_input(file_content: bytes) -> CalculoInput:
     """Extracts engineering data from legacy XLSM/XLSX to CalculoInput schema."""
     wb = openpyxl.load_workbook(BytesIO(file_content), data_only=True)
     ws = wb.active
-    
+
     # Find row anchors for levels using multi-column scan
     mt1_header = find_row_by_keyword(ws, "MT - 1", col_range=[1, 2, 3, 4])
     mt2_header = find_row_by_keyword(ws, "MT - 2", col_range=[1, 2, 3, 4])
     bt_header = find_row_by_keyword(ws, "BT", col_range=[1, 2, 3, 4])
 
     def find_sub_anchor_multi(ws, start_row, keyword, col_range=[1, 2, 3]):
-        if start_row <= 0: return -1
+        if start_row <= 0:
+            return -1
         # Search up to 30 rows below header
         for r in range(start_row, start_row + 30):
              for c in col_range:
@@ -61,7 +64,8 @@ def extract_excel_to_input(file_content: bytes) -> CalculoInput:
         return -1
 
     def get_level_rows(header):
-        if header <= 0: return None
+        if header <= 0:
+            return None
         return {
             "rede": find_sub_anchor_multi(ws, header, "Tipo de rede"),
             "cabo": find_sub_anchor_multi(ws, header, "Tipo de cabo"),
@@ -83,7 +87,8 @@ def extract_excel_to_input(file_content: bytes) -> CalculoInput:
                   val = str(ws.cell(row=r, column=c).value or "").strip().upper()
                   if keyword.upper() in val:
                        res = ws.cell(row=r, column=c+1).value
-                       if res is None: res = ws.cell(row=r, column=c+2).value
+                       if res is None:
+                           res = ws.cell(row=r, column=c+2).value
                        return res
         return None
 
@@ -97,7 +102,7 @@ def extract_excel_to_input(file_content: bytes) -> CalculoInput:
         projeto=str(projeto or ""), numero=str(ponto or ""),
         endereco=str(endereco or ""), estudado_por=str(estudado_por or ""), data=str(data_val or "")
     )
-    
+
     # 2. Poste
     tipo_poste_val = find_field_val_flexible(ws, "Tipo do Poste") or ws["C140"].value
     modelo_poste_val = find_field_val_flexible(ws, "Modelo do Poste") or ws["B12"].value
@@ -105,10 +110,11 @@ def extract_excel_to_input(file_content: bytes) -> CalculoInput:
         tipo_poste=str(tipo_poste_val or ""),
         modelo_poste=str(modelo_poste_val or ""),
     )
-    
+
     # 3. Traversals cols
     def get_traversal_cols_v3(ws, rows):
-        if not rows or rows["rede"] <= 0: return [2, 5, 8, 11]
+        if not rows or rows["rede"] <= 0:
+            return [2, 5, 8, 11]
         label_col = -1
         for c in range(1, 8):
             if "TIPO DE REDE" in str(ws.cell(row=rows["rede"], column=c).value or "").upper():
@@ -124,7 +130,8 @@ def extract_excel_to_input(file_content: bytes) -> CalculoInput:
     bt_cols  = get_traversal_cols_v3(ws, rows_bt)
 
     def get_mt_row_dyn(rows, cols, i):
-        if not rows: return MTTraversalIn()
+        if not rows:
+            return MTTraversalIn()
         col = cols[i]
         return MTTraversalIn(
             tipo_rede=str(ws.cell(row=rows["rede"], column=col).value or "") if rows["rede"] > 0 else "",
@@ -138,10 +145,10 @@ def extract_excel_to_input(file_content: bytes) -> CalculoInput:
 
     mt1 = [get_mt_row_dyn(rows_mt1, mt1_cols, i) for i in range(4)]
     mt2 = [get_mt_row_dyn(rows_mt2, mt2_cols, i) for i in range(4)]
-    
+
     bt = []
     for i in range(4):
-        if not rows_bt: 
+        if not rows_bt:
             bt.append(BTTraversalIn())
             continue
         col = bt_cols[i]
@@ -157,5 +164,5 @@ def extract_excel_to_input(file_content: bytes) -> CalculoInput:
 
     btz = [BTZeroTraversalIn() for _ in range(4)]
     ral = [RamaisTraversalIn() for _ in range(4)]
-    
+
     return CalculoInput(cabecalho=cab_data, poste=poste_data, mt1=mt1, mt2=mt2, bt=bt, btz=btz, ral=ral)

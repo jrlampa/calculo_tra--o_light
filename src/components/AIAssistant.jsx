@@ -1,7 +1,7 @@
 /* The above code is a React component named `AIAssistant` that serves as an AI chatbot interface. Here
 is a summary of its functionality: */
-import React, { useState, useEffect, useRef } from 'react';
 import { Send, Bot, User, Trash2, MessageSquare, TrendingUp, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const AIAssistant = ({ calculationData, projectData, onOptimizationSuggestion }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -35,14 +35,13 @@ const AIAssistant = ({ calculationData, projectData, onOptimizationSuggestion })
         connected: data.ollama_connected,
         model: data.current_model
       });
-    } catch (error) {
-      console.error('Failed to check AI status:', error);
+    } catch (_error) {
       setAiStatus({ connected: false, model: null });
     }
   };
 
   const sendMessage = async () => {
-    if (!inputValue.trim() || isLoading) return;
+    if (!inputValue.trim() || isLoading) {return;}
 
     const userMessage = {
       role: 'user',
@@ -81,8 +80,7 @@ const AIAssistant = ({ calculationData, projectData, onOptimizationSuggestion })
       } else {
         throw new Error(data.detail || 'Failed to send message');
       }
-    } catch (error) {
-      console.error('Failed to send message:', error);
+    } catch (_error) {
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.',
@@ -95,7 +93,7 @@ const AIAssistant = ({ calculationData, projectData, onOptimizationSuggestion })
   };
 
   const analyzeCalculation = async () => {
-    if (!calculationData) return;
+    if (!calculationData) {return;}
 
     setIsLoading(true);
     setActiveTab('analysis');
@@ -120,7 +118,6 @@ const AIAssistant = ({ calculationData, projectData, onOptimizationSuggestion })
         throw new Error(data.detail || 'Failed to analyze calculation');
       }
     } catch (error) {
-      console.error('Failed to analyze calculation:', error);
       setAnalysisResult({
         status: 'error',
         error: error.message,
@@ -132,7 +129,7 @@ const AIAssistant = ({ calculationData, projectData, onOptimizationSuggestion })
   };
 
   const optimizeProject = async () => {
-    if (!projectData) return;
+    if (!projectData) {return;}
 
     setIsLoading(true);
     setActiveTab('optimization');
@@ -160,7 +157,6 @@ const AIAssistant = ({ calculationData, projectData, onOptimizationSuggestion })
         throw new Error(data.detail || 'Failed to optimize project');
       }
     } catch (error) {
-      console.error('Failed to optimize project:', error);
       setOptimizationResult({
         status: 'error',
         error: error.message,
@@ -177,8 +173,7 @@ const AIAssistant = ({ calculationData, projectData, onOptimizationSuggestion })
         await fetch(`/api/ai/conversations/${conversationId}`, {
           method: 'DELETE'
         });
-      } catch (error) {
-        console.error('Failed to clear conversation:', error);
+      } catch (_error) { // no-op
       }
     }
     
@@ -343,8 +338,8 @@ const AIAssistant = ({ calculationData, projectData, onOptimizationSuggestion })
                       <Bot className="w-4 h-4" />
                       <div className="flex space-x-1">
                         <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.1s]" />
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]" />
                       </div>
                     </div>
                   </div>

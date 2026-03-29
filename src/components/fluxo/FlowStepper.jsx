@@ -2,11 +2,11 @@
 // Com suporte a navegação "Próximo ponto" após persistência bem-sucedida
 import React from 'react'
 
-const StepperDot = React.memo(({ step = 'idle', label = '', active = false, done = false, error = false, condensed = false }) => {
+const StepperDot = React.memo(({ active = false, done = false, error = false, condensed = false }) => {
   const statusClass = (() => {
-    if (error) return 'stepper-dot--error'
-    if (done) return 'stepper-dot--done'
-    if (active) return 'stepper-dot--active'
+    if (error) {return 'stepper-dot--error'}
+    if (done) {return 'stepper-dot--done'}
+    if (active) {return 'stepper-dot--active'}
     return 'stepper-dot--idle'
   })()
 
@@ -21,8 +21,8 @@ const StepperDot = React.memo(({ step = 'idle', label = '', active = false, done
 
 const StepperConnector = React.memo(({ done = false, error = false, condensed = false }) => {
   const statusClass = (() => {
-    if (error) return 'stepper-connector--error'
-    if (done) return 'stepper-connector--done'
+    if (error) {return 'stepper-connector--error'}
+    if (done) {return 'stepper-connector--done'}
     return 'stepper-connector--idle'
   })()
 
@@ -45,89 +45,148 @@ const FlowStepper = ({
   // Status computado para cada etapa
   const statusProjeto = 'done' // projeto sempre concluído após transição
   const statusPonto = (() => {
-    if (etapaAtual === 'projeto') return 'idle'
-    if (statusVinculoPonto === 'error' || statusVinculoPonto === 'invalidated') return 'error'
-    if (statusVinculoPonto === 'saved') return 'done'
-    if (statusVinculoPonto === 'saving') return 'active'
+    if (etapaAtual === 'projeto') {return 'idle'}
+    if (statusVinculoPonto === 'error' || statusVinculoPonto === 'invalidated') {return 'error'}
+    if (statusVinculoPonto === 'saved') {return 'done'}
+    if (statusVinculoPonto === 'saving') {return 'active'}
     return 'idle'
   })()
   const statusCalculo = (() => {
-    if (etapaAtual === 'projeto' || etapaAtual === 'ponto') return 'idle'
-    if (!resultado) return 'idle'
+    if (etapaAtual === 'projeto' || etapaAtual === 'ponto') {return 'idle'}
+    if (!resultado) {return 'idle'}
     return 'active'
   })()
   const statusPersistido = (() => {
-    if (etapaAtual !== 'calculo' && etapaAtual !== 'persistido') return 'idle'
-    if (statusPersistencia === 'error') return 'error'
-    if (statusPersistencia === 'saved') return 'done'
-    if (statusPersistencia === 'saving' || statusPersistencia === 'queued') return 'active'
+    if (etapaAtual !== 'calculo' && etapaAtual !== 'persistido') {return 'idle'}
+    if (statusPersistencia === 'error') {return 'error'}
+    if (statusPersistencia === 'saved') {return 'done'}
+    if (statusPersistencia === 'saving' || statusPersistencia === 'queued') {return 'active'}
     return 'idle'
   })()
 
   const canShowNextPointButton = statusPersistencia === 'saved' && onNextPonto
 
   if (condensed) {
-    // Modo mobile: dois chips lado a lado (etapa atual + próxima)
-    const labelEtapaAtual = etapas[idxEtapa] || 'inicio'
-    const labelProxima = etapas[idxEtapa + 1] || 'fim'
+    // Modo mobile: chips estado-cientes (etapa atual + próxima)
+    const LABELS = {
+      projeto: 'Projeto',
+      ponto: 'Ponto',
+      calculo: 'Cálculo',
+      persistido: 'Persistido',
+    }
+    const STATUSES = {
+      projeto: statusProjeto,
+      ponto: statusPonto,
+      calculo: statusCalculo,
+      persistido: statusPersistido,
+    }
+
+    const keyAtual = etapas[idxEtapa] || 'projeto'
+    const keyProxima = etapas[idxEtapa + 1] || null
+    const statusAtual = STATUSES[keyAtual] || 'idle'
+    const statusProxima = keyProxima ? (STATUSES[keyProxima] || 'idle') : null
+
+    const statusModifier = (s) => {
+      if (s === 'done') { return ' stepper-chip--done' }
+      if (s === 'error') { return ' stepper-chip--error' }
+      if (s === 'active') { return ' stepper-chip--active' }
+      return ''
+    }
+
+    const statusIcon = (s) => {
+      if (s === 'done') { return '✓ ' }
+      if (s === 'error') { return '✕ ' }
+      return ''
+    }
 
     return (
-      <div className="stepper-container--mobile">
-        <div className="stepper-chips-row">
-          <div className="stepper-chip stepper-chip--current">
-            <span className="stepper-chip-label">{labelEtapaAtual}</span>
-          </div>
-          <span className="stepper-chip-arrow">→</span>
-          <div className="stepper-chip stepper-chip--next">
-            <span className="stepper-chip-label">{labelProxima}</span>
-          </div>
-        </div>
+      <nav className="stepper-container--mobile" aria-label="Progresso do fluxo">
+        <ol className="stepper-chips-row" role="list">
+          <li
+            className={`stepper-chip stepper-chip--current${statusModifier(statusAtual)}`}
+            role="listitem"
+            aria-current="step"
+            aria-label={`Etapa atual: ${LABELS[keyAtual]}${statusAtual === 'done' ? ' (concluída)' : statusAtual === 'error' ? ' (erro)' : statusAtual === 'active' ? ' (em andamento)' : ''}`}
+          >
+            <span className="stepper-chip-label" aria-hidden="true">
+              {statusIcon(statusAtual)}{LABELS[keyAtual]}
+            </span>
+          </li>
+          {keyProxima && (
+            <>
+              <li aria-hidden="true" className="stepper-chip-arrow">→</li>
+              <li
+                className={`stepper-chip stepper-chip--next${statusModifier(statusProxima)}`}
+                role="listitem"
+                aria-label={`Próxima etapa: ${LABELS[keyProxima]}`}
+              >
+                <span className="stepper-chip-label" aria-hidden="true">
+                  {statusIcon(statusProxima)}{LABELS[keyProxima]}
+                </span>
+              </li>
+            </>
+          )}
+        </ol>
         {canShowNextPointButton && (
           <button
             type="button"
             className="stepper-next-point-btn"
             onClick={onNextPonto}
-            aria-label="Confirmar ponto e continuar para o próximo"
+            aria-label="Confirmar ponto e continuar para o próximo ponto"
           >
             Próximo ponto
           </button>
         )}
-      </div>
+      </nav>
     )
   }
 
   // Modo desktop: 4 passos horizontais com conectores
   const stepperItems = [
-    { label: 'Projeto', status: statusProjeto, idx: 0 },
-    { label: 'Ponto', status: statusPonto, idx: 1 },
-    { label: 'Cálculo', status: statusCalculo, idx: 2 },
-    { label: 'Persistido', status: statusPersistido, idx: 3 },
+    { label: 'Projeto', status: statusProjeto, idx: 0, key: 'projeto' },
+    { label: 'Ponto', status: statusPonto, idx: 1, key: 'ponto' },
+    { label: 'Cálculo', status: statusCalculo, idx: 2, key: 'calculo' },
+    { label: 'Persistido', status: statusPersistido, idx: 3, key: 'persistido' },
   ]
 
   return (
-    <div className="stepper-container">
-      <div className="stepper-row">
-        {stepperItems.map((item, i) => (
-          <React.Fragment key={item.label}>
-            <div className="stepper-step">
-              <StepperDot
-                step={item.status}
-                label={item.label}
-                active={item.status === 'active'}
-                done={item.status === 'done'}
-                error={item.status === 'error'}
-              />
-              <span className="stepper-label">{item.label}</span>
-            </div>
-            {i < stepperItems.length - 1 && (
-              <StepperConnector
-                done={item.status === 'done'}
-                error={item.status === 'error'}
-              />
-            )}
-          </React.Fragment>
-        ))}
-      </div>
+    <nav className="stepper-container" aria-label="Progresso do fluxo de cálculo">
+      <ol className="stepper-row" role="list">
+        {stepperItems.map((item, i) => {
+          const isActive = item.status === 'active'
+          const isDone = item.status === 'done'
+          const isError = item.status === 'error'
+          const isCurrent = item.key === etapaAtual
+
+          return (
+            <React.Fragment key={item.label}>
+              <li
+                className="stepper-step"
+                role="listitem"
+                aria-current={isCurrent ? 'step' : undefined}
+                aria-label={`Etapa ${i + 1}: ${item.label} — ${
+                  isError ? 'erro' : isDone ? 'concluída' : isActive ? 'em andamento' : 'pendente'
+                }`}
+              >
+                <StepperDot
+                  step={item.status}
+                  label={item.label}
+                  active={isActive}
+                  done={isDone}
+                  error={isError}
+                />
+                <span className="stepper-label" aria-hidden="true">{item.label}</span>
+              </li>
+              {i < stepperItems.length - 1 && (
+                <StepperConnector
+                  done={isDone}
+                  error={isError}
+                />
+              )}
+            </React.Fragment>
+          )
+        })}
+      </ol>
 
       {canShowNextPointButton && (
         <div className="stepper-actions">
@@ -151,7 +210,7 @@ const FlowStepper = ({
           )}
         </div>
       )}
-    </div>
+    </nav>
   )
 }
 

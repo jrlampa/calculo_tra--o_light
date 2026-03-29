@@ -13,7 +13,6 @@ import os
 import sys
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
-from uuid import UUID
 
 import structlog
 from fastapi import FastAPI, Request
@@ -165,7 +164,6 @@ async def authentication_middleware(request: Request, call_next):
 
 from fastapi.exceptions import RequestValidationError
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
 
 
 @app.exception_handler(RequestValidationError)
@@ -180,9 +178,6 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         method=request.method,
         operation_id=getattr(request.state, "operation_id", None),
     )
-    print("VALIDATION_ERROR_DETAILS:")
-    for err in safe_errors:
-        print(f"  - {err['loc']}: {err['msg']} (type={err['type']})")
     return JSONResponse(
         status_code=422,
         content={
@@ -196,11 +191,6 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Catch-all exception handler for standardized enterprise error responses."""
-    import traceback
-
-    print("CRITICAL_ERROR_TRACEBACK:")
-    traceback.print_exc()
-
     logger.exception(
         "unhandled_exception",
         path=request.url.path,

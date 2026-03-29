@@ -57,7 +57,7 @@ function polar(deg, r) {
 }
 
 function formatPt(value, digits = 1) {
-  if (typeof value !== 'number' || Number.isNaN(value)) return null
+  if (typeof value !== 'number' || Number.isNaN(value)) {return null}
   return value.toLocaleString('pt-BR', {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
@@ -116,7 +116,7 @@ export default function RelogioAngulos({ vetores = [], resultante = null, resumo
 
   useEffect(() => {
     const canvas = ref.current
-    if (!canvas) return
+    if (!canvas) {return}
     const ctx = canvas.getContext('2d')
 
     ctx.clearRect(0, 0, SIZE, SIZE)

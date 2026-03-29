@@ -215,6 +215,28 @@ class QDTOutput(BaseModel):
     drop_total_pct: float
 
 
+# ── Admin create models ───────────────────────────────────────────────────
+
+
+class CaboIn(BaseModel):
+    """Request body for POST /admin/cabos."""
+
+    nome: str = Field(..., min_length=1, max_length=200)
+    diametro: float = Field(..., gt=0, description="Diâmetro do cabo em mm")
+    peso: float = Field(..., gt=0, description="Peso do cabo em kg/m")
+
+
+class AdminPosteIn(BaseModel):
+    """Request body for POST /admin/postes."""
+
+    tipo: str = Field(..., min_length=1, max_length=100)
+    modelo: str = Field(..., min_length=1, max_length=200)
+    altura_m: float = Field(..., gt=0, description="Altura do poste em metros")
+    carga_admissivel_dan: float = Field(
+        ..., gt=0, description="Carga admissível em daN"
+    )
+
+
 # ── Projeto / Ponto transactional models ─────────────────────────────────
 
 
@@ -299,6 +321,88 @@ class PosteOut(BaseModel):
     numero: str
     tipo_poste: str
     modelo_poste: str
+    origem_id: Optional[str] = None
+
+
+class PosteVincularIn(BaseModel):
+    """Request body for PUT /postes/{id}/vincular-origem.
+
+    Links a Poste in the current project to its physical predecessor in a
+    previous project (cross-project lineage).
+    """
+
+    origem_id: str = Field(
+        min_length=36,
+        max_length=36,
+        description="UUID do Poste ancestral (de um projeto anterior) que este Poste continua.",
+    )
+
+
+class ClonarPosteIn(BaseModel):
+    """Request body for POST /postes/{id}/clonar-para-projeto.
+
+    Clones a Poste from one project into another.  The clone gets a new UUID,
+    inherits all Niveis/Travessias configuration from the source, and has
+    ``origem_id`` pre-set so the lineage is established automatically.
+
+    Use this when Project Y starts from a physical pole already studied in
+    Project X.  The clone can then be modified freely in Project Y without
+    affecting Project X data.
+    """
+
+    projeto_id: str = Field(
+        min_length=36,
+        max_length=36,
+        description="UUID do Projeto de destino onde o Poste clonado será criado.",
+    )
+
+
+class LinhagemEntry(BaseModel):
+    """A single node in the cross-project lineage chain."""
+
+    id: str
+    numero: str
+    tipo_poste: str
+    modelo_poste: str
+    projeto_id: str
+    origem_id: Optional[str] = None
+    atualizado_em: Optional[str] = None
+    calculos_count: int = 0
+
+
+class PosteLinhagem(BaseModel):
+    """Response for GET /postes/{id}/linhagem.
+
+    The chain is ordered oldest → newest (index 0 is the root ancestor,
+    last entry is the requested Poste).  Use ``atualizado_em`` to determine
+    which project's data is most recent (latest-timestamp-wins).
+    """
+
+    poste_id: str
+    chain: list[LinhagemEntry]
+    profundidade: int = Field(description="Length of the lineage chain")
+
+
+class TravessiaUpdateIn(BaseModel):
+    """Request body for PUT /postes/{id}/niveis/{nivel}/travessias/{posicao}."""
+
+    tipo_rede: str = Field(default="circuito", max_length=50, description="Network type")
+    tipo_cabo: str = Field(default="CAA", max_length=50, description="Cable type")
+    vao: float = Field(default=0.0, ge=0.0, description="Span length in meters")
+    flecha: float = Field(default=0.0, ge=0.0, description="Sag in meters")
+    angulo: float = Field(default=0.0, ge=0.0, lt=360.0, description="Deflection angle in degrees")
+
+
+class CondutorOut(BaseModel):
+    """One conductor (cable) entry from a Poste traversal, returned by GET /condutores."""
+
+    nivel: str = Field(description="Voltage level (MT1, MT2, BT, BTZ, RAL)")
+    posicao: int = Field(ge=1, le=4, description="Position within the level (1–4)")
+    tipo_rede: str = Field(description="Network type")
+    tipo_cabo: str = Field(description="Cable/conductor type")
+    vao: float = Field(description="Span length in meters")
+    flecha: float = Field(description="Sag in meters")
+    angulo: float = Field(description="Deflection angle in degrees")
 
 
 class PontoIn(BaseModel):

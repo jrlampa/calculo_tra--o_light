@@ -17,8 +17,8 @@ export default function MobileActionBar({
 
   return (
     <>
-      {/* Desktop: Botões flutuantes em corner */}
-      <div data-testid="action-bar-desktop" className="hidden md:flex fixed bottom-6 right-6 gap-2 flex-col z-40">
+      {/* Desktop (≥768px): Bloco lateral sticky — acompanha o scroll dentro da calc-side-column */}
+      <div data-testid="action-bar-desktop" className="hidden md:flex sticky top-4 self-start gap-2 flex-col w-full">
         <button
           onClick={onConfirm}
           disabled={isSaving}

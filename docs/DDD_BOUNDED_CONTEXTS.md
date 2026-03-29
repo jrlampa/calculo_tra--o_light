@@ -209,6 +209,46 @@ Our domain revolves around **electrical distribution network analysis** — spec
 - Similar: ProjetoCriado, ProjetoDeletado events published
 - One-way; no dependency on Auditoria
 
+### Cross-Project Poste Lineage
+A physical utility pole may appear in **multiple Projects** over time.  
+When Project Y begins from a pole already studied in Project X, a lineage
+link is established:
+
+```
+Poste (Project X, numero="7")  ←── origem_id  ── Poste (Project Y, numero="5")
+```
+
+**Rules:**
+- `Poste.origem_id` is a nullable self-referential FK on the `pontos` table.
+- Only set when a Poste is explicitly declared a continuation of another.
+- The two Postes must belong to **different** projects.
+- **Latest-timestamp-wins:** the Poste with the most recent `atualizado_em`
+  holds the authoritative state of that physical pole.
+- Audit queries traverse the chain using `GET /postes/{id}/linhagem`.
+
+**Domain event:** `PosteVinculado` — recorded whenever a lineage link is created.
+
+**Data model:**
+```
+pontos
+  id               UUID PK
+  projeto_id       UUID FK → projetos.id
+  poste_origem_id  UUID FK → pontos.id (nullable, self-referential)
+  ...
+
+calculos_snapshots
+  id          UUID PK
+  poste_id    UUID FK → pontos.id
+  projeto_id  UUID FK → projetos.id  ← NEW: explicit project attribution
+  ...
+```
+
+**API surface:**
+| Endpoint | Purpose |
+|---|---|
+| `PUT /postes/{id}/vincular-origem` | Link Poste to predecessor |
+| `GET /postes/{id}/linhagem` | Return full ancestry chain |
+
 ---
 
 ## Invariants Summary

@@ -30,8 +30,7 @@ export const useAIAssistant = () => {
         model: data.current_model,
         loading: false
       });
-    } catch (error) {
-      console.error('Failed to check AI status:', error);
+    } catch (_error) {
       setAiStatus({
         connected: false,
         model: null,
@@ -49,8 +48,8 @@ export const useAIAssistant = () => {
       if (response.ok) {
         setConversations(data.conversations || []);
       }
-    } catch (error) {
-      console.error('Failed to load conversations:', error);
+    } catch (_error) {
+      // no-op
     }
   }, []);
 
@@ -87,9 +86,6 @@ export const useAIAssistant = () => {
         model: data.model,
         timestamp: data.timestamp
       };
-    } catch (error) {
-      console.error('Failed to send message:', error);
-      throw error;
     } finally {
       setIsProcessing(false);
     }
@@ -126,10 +122,10 @@ export const useAIAssistant = () => {
       let fullResponse = '';
       let responseConversationId = conversationId;
 
-      while (true) {
+      for (;;) {
         const { done, value } = await reader.read();
         
-        if (done) break;
+        if (done) {break;}
 
         const chunk = decoder.decode(value);
         const lines = chunk.split('\n');
@@ -159,7 +155,7 @@ export const useAIAssistant = () => {
               if (data.error) {
                 throw new Error(data.error);
               }
-            } catch (e) {
+            } catch (_e) {
               // Ignore parsing errors for partial chunks
               continue;
             }
@@ -172,9 +168,6 @@ export const useAIAssistant = () => {
         conversationId: responseConversationId,
         done: true
       };
-    } catch (error) {
-      console.error('Failed to stream message:', error);
-      throw error;
     } finally {
       setIsProcessing(false);
     }
@@ -207,9 +200,6 @@ export const useAIAssistant = () => {
       }
 
       return data;
-    } catch (error) {
-      console.error('Failed to analyze calculation:', error);
-      throw error;
     } finally {
       setIsProcessing(false);
     }
@@ -242,9 +232,6 @@ export const useAIAssistant = () => {
       }
 
       return data;
-    } catch (error) {
-      console.error('Failed to optimize project:', error);
-      throw error;
     } finally {
       setIsProcessing(false);
     }
@@ -252,45 +239,35 @@ export const useAIAssistant = () => {
 
   // Get conversation history
   const getConversation = useCallback(async (conversationId) => {
-    try {
-      const response = await fetch(`/api/ai/conversations/${conversationId}`);
-      const data = await response.json();
-      
-      if (response.ok) {
-        return data.messages;
-      } else {
-        throw new Error(data.detail || 'Failed to get conversation');
-      }
-    } catch (error) {
-      console.error('Failed to get conversation:', error);
-      throw error;
+    const response = await fetch(`/api/ai/conversations/${conversationId}`);
+    const data = await response.json();
+    
+    if (response.ok) {
+      return data.messages;
+    } else {
+      throw new Error(data.detail || 'Failed to get conversation');
     }
   }, []);
 
   // Delete conversation
   const deleteConversation = useCallback(async (conversationId) => {
-    try {
-      const response = await fetch(`/api/ai/conversations/${conversationId}`, {
-        method: 'DELETE'
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Failed to delete conversation');
-      }
-
-      // Update local state
-      setConversations(prev => prev.filter(conv => conv.conversation_id !== conversationId));
-      
-      if (activeConversation === conversationId) {
-        setActiveConversation(null);
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Failed to delete conversation:', error);
-      throw error;
+    const response = await fetch(`/api/ai/conversations/${conversationId}`, {
+      method: 'DELETE'
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to delete conversation');
     }
+
+    // Update local state
+    setConversations(prev => prev.filter(conv => conv.conversation_id !== conversationId));
+    
+    if (activeConversation === conversationId) {
+      setActiveConversation(null);
+    }
+
+    return true;
   }, [activeConversation]);
 
   // Generate technical report
@@ -325,9 +302,6 @@ Use linguagem técnica profissional e formato estruturado.`;
 
       const result = await sendMessage(prompt);
       return result.response;
-    } catch (error) {
-      console.error('Failed to generate technical report:', error);
-      throw error;
     } finally {
       setIsProcessing(false);
     }
@@ -359,9 +333,6 @@ Retorne uma análise detalhada da validação.`;
 
       const result = await sendMessage(prompt);
       return result.response;
-    } catch (error) {
-      console.error('Failed to validate parameters:', error);
-      throw error;
     } finally {
       setIsProcessing(false);
     }

@@ -2,6 +2,7 @@
 DOM. Here is a breakdown of what each part of the code is doing: */
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+
 import App from './App.jsx'
 import './index.css'
 

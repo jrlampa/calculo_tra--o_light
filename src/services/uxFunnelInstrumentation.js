@@ -15,6 +15,7 @@ export const UX_FUNNEL_EVENTS = Object.freeze({
   POINT_CONFIRMED: 'point_confirmed',
   CALCULATION_SUCCEEDED: 'calculation_succeeded',
   PERSISTENCE_SAVED: 'persistence_saved',
+  CALCULATION_PERSISTED: 'calculation_persisted',
   PERSISTENCE_FAILED: 'persistence_failed',
   PERSIST_RETRY_MANUAL: 'persist_retry_manual',
   NEXT_POINT_CLICKED: 'next_point_clicked',
@@ -30,17 +31,48 @@ export const UX_FUNNEL_EVENTS = Object.freeze({
   IMPORT_EXCEL_STARTED: 'import_excel_started',
   IMPORT_EXCEL_SUCCESS: 'import_excel_success',
   IMPORT_EXCEL_FAILED: 'import_excel_failed',
+  CLEAR_STARTED: 'clear_started',
+  CLEAR_COMMITTED: 'clear_committed',
+  CLEAR_UNDONE: 'clear_undone',
 })
 
 const VALID_EVENT_NAMES = new Set(Object.values(UX_FUNNEL_EVENTS))
 
 let localEventCallback = null
 
+// In-memory ring-buffer of the last MAX_LOG_ENTRIES events for audit/traceability.
+// 200 entries covers a full working session. With ~12 distinct event types the
+// real per-point event count depends on retry paths and batch ops; in practice
+// a typical point produces 3-5 events (confirmed, calculated, persisted ± retry).
+// 200 gives headroom for ~40-65 points per session without memory pressure.
+// Exposed via getTraceabilityLog() so callers can collect evidence without a
+// persistent backend.
+const MAX_LOG_ENTRIES = 200
+const _eventLog = []
+
 export function setUxFunnelEventCallback(callback) {
   localEventCallback = typeof callback === 'function' ? callback : null
   return () => {
     localEventCallback = null
   }
+}
+
+/**
+ * Returns a snapshot of the most recent UX funnel events (up to MAX_LOG_ENTRIES).
+ * Each entry has the shape: { name, ts, properties }.
+ *
+ * Useful for producing an in-session audit trail that maps to sections 9 and 10
+ * of the QA checklist (rastreabilidade por operação).
+ *
+ * @returns {Array<{name: string, ts: string, properties: object}>}
+ */
+export function getTraceabilityLog() {
+  return _eventLog.slice()
+}
+
+/** Clears the in-memory event log (intended for use in tests). */
+export function clearTraceabilityLog() {
+  _eventLog.length = 0
 }
 
 function normalizeProperties(properties) {
@@ -78,6 +110,10 @@ export function trackUxFunnelEvent(eventName, properties = {}) {
   if (!event) {
     return null
   }
+
+  // Append to ring-buffer (trim oldest when full)
+  _eventLog.push(event)
+  if (_eventLog.length > MAX_LOG_ENTRIES) { _eventLog.shift() }
 
   console.info('[ux-funnel]', event)
 

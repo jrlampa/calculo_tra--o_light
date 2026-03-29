@@ -13,13 +13,6 @@ from api.auth import (
     CurrentUser,
     require_mutation_identity,
 )
-from api.auth_standard import (
-    WriteUser,
-    AdminUser,
-    validate_write_endpoint,
-    validate_admin_endpoint,
-    log_auth_attempt,
-)
 from api.schemas import (
     ProjetoIn,
     ProjetoOut,
@@ -33,8 +26,7 @@ from services.projeto_service import ProjetoService
 from repositories.projeto_repository import ProjetoRepository
 from core.exceptions import NotFoundError, PermissionError, ValidationError
 from core.operation_context import bind_operation_context, build_operation_context
-from db import get_supabase_client
-from api.dependencies import get_supabase_dependency
+from api.dependencies import get_supabase_dependency, ensure_supabase_available
 from monitoring.snapshot_metrics import get_snapshot_tracker
 
 logger = structlog.get_logger(__name__)
@@ -170,7 +162,7 @@ async def create_ponto(
             ponto=inp.ponto,
         ),
     )
-    await _ensure_supabase_available(supabase)
+    await ensure_supabase_available(supabase)
 
     projeto_exists = await supabase.projeto_exists(projeto_id)
     if not projeto_exists:
@@ -273,7 +265,7 @@ async def salvar_calculo(
         ),
     )
 
-    await _ensure_supabase_available(supabase)
+    await ensure_supabase_available(supabase)
 
     ponto_exists = await supabase.ponto_exists(ponto_id)
     if not ponto_exists:
@@ -357,7 +349,7 @@ async def obter_snapshot_ponto(
             user_id=str(user.user_id),
         ),
     )
-    await _ensure_supabase_available(supabase)
+    await ensure_supabase_available(supabase)
 
     ponto_exists = await supabase.ponto_exists(ponto_id)
     if not ponto_exists:
@@ -433,7 +425,7 @@ async def batch_save(
             user_id=str(user.user_id),
         ),
     )
-    await _ensure_supabase_available(supabase)
+    await ensure_supabase_available(supabase)
 
     # Note: user_can_access check skipped if projeto_id is None (new project)
     # If projeto_id is provided, we check access
@@ -517,8 +509,8 @@ async def update_projeto(
     """Atualiza dados do cabeçalho de um projeto."""
     try:
         projeto = await projeto_service.update_projeto(
-            UUID(projeto_id), 
-            inp, 
+            UUID(projeto_id),
+            inp,
             UUID(str(user.user_id))
         )
         return ProjetoOut(**projeto.model_dump(mode='json'))
@@ -538,7 +530,7 @@ async def delete_projeto(
     """Exclui um projeto. Falha se houver pontos vinculados (Soft Delete)."""
     try:
         await projeto_service.delete_projeto(
-            UUID(projeto_id), 
+            UUID(projeto_id),
             UUID(str(user.user_id))
         )
         return None
@@ -547,12 +539,6 @@ async def delete_projeto(
     except Exception as e:
         logger.error(f"Error deleting projeto {projeto_id}: {e}")
         raise HTTPException(status_code=500, detail="Erro ao excluir projeto")
-
-
-async def _ensure_supabase_available(supabase):
-    """Verifica se o cliente de persistência está ativo."""
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database connection unavailable")
 
 
 def _map_domain_exception(error: Exception) -> HTTPException:

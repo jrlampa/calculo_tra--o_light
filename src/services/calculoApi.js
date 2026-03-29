@@ -34,27 +34,69 @@ export function getLastRequestContext() {
 }
 
 function toFloat(value) {
-  if (value === '' || value === null || value === undefined) return null
-  if (typeof value === 'number') return Number.isNaN(value) ? null : value
+  if (value === '' || value === null || value === undefined) {return null}
+  if (typeof value === 'number') {return Number.isNaN(value) ? null : value}
   const normalizedValue = String(value).replace(',', '.')
   const parsedValue = parseFloat(normalizedValue)
   return Number.isNaN(parsedValue) ? null : parsedValue
 }
 
-async function parseErrorMessage(response, fallbackMessage) {
-  try {
-    const payload = await response.json()
-    if (typeof payload?.detail === 'string' && payload.detail) {
-      return payload.detail
-    }
-    if (Array.isArray(payload?.detail) && payload.detail.length > 0) {
-      return payload.detail.map(item => item?.msg || 'Erro de validação').join(', ')
-    }
-  } catch {
-    return fallbackMessage
+// Section keys as returned by the /calcular endpoint's Pydantic model
+const SECAO_KEYS = new Set(['mt1', 'mt2', 'bt', 'btz', 'ral'])
+
+/**
+ * Parses a FastAPI Pydantic 422 `detail` array and groups error messages by
+ * section key (mt1, mt2, bt, btz, ral). Returns null when no field-level
+ * information is available (e.g. a plain string detail).
+ *
+ * @param {unknown} detail - The `detail` value from the 422 JSON body.
+ * @returns {Record<string,string>|null} Map of section → joined error messages,
+ *   or null if not a Pydantic-style validation error.
+ */
+export function extractSectionErrors(detail) {
+  if (!Array.isArray(detail) || detail.length === 0) { return null }
+
+  const bySection = {}
+  for (const item of detail) {
+    if (!item || !Array.isArray(item.loc) || item.loc.length < 2) { continue }
+    // FastAPI loc format: ["body", "<field>", ...] or ["body", "<section>", <idx>, "<field>", ...]
+    const rawKey = String(item.loc[1] || '').toLowerCase()
+    if (!SECAO_KEYS.has(rawKey)) { continue }
+    const msg = item.msg || 'Erro de validação'
+    bySection[rawKey] = bySection[rawKey] ? `${bySection[rawKey]}; ${msg}` : msg
   }
 
-  return fallbackMessage
+  return Object.keys(bySection).length > 0 ? bySection : null
+}
+
+/** Parse a non-OK response body once, returning message text and the raw
+ *  PostgreSQL/Supabase error code (e.g. '42501') when present.
+ *  Supports FastAPI validation format (`detail`) and
+ *  Supabase/PostgREST format (`message` + `code`).
+ */
+async function parseErrorBody(response, fallbackMessage) {
+  try {
+    const payload = await response.json()
+    // FastAPI: { detail: "string" }
+    if (typeof payload?.detail === 'string' && payload.detail) {
+      return { message: payload.detail, errorCode: payload?.code ?? null }
+    }
+    // FastAPI: { detail: [{msg, loc}] }
+    if (Array.isArray(payload?.detail) && payload.detail.length > 0) {
+      return {
+        message: payload.detail.map(item => item?.msg || 'Erro de validação').join(', '),
+        errorCode: null,
+      }
+    }
+    // Supabase/PostgREST: { message: "...", code: "42501" }
+    if (typeof payload?.message === 'string' && payload.message) {
+      return { message: payload.message, errorCode: payload?.code ?? null }
+    }
+  } catch {
+    return { message: fallbackMessage, errorCode: null }
+  }
+
+  return { message: fallbackMessage, errorCode: null }
 }
 
 async function requestJson(url, options = {}, fallbackMessage) {
@@ -71,13 +113,18 @@ async function requestJson(url, options = {}, fallbackMessage) {
   storeRequestContext(response, url, method)
 
   if (!response.ok) {
-    const message = await parseErrorMessage(response, fallbackMessage)
+    const { message, errorCode } = await parseErrorBody(response, fallbackMessage)
     // Criar erro com status capturado (importante para diferenciar erros de autorização)
     const err = new Error(message)
     err.status = response.status
     err.statusText = response.statusText
-    // Detectar código de autorização via mensagem de erro ou status
-    if (response.status === 403 || message?.includes('permission') || message?.includes('authorized')) {
+    // Detectar código de autorização via status HTTP, código PostgreSQL 42501 ou mensagem
+    if (
+      response.status === 403 ||
+      errorCode === '42501' ||
+      message?.includes('permission') ||
+      message?.includes('authorized')
+    ) {
       err.code = 'FORBIDDEN'
       err.isForbidden = true
     }
@@ -85,7 +132,7 @@ async function requestJson(url, options = {}, fallbackMessage) {
     throw err
   }
 
-  if (response.status === 204) return null
+  if (response.status === 204) {return null}
   return response.json()
 }
 
@@ -366,4 +413,85 @@ export async function batchSaveCalculo(payload) {
     'Erro ao realizar salvamento atômico'
   )
 }
-```
+/**
+ * Lista os postes (pontos) de um projeto existente.
+ * Usado pelo ClonePosteModal para mostrar quais postes podem ser clonados.
+ *
+ * @param {string} projetoId UUID do Projeto
+ * @returns {Promise<Array>} Lista de Postes com id, numero, tipo_poste, modelo_poste, origem_id
+ */
+export async function listPostes(projetoId) {
+  return requestJson(
+    `/api/postes/projeto/${projetoId}`,
+    { method: 'GET', headers: JSON_HEADERS },
+    'Erro ao listar postes do projeto'
+  )
+}
+
+// ─── Linhagem cross-projeto ────────────────────────────────────────────────
+
+/**
+ * Vincula um Poste ao seu ancestral físico em outro Projeto.
+ *
+ * Use quando o Projeto Y herda um poste físico que já foi estudado no Projeto X.
+ * O par (posteId, origemId) estabelece o elo de linhagem.  Os dados do Projeto Y
+ * (mais recente) têm prioridade sobre o Projeto X (política timestamp-wins).
+ *
+ * @param {string} posteId  UUID do Poste descendente (no Projeto Y)
+ * @param {string} origemId UUID do Poste ancestral (no Projeto X)
+ * @returns {Promise<object>} Poste atualizado com `origem_id` preenchido
+ */
+export async function vincularOrigem(posteId, origemId) {
+  return requestJson(
+    `/api/postes/${posteId}/vincular-origem`,
+    {
+      method: 'PUT',
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ origem_id: origemId }),
+    },
+    'Erro ao vincular origem do Poste'
+  )
+}
+
+/**
+ * Retorna a cadeia completa de linhagem cross-projeto de um Poste.
+ *
+ * A cadeia é ordenada do ancestral mais antigo (índice 0) ao Poste atual
+ * (último elemento).  Use `atualizado_em` para determinar qual projeto tem
+ * os dados mais recentes (política timestamp-wins).
+ *
+ * @param {string} posteId UUID do Poste
+ * @returns {Promise<{poste_id: string, chain: Array, profundidade: number}>}
+ */
+export async function obterLinhagem(posteId) {
+  return requestJson(
+    `/api/postes/${posteId}/linhagem`,
+    { method: 'GET', headers: JSON_HEADERS },
+    'Erro ao obter linhagem do Poste'
+  )
+}
+
+/**
+ * Clona um Poste de um Projeto para outro, estabelecendo o elo de linhagem.
+ *
+ * Implementa o fluxo "Projeto Y herda poste físico do Projeto X":
+ * - Copia toda a configuração (Niveis, Travessias) do Poste de origem.
+ * - Cria o clone no projeto de destino com `origem_id` já definido.
+ * - O clone tem timestamp recente — é imediatamente o dado mais atual.
+ * - Pode ser modificado livremente no Projeto Y sem afetar o Projeto X.
+ *
+ * @param {string} posteOrigemId    UUID do Poste no Projeto X (origem)
+ * @param {string} projetoDestinoId UUID do Projeto Y (destino do clone)
+ * @returns {Promise<object>} Novo Poste criado no Projeto Y
+ */
+export async function clonarPosteDeProjeto(posteOrigemId, projetoDestinoId) {
+  return requestJson(
+    `/api/postes/${posteOrigemId}/clonar-para-projeto`,
+    {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ projeto_id: projetoDestinoId }),
+    },
+    'Erro ao clonar Poste para outro projeto'
+  )
+}

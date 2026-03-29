@@ -5,9 +5,6 @@ with multiple rows and columns, and a footer displaying a result label and an op
 // Layout fiel ao Excel: label alinhado à esquerda, inputs cinza, unidade à direita
 import React from 'react'
 
-/** Largura fixa da coluna de labels (px) */
-const LBL_W = 108
-
 /**
  * @param {Object}   props
  * @param {string}   props.titulo         - Ex: "MT - 1º Nível"
@@ -16,8 +13,9 @@ const LBL_W = 108
  * @param {Function} props.onChangeTravessia - callback(idx, campo, valor)
  * @param {Array}    props.campos         - [{campo, label, unidade}]
  * @param {string}   props.nota           - node opcional ex: "(*) - Considerar..."
+ * @param {string}   props.sectionError   - mensagem de erro 422 de validação para esta seção (opcional)
  */
-const SecaoNivel = ({ titulo, labelResultado, travessias, onChangeTravessia, campos, nota, config }) => {
+const SecaoNivel = ({ titulo, labelResultado, travessias, onChangeTravessia, campos, nota, config, sectionError }) => {
   const buildAccessibleName = (fieldLabel, travessiaIndex) => (
     `${fieldLabel}, travessia ${travessiaIndex + 1}, ${titulo}`
   )
@@ -28,19 +26,19 @@ const SecaoNivel = ({ titulo, labelResultado, travessias, onChangeTravessia, cam
       <div className="sec-title">{titulo}</div>
 
       {/* ── Tabela de dados ───────────────────────────── */}
-      <table className="sec-table" style={{ tableLayout: 'fixed' }}>
+      <table className="sec-table">
         <colgroup>
           {/* coluna de labels */}
-          <col style={{ width: LBL_W }} />
+          <col className="col-lbl" />
           {/* 4 travessias, cada uma com: input + unidade */}
-          <col style={{ width: '22%' }} />
-          <col style={{ width: 18 }} />
-          <col style={{ width: '22%' }} />
-          <col style={{ width: 18 }} />
-          <col style={{ width: '22%' }} />
-          <col style={{ width: 18 }} />
-          <col style={{ width: '22%' }} />
-          <col style={{ width: 18 }} />
+          <col className="col-input" />
+          <col className="col-unit" />
+          <col className="col-input" />
+          <col className="col-unit" />
+          <col className="col-input" />
+          <col className="col-unit" />
+          <col className="col-input" />
+          <col className="col-unit" />
         </colgroup>
 
         <thead>
@@ -79,7 +77,6 @@ const SecaoNivel = ({ titulo, labelResultado, travessias, onChangeTravessia, cam
                         <select
                           id={`${campo}-t${i + 1}`}
                           className="xcell"
-                          style={{ width: "100%" }}
                           value={t[campo] ?? ""}
                           onChange={(e) => onChangeTravessia(i, campo, e.target.value)}
                           aria-label={buildAccessibleName(label, i)}
@@ -105,7 +102,6 @@ const SecaoNivel = ({ titulo, labelResultado, travessias, onChangeTravessia, cam
                         <input
                           id={`${campo}-t${i + 1}`}
                           className="xcell"
-                          style={{ width: '100%' }}
                           value={t[campo] ?? ''}
                           onChange={e => onChangeTravessia(i, campo, e.target.value)}
                           aria-label={buildAccessibleName(label, i)}
@@ -123,12 +119,17 @@ const SecaoNivel = ({ titulo, labelResultado, travessias, onChangeTravessia, cam
       </table>
 
       {/* ── Rodapé: resultado + nota ──────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="sec-footer">
         <span className="res-lbl">{labelResultado}</span>
         {nota && (
-          <span style={{ fontSize: 9, color: '#444', marginRight: 8, textAlign: 'right', lineHeight: 1.4 }}>
+          <span className="sec-note">
             {nota}
           </span>
+        )}
+        {sectionError && (
+          <p className="sec-field-error" role="alert" aria-live="polite">
+            {sectionError}
+          </p>
         )}
       </div>
     </div>
@@ -145,6 +146,7 @@ export default React.memo(SecaoNivel, (prevProps, nextProps) => {
     prevProps.onChangeTravessia === nextProps.onChangeTravessia &&
     prevProps.campos === nextProps.campos &&
     prevProps.nota === nextProps.nota &&
-    prevProps.config === nextProps.config
+    prevProps.config === nextProps.config &&
+    prevProps.sectionError === nextProps.sectionError
   )
 })

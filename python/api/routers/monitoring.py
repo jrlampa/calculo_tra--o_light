@@ -1,14 +1,12 @@
 """Router for performance monitoring endpoints."""
 from __future__ import annotations
 
-import asyncio
-from typing import Dict, Any, List
-from datetime import UTC, datetime, timedelta
+from typing import Dict, Any
+from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Query
 
-from monitoring.performance import get_performance_monitor, PerformanceMetrics
+from monitoring.performance import get_performance_monitor
 from monitoring.snapshot_metrics import get_snapshot_tracker
 from core.config import get_settings
 from core.snapshot_slos import SNAPSHOT_SLOS
@@ -22,7 +20,7 @@ async def get_performance_metrics() -> Dict[str, Any]:
     """Get current performance metrics."""
     monitor = get_performance_monitor()
     metrics = monitor.get_current_metrics()
-    
+
     return {
         "status": "success",
         "data": metrics.to_dict(),
@@ -36,27 +34,27 @@ async def get_metrics_summary() -> Dict[str, Any]:
     """Get performance metrics summary."""
     monitor = get_performance_monitor()
     metrics = monitor.get_current_metrics()
-    
+
     # Determine health status
     health_status = "healthy"
     issues = []
-    
+
     if metrics.avg_response_time > 1.0:
         health_status = "degraded"
         issues.append("High average response time")
-    
+
     if metrics.error_rate > 0.05:
         health_status = "critical"
         issues.append("High error rate")
-    
+
     if metrics.cpu_usage > 0.80:
         health_status = "critical"
         issues.append("High CPU usage")
-    
+
     if metrics.memory_usage > 0.85:
         health_status = "critical"
         issues.append("High memory usage")
-    
+
     return {
         "status": "success",
         "data": {
@@ -83,7 +81,7 @@ async def get_endpoint_metrics(
     """Get metrics for a specific endpoint."""
     monitor = get_performance_monitor()
     metrics = monitor.get_endpoint_metrics(endpoint)
-    
+
     return {
         "status": "success",
         "data": {
@@ -98,10 +96,10 @@ async def get_endpoint_metrics(
 async def list_endpoint_metrics() -> Dict[str, Any]:
     """List all endpoints with metrics."""
     monitor = get_performance_monitor()
-    
+
     # Get all endpoints
     endpoints = list(monitor.endpoint_metrics.keys())
-    
+
     # Get summary metrics for each endpoint
     endpoint_summaries = {}
     for endpoint in endpoints[:50]:  # Limit to 50 endpoints
@@ -112,7 +110,7 @@ async def list_endpoint_metrics() -> Dict[str, Any]:
             "min_time": round(metrics["min_time"], 3),
             "max_time": round(metrics["max_time"], 3)
         }
-    
+
     return {
         "status": "success",
         "data": {
@@ -128,7 +126,7 @@ async def get_active_alerts() -> Dict[str, Any]:
     """Get current active alerts."""
     monitor = get_performance_monitor()
     alerts = monitor.get_alerts()
-    
+
     return {
         "status": "success",
         "data": {
@@ -144,7 +142,7 @@ async def reset_metrics() -> Dict[str, Any]:
     """Reset all performance metrics."""
     monitor = get_performance_monitor()
     monitor.reset_metrics()
-    
+
     return {
         "status": "success",
         "message": "All metrics have been reset",
@@ -157,41 +155,41 @@ async def performance_health_check() -> Dict[str, Any]:
     """Performance-specific health check."""
     monitor = get_performance_monitor()
     metrics = monitor.get_current_metrics()
-    
+
     # Determine health status
     status = "healthy"
     checks = {}
-    
+
     # Response time check
     if metrics.avg_response_time > 1.0:
         checks["response_time"] = "critical" if metrics.avg_response_time > 2.0 else "warning"
     else:
         checks["response_time"] = "healthy"
-    
+
     # Error rate check
     if metrics.error_rate > 0.05:
         checks["error_rate"] = "critical" if metrics.error_rate > 0.10 else "warning"
     else:
         checks["error_rate"] = "healthy"
-    
+
     # CPU check
     if metrics.cpu_usage > 0.80:
         checks["cpu"] = "critical" if metrics.cpu_usage > 0.90 else "warning"
     else:
         checks["cpu"] = "healthy"
-    
+
     # Memory check
     if metrics.memory_usage > 0.85:
         checks["memory"] = "critical" if metrics.memory_usage > 0.95 else "warning"
     else:
         checks["memory"] = "healthy"
-    
+
     # Overall status
     if any(check == "critical" for check in checks.values()):
         status = "critical"
     elif any(check == "warning" for check in checks.values()):
         status = "warning"
-    
+
     return {
         "status": status,
         "data": {
@@ -212,13 +210,13 @@ async def get_dashboard_data() -> Dict[str, Any]:
     """Get comprehensive dashboard data."""
     monitor = get_performance_monitor()
     metrics = monitor.get_current_metrics()
-    
+
     # Get top endpoints by request count
     endpoint_data = {}
     for endpoint in list(monitor.endpoint_metrics.keys())[:10]:
         endpoint_metrics = monitor.get_endpoint_metrics(endpoint)
         endpoint_data[endpoint] = endpoint_metrics
-    
+
     return {
         "status": "success",
         "data": {

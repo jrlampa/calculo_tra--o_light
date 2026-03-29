@@ -28,6 +28,11 @@
   --btn-orange-end: #bc5a17;
   --btn-orange-hover-start: #c86921;
   --btn-orange-hover-end: #a84b11;
+  /* ActionBar fixa: altura usada pelo UndoToast e pelo padding do conteúdo.
+     80px = botão py-3 (≈ 48 px) + padding vertical da barra (p-2 = 8px × 2) +
+     border-top (1px) — mantido em sincronia com a classe pb-[max(…)] do Tailwind
+     e com o offset bottom do UndoToast. Alterar aqui propaga automaticamente. */
+  --action-bar-height: 80px;
 }
 
 /* ─── Reset & Base ────────────────────────────────────── */
@@ -43,6 +48,9 @@
       radial-gradient(circle at 14% 18%, rgba(255, 255, 255, 0.64) 0%, rgba(255, 255, 255, 0) 38%),
       radial-gradient(circle at 86% 6%, rgba(206, 221, 245, 0.54) 0%, rgba(206, 221, 245, 0) 36%),
       linear-gradient(165deg, #edf3fb 0%, #d5e1f2 52%, #ccd9ee 100%);
+    /* FE-26: Prevent iOS Safari rubber-band over-scroll from locking the page
+       scroll when touches start near or on the fixed ActionBar at the bottom. */
+    overscroll-behavior-y: none;
   }
 }
 
@@ -174,6 +182,26 @@
   color: #E07820;
 }
 
+/* ─── Botão IMPORTAR Planilha ───────────────────────── */
+.btn-importar {
+  background-color: #1b5e20;
+  color: #e8f5e9;
+  border-color: #113e11;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+}
+.btn-importar:hover {
+  background-color: #2e7d32;
+}
+.btn-importar:active {
+  background-color: #1b5e20;
+  transform: scale(0.95);
+}
+
+/* ─── Ícone dentro de botão ────────────────────────── */
+.btn-icon {
+  font-size: 1.2rem;
+}
+
 /* ─── Botão APAGA ───────────────────────────────────── */
 .btn-apaga {
   background: linear-gradient(165deg, var(--btn-orange-start) 0%, var(--btn-orange-end) 100%);
@@ -203,15 +231,146 @@
   cursor: not-allowed;
 }
 
-/* ─── Tabela interior de seção ──────────────────────── */
+/* ─── UndoToast — Toast de desfazer APAGA ───────────── */
+.undo-toast {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--action-bar-height));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+  z-index: 1000;
+  animation: undo-toast-in 0.18s ease-out;
+  white-space: nowrap;
+}
+
+@keyframes undo-toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.undo-toast--undo_pending {
+  background: #1e293b;
+  color: #f1f5f9;
+  border: 1px solid #334155;
+}
+
+.undo-toast--undone {
+  background: #14532d;
+  color: #dcfce7;
+  border: 1px solid #166534;
+}
+
+.undo-toast--committed {
+  background: #374151;
+  color: #e5e7eb;
+  border: 1px solid #4b5563;
+}
+
+.undo-toast__message {
+  flex: 1;
+}
+
+.undo-toast__btn {
+  padding: 4px 12px;
+  border-radius: 4px;
+  background: #3b66ad;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.undo-toast__btn:hover {
+  background: #315998;
+}
+
+.undo-toast__btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+
 .sec-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 .sec-table td, .sec-table th {
   padding: 0 2px;
   font-size: 10px;
   line-height: 17px;
+}
+
+/* ─── SecaoQDT: colunas fixas ──────────────────────── */
+.sec-table.sec-table--qdt .col-qdt-lbl  { width: 120px; }
+.sec-table.sec-table--qdt .col-qdt-in   { width:  60px; }
+.sec-table.sec-table--qdt .col-qdt-unit { width:  25px; }
+
+/* ─── SecaoQDT: área de resultados ──────────────────── */
+.qdt-results {
+  padding: 6px;
+  border-top: 1px solid #000;
+}
+.qdt-results-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  font-size: 10px;
+  margin-bottom: 4px;
+}
+
+/* ─── SecaoNivel: largura fixa da coluna de labels ──── */
+.sec-table .col-lbl {
+  width: 108px;
+}
+/* ─── SecaoNivel: colunas de travessia (input + unidade) */
+.sec-table .col-input {
+  width: 22%;
+}
+.sec-table .col-unit {
+  width: 18px;
+}
+
+/* ─── SecaoNivel: input/select full-width dentro da célula */
+.sec-table .xcell,
+.sec-table select.xcell {
+  width: 100%;
+}
+
+/* ─── Rodapé de seção (resultado + nota) ───────────── */
+.sec-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* ─── Nota opcional na seção ───────────────────────── */
+.sec-note {
+  font-size: 9px;
+  color: #444;
+  margin-right: 8px;
+  text-align: right;
+  line-height: 1.4;
+}
+
+/* ─── Erro de validação 422 por seção ──────────────── */
+.sec-field-error {
+  font-size: 10px;
+  color: var(--color-error, #e53e3e);
+  width: 100%;
+  margin-top: 2px;
+  line-height: 1.4;
 }
 
 /* ─── Caixa verde (aprovação) ───────────────────────── */
@@ -227,6 +386,7 @@
   color: #000;
   font-size: 10px;
   white-space: nowrap;
+  min-width: 130px;
 }
 
 /* ─── Labels de campo (Vão, Flecha, etc.) ─────────────── */
@@ -235,7 +395,39 @@
   font-size: 10px;
   font-weight: normal;
   white-space: nowrap;
-  padding-left: 4px;
+  background-color: #E2E2E2;
+  border: 1px solid #999;
+  text-align: right;
+  padding: 2px 4px;
+  width: 80px;
+}
+
+/* ─── Célula de dado no cabeçalho ──────────────────────── */
+.header-cell {
+  border: 1px solid #999;
+  padding: 0;
+}
+
+/* ─── Input embutido em célula de cabeçalho ────────────── */
+.xcell.header-input {
+  width: 100%;
+  border: none;
+  height: 18px;
+}
+
+/* ─── Tabela do cabeçalho principal ───────────────────── */
+.header-data-table {
+  border-collapse: collapse;
+  margin-bottom: 8px;
+  width: 100%;
+  table-layout: fixed;
+}
+.header-data-table tr {
+  height: 22px;
+}
+.header-data-table .header-empty-cell {
+  border: 1px solid #999;
+  background-color: #f9f9f9;
 }
 
 .calc-layout {
@@ -248,6 +440,10 @@
   flex: 1 1 auto;
   min-width: 0;
   overflow-x: auto;
+  /* FE-26: Smooth momentum scroll on iOS (legacy Safari < 13) and contained
+     overscroll so the fixed ActionBar zone does not capture the gesture. */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
 
 .calc-side-column {
@@ -374,6 +570,25 @@
   background: rgba(229, 62, 62, 0.1);
 }
 
+/* CTA de reconfirmação de projeto (403 / acesso negado) */
+.header-reconfirm-button {
+  background: none;
+  border: 1px solid var(--color-warning, #d97706);
+  color: var(--color-warning, #d97706);
+  border-radius: 4px;
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+.header-reconfirm-button:hover {
+  background: rgba(217, 119, 6, 0.1);
+}
+.header-reconfirm-button:focus-visible {
+  outline: 2px solid var(--color-warning, #d97706);
+  outline-offset: 2px;
+}
+
 .status-banner {
   border: 1px solid #b94a4a;
   background: var(--surface-error);
@@ -463,10 +678,16 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-top: 10px;
 }
 
 .diagrama-poste-caption {
   text-align: left;
+  font-size: 7.5px;
+  color: #333;
+  line-height: 1.45;
+  max-width: 192px;
+  margin-top: 2px;
 }
 
 .project-screen {
@@ -578,6 +799,18 @@
   line-height: 1.4;
 }
 
+/* Error message element for Projeto field — always in DOM, empty when no error */
+.project-error-message {
+  font-size: 11px;
+  color: var(--color-error, #e53e3e);
+  min-height: 1em;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+.project-error-message:empty {
+  display: none;
+}
+
 .project-form-actions {
   display: flex;
   align-items: center;
@@ -684,6 +917,12 @@
 @media (max-width: 960px) {
   .page-wrap {
     padding: 10px;
+  }
+
+  /* FE-25: Reserve space at the bottom so the fixed ActionBar doesn't overlap content.
+     Uses --action-bar-height (80px) consistent with the UndoToast bottom offset. */
+  .calc-main-column {
+    padding-bottom: max(var(--action-bar-height), calc(env(safe-area-inset-bottom) + var(--action-bar-height)));
   }
 
   .calc-layout {
@@ -826,6 +1065,19 @@
   flex-wrap: wrap;
 }
 
+/* ─── ActionBar scroll-lock fix (FE-26) ────────────── */
+/* On iOS Safari, touch gestures that START on a position:fixed element (the
+   ActionBar bar at the bottom) can prevent the page from scrolling.
+   Setting touch-action: pan-y lets vertical scroll gestures that begin on the
+   bar surface still propagate to the scroll container, while overscroll-behavior
+   keeps the fixed element from capturing the over-scroll bounce. */
+[data-testid="action-bar-mobile"],
+[data-testid="action-bar-tablet"],
+[data-testid="action-bar-desktop"] {
+  touch-action: pan-y;
+  overscroll-behavior: none;
+}
+
 .stepper-next-point-btn,
 .stepper-end-project-btn {
   height: 32px;
@@ -920,6 +1172,25 @@
 .stepper-chip--next {
   border-color: #ccc;
   opacity: 0.7;
+}
+
+/* Status modifier classes for condensed chips */
+.stepper-chip--done {
+  border-color: var(--color-ok, #2d7d2d);
+  color: var(--color-ok, #2d7d2d);
+  background: rgba(45, 125, 45, 0.08);
+}
+
+.stepper-chip--error {
+  border-color: var(--color-error, #e53e3e);
+  color: var(--color-error, #e53e3e);
+  background: rgba(229, 62, 62, 0.08);
+}
+
+.stepper-chip--active {
+  border-color: var(--focus-border);
+  color: var(--focus-border);
+  background: linear-gradient(135deg, rgba(47, 102, 193, 0.1) 0%, rgba(77, 127, 205, 0.06) 100%);
 }
 
 .stepper-chip-label {

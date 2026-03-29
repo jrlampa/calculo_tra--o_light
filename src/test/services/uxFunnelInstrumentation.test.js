@@ -2,11 +2,14 @@
 testing the functionality of a module related to user experience (UX) funnel instrumentation. Here's
 a breakdown of what the code is doing: */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+
 import {
   UX_FUNNEL_EVENTS,
   setUxFunnelEventCallback,
   buildUxFunnelEvent,
   trackUxFunnelEvent,
+  getTraceabilityLog,
+  clearTraceabilityLog,
 } from '@/services/uxFunnelInstrumentation'
 
 describe('uxFunnelInstrumentation', () => {
@@ -50,6 +53,19 @@ describe('uxFunnelInstrumentation', () => {
     )
   })
 
+  it('CALCULATION_PERSISTED is a valid event and carries ponto_id', () => {
+    const pontoId = '44444444-4444-4444-4444-444444444444'
+    const event = buildUxFunnelEvent(UX_FUNNEL_EVENTS.CALCULATION_PERSISTED, {
+      ponto_id: pontoId,
+      operation_id: 'op-001',
+    })
+
+    expect(event).toBeTruthy()
+    expect(event.name).toBe('calculation_persisted')
+    expect(event.properties.ponto_id).toBe(pontoId)
+    expect(event.properties.operation_id).toBe('op-001')
+  })
+
   it('ignores unknown event names', () => {
     const event = trackUxFunnelEvent('not_allowed_event', { foo: 'bar' })
 
@@ -86,5 +102,58 @@ describe('uxFunnelInstrumentation', () => {
     expect(event).toBeTruthy()
     expect(infoSpy).toHaveBeenCalledTimes(1)
     expect(errorSpy).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('getTraceabilityLog / clearTraceabilityLog', () => {
+  beforeEach(() => {
+    clearTraceabilityLog()
+    vi.spyOn(console, 'info').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    clearTraceabilityLog()
+    vi.restoreAllMocks()
+  })
+
+  it('starts empty after clearTraceabilityLog', () => {
+    expect(getTraceabilityLog()).toEqual([])
+  })
+
+  it('appends an event each time trackUxFunnelEvent is called', () => {
+    trackUxFunnelEvent(UX_FUNNEL_EVENTS.PROJECT_CONFIRMED, { projeto_nome: 'P1' })
+    trackUxFunnelEvent(UX_FUNNEL_EVENTS.POINT_CONFIRMED, { ponto_id: 1 })
+
+    const log = getTraceabilityLog()
+    expect(log).toHaveLength(2)
+    expect(log[0].name).toBe(UX_FUNNEL_EVENTS.PROJECT_CONFIRMED)
+    expect(log[1].name).toBe(UX_FUNNEL_EVENTS.POINT_CONFIRMED)
+  })
+
+  it('returns a snapshot (not the live array)', () => {
+    trackUxFunnelEvent(UX_FUNNEL_EVENTS.CALCULATION_SUCCEEDED, {})
+    const snap1 = getTraceabilityLog()
+
+    trackUxFunnelEvent(UX_FUNNEL_EVENTS.PERSISTENCE_SAVED, {})
+    const snap2 = getTraceabilityLog()
+
+    expect(snap1).toHaveLength(1)
+    expect(snap2).toHaveLength(2)
+    expect(snap1).not.toBe(snap2)
+  })
+
+  it('does not append invalid event names', () => {
+    trackUxFunnelEvent('not_a_valid_event', {})
+    expect(getTraceabilityLog()).toHaveLength(0)
+  })
+
+  it('each entry has name, ts, and properties', () => {
+    trackUxFunnelEvent(UX_FUNNEL_EVENTS.PERSISTENCE_SAVED, { ponto_id: 42 })
+    const [entry] = getTraceabilityLog()
+    expect(entry).toHaveProperty('name', UX_FUNNEL_EVENTS.PERSISTENCE_SAVED)
+    expect(entry).toHaveProperty('ts')
+    expect(entry.ts).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+    expect(entry).toHaveProperty('properties')
+    expect(entry.properties.ponto_id).toBe(42)
   })
 })
