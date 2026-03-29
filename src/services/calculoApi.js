@@ -159,6 +159,8 @@ function mapPoste(poste) {
   }
 }
 
+// MT1, MT2, and BT levels share the same field shape (conductor + geometry),
+// so a single mapper handles all three. BTZ and RAL have distinct structures.
 function mapStandardTravessia(travessia) {
   return {
     tipo_rede: travessia.tipoRede || '',
@@ -182,6 +184,13 @@ function mapBTZTravessia(travessia) {
   }
 }
 
+/**
+ * Map a frontend cabecalho object to the project-creation payload shape
+ * expected by POST /api/projetos.
+ *
+ * @param {object} cabecalho - App-local header state (camelCase keys).
+ * @returns {object} Snake-case DTO ready for the API.
+ */
 function mapProjetoDados(cabecalho) {
   return {
     orgao: cabecalho.orgao || '',
